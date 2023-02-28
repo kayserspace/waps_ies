@@ -14,12 +14,14 @@ from datetime import datetime
 import socket
 import time
 from struct import unpack
-from waps_ies import interface
+from waps_ies import interface, processor
 
 CCSDS1HeaderLength =  6
 CCSDS2HeaderLength = 10
 CCSDSHeadersLength = CCSDS1HeaderLength + CCSDS2HeaderLength
 CCSDS_packet_timeout_notification = 2.1 # seconds
+
+BIOLAB_ID_position = 40
 
 #class CCSDS_packet:
     
@@ -92,6 +94,7 @@ class TCP_Receiver:
         self.timeout_notified = False
 
         self.total_packets_received = 0
+        self.total_biolab_packets = 0
         
     def add_interface(self, ies_interface):
         """ Add an interface object to the trackerer """
@@ -141,13 +144,12 @@ class TCP_Receiver:
                             raise Exception( "Failed to read complete CCSDS Data Block from TCP link" )
                         else:
                             logging.info("Got the rest")
-                            process_CCSDS_packet( CCSDS_header + packetData + packetData2 )
+                            self.process_CCSDS_packet( CCSDS_header + packetData + packetData2 )
                     else:
-                        process_CCSDS_packet( CCSDS_header + packetData )
+                        self.process_CCSDS_packet( CCSDS_header + packetData )
                     
                     self.total_packets_received = self.total_packets_received + 1
-                    logging.info("CCSDS length: " + str(CCSDSHeadersLength + packetDataLength))
-                    logging.info("Total nubmer of packets " + str(self.total_packets_received))
+                    
                 
                 except TimeoutError:
                     if (not self.timeout_notified):
@@ -168,61 +170,100 @@ class TCP_Receiver:
                 self.interface.close()
                 
             self.socket.close()
-            logging.info(" # Closed socket")
+            logging.info(" # Disconnected from server")
+            logging.info(" Total nubmer of packets received: %d", self.total_packets_received)
+            logging.info(" BIOLAB packets processed:         %d", self.total_biolab_packets)
         
 
-def process_CCSDS_packet(CCSDS_Packet):
+    def process_CCSDS_packet(self, CCSDS_packet):
+        """
+        Takes a CCSDS packet, extracts WAPS image packet if present
 
-    if( len( CCSDS_Packet ) < CCSDSHeadersLength ):
-        return
+            Parameters:
+                file_path (str): Location of the archive data file
 
-    # sys.stderr.write( "CCSDS_Header is %s\n" % ( CCSDS_Header.encode( 'hex' ) ) )
+            Returns:
+                packet_list (list): list of extracted BIOLAB packets
+        """
 
-    # extract data from assembled packet:
+        CCSDS_packet_length = len(CCSDS_packet)
 
-    # CCSDS primary header:
-    word1 = unpack( '>H', CCSDS_Packet[0:2] )[0]
-    ccsds1VersionNumber  = ( word1 >> 13 ) & 0x0007 # bits 0-2
-    ccsds1Type           = ( word1 >> 12 ) & 0x0001 # bit 3
-    ccsds1SecondaryHdr   = ( word1 >> 11 ) & 0x0001 # bit 4
-    ccsds1APID           = ( word1 >>  0 ) & 0x03ff # bits 5-15
-    word2 = unpack( '>H', CCSDS_Packet[2:4] )[0]
-    ccsds1SeqFlags       = ( word2 >> 14 ) & 0x0003 # bits 0-1
-    ccsds1SeqCounter     = ( word2 >>  0 ) & 0x3fff # bits 2-15
-    ccsds1PacketLength = unpack( '>H', CCSDS_Packet[4:6] )[0]
+        if( len( CCSDS_packet ) < CCSDSHeadersLength ):
+            logging.error(" CCSDS packet is too short: %d bytes", CCSDS_packet_length)
+            return
 
-    # CCSDS secondary header:
-    ccsds2CoarseTime = unpack( '>L', CCSDS_Packet[6:10] )[0]
-    word3 = unpack( '>H', CCSDS_Packet[10:12] )[0]
-    ccsds2FineTime = ( ( word3 >> 8 ) & 0x00ff ) * 1000 / 256 # calculate into milliseconds from bits 0-7
-    ccsds2TimeID     = ( word3 >> 6 ) & 0x0003   # bits 8-9
-    ccsds2CW         = ( word3 >> 5 ) & 0x0001   # bit 10
-    ccsds2ZOE        = ( word3 >> 4 ) & 0x0001   # bit 11
-    ccsds2PacketType = ( word3 >> 0 ) & 0x000f   # bits 12-15
+        # TODO more checks on teh CCSDS packet
 
-    ccsds2PacketID32 = unpack( '>L', CCSDS_Packet[12:16] )[0]
-    ccsds2Spare         = ( ccsds2PacketID32 >> 31 ) & 0x00000000
-    ccsds2ElementID     = ( ccsds2PacketID32 >> 27 ) & 0x0000000f
-    ccsds2PacketID27    = ( ccsds2PacketID32 >>  0 ) & 0x07ffffff
+        # Check packet length and BIOLAB ID
+        if (CCSDS_packet_length < 287 or CCSDS_packet[BIOLAB_ID_position] != 0x40):
+            logging.debug(" Not a BIOLAB packet")
+            return
 
-    logging.info( "success: read a CCSDS packet of %d bytes in full" % len( CCSDS_Packet ) )
-    strType = "system"
-    if( ccsds1Type == 1 ): strType = "payload"
-    logging.info( "         type: %s" % strType )
-    logging.info( "         secondary header present: %r" % ( bool( ccsds1SecondaryHdr ) ) )
-    logging.info( "         APID: %d" % ccsds1APID )
-    strSequenceFlags = "b" + str( int ( ccsds1SeqFlags > 1 ) ) + str( int( ccsds1SeqFlags & 0x1 ) )
-    logging.info( "         packet length: %d" % ccsds1PacketLength )
-    logging.info( "  CCSDS secondary header:")
-    logging.info( "         coarse time: %d" % ccsds2CoarseTime )
-    logging.info( "         fine time: %d" % ccsds2FineTime )
-    strTimeID = "b" + str( int ( ccsds2TimeID > 1 ) ) + str( int( ccsds2TimeID & 0x1 ) )
-    logging.info( "         time ID: %s" % strTimeID )
-    logging.info( "         checkword present: %r" % ( bool( ccsds2CW ) ) )
-    logging.info( "         ZOE: %r" % ( bool( ccsds2ZOE ) ) )
-    logging.info( "         packetType: %d" % ( ccsds2PacketType ) )
-    logging.info( "         spare: %d" % ( int( ccsds2Spare ) ) )
-    strElementID = "not mapped"
-    if( ccsds2ElementID == 2 ): strElementID = "Columbus"
-    logging.info( "         element ID: %d (%s)" % ( int( ccsds2ElementID ), strElementID ) )
-    logging.info( "         packet ID 27: %d" % ( ccsds2PacketID27 ) )
+        BIOLAB_packet_length = CCSDS_packet[BIOLAB_ID_position + 1] * 2 + 4
+        if (BIOLAB_packet_length < 254):
+            logging.warning(" Unexpected BIOLAB packet length: %d", BIOLAB_packet_length)
+        
+        # Count BIOLAB packets
+        self.total_biolab_packets = self.total_biolab_packets + 1
+
+        
+
+
+        # extract data from assembled packet:
+
+        # CCSDS primary header:
+        word1 = unpack( '>H', CCSDS_packet[0:2] )[0]
+        ccsds1VersionNumber  = ( word1 >> 13 ) & 0x0007 # bits 0-2
+        ccsds1Type           = ( word1 >> 12 ) & 0x0001 # bit 3
+        ccsds1SecondaryHdr   = ( word1 >> 11 ) & 0x0001 # bit 4
+        ccsds1APID           = ( word1 >>  0 ) & 0x03ff # bits 5-15
+        word2 = unpack( '>H', CCSDS_packet[2:4] )[0]
+        ccsds1SeqFlags       = ( word2 >> 14 ) & 0x0003 # bits 0-1
+        ccsds1SeqCounter     = ( word2 >>  0 ) & 0x3fff # bits 2-15
+        ccsds1PacketLength = unpack( '>H', CCSDS_packet[4:6] )[0]
+
+        # CCSDS secondary header:
+        ccsds2CoarseTime = unpack( '>L', CCSDS_packet[6:10] )[0]
+        word3 = unpack( '>H', CCSDS_packet[10:12] )[0]
+        ccsds2FineTime = ( ( word3 >> 8 ) & 0x00ff ) * 1000 / 256 # calculate into milliseconds from bits 0-7
+        ccsds2TimeID     = ( word3 >> 6 ) & 0x0003   # bits 8-9
+        ccsds2CW         = ( word3 >> 5 ) & 0x0001   # bit 10
+        ccsds2ZOE        = ( word3 >> 4 ) & 0x0001   # bit 11
+        ccsds2PacketType = ( word3 >> 0 ) & 0x000f   # bits 12-15
+
+        ccsds2PacketID32 = unpack( '>L', CCSDS_packet[12:16] )[0]
+        ccsds2Spare         = ( ccsds2PacketID32 >> 31 ) & 0x00000000
+        ccsds2ElementID     = ( ccsds2PacketID32 >> 27 ) & 0x0000000f
+        ccsds2PacketID27    = ( ccsds2PacketID32 >>  0 ) & 0x07ffffff
+
+        logging.info( "success: read a CCSDS packet of %d bytes in full" % len( CCSDS_packet ) )
+        strType = "system"
+        if( ccsds1Type == 1 ): strType = "payload"
+        logging.info( "         type: %s" % strType )
+        logging.info( "         secondary header present: %r" % ( bool( ccsds1SecondaryHdr ) ) )
+        logging.info( "         APID: %d" % ccsds1APID )
+        strSequenceFlags = "b" + str( int ( ccsds1SeqFlags > 1 ) ) + str( int( ccsds1SeqFlags & 0x1 ) )
+        logging.info( "         packet length: %d" % ccsds1PacketLength )
+        logging.info( "  CCSDS secondary header:")
+        logging.info( "         coarse time: %d" % ccsds2CoarseTime )
+        logging.info( "         fine time: %d" % ccsds2FineTime )
+        strTimeID = "b" + str( int ( ccsds2TimeID > 1 ) ) + str( int( ccsds2TimeID & 0x1 ) )
+        logging.info( "         time ID: %s" % strTimeID )
+        logging.info( "         checkword present: %r" % ( bool( ccsds2CW ) ) )
+        logging.info( "         ZOE: %r" % ( bool( ccsds2ZOE ) ) )
+        logging.info( "         packetType: %d" % ( ccsds2PacketType ) )
+        logging.info( "         spare: %d" % ( int( ccsds2Spare ) ) )
+        strElementID = "not mapped"
+        if( ccsds2ElementID == 2 ): strElementID = "Columbus"
+        logging.info( "         element ID: %d (%s)" % ( int( ccsds2ElementID ), strElementID ) )
+        logging.info( "         packet ID 27: %d" % ( ccsds2PacketID27 ) )
+
+        # TODO proper timestamps
+        # Create BIOLAB packet as is
+        packet =  processor.BIOLAB_Packet("None", datetime.now(),
+                            datetime.now(),
+                            CCSDS_packet[BIOLAB_ID_position:BIOLAB_ID_position+BIOLAB_packet_length])
+
+        # If packet matches biolab specification add it to list
+        if (packet.in_spec()):
+            print("in spec")

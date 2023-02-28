@@ -17,7 +17,7 @@ from datetime import datetime
 import logging
 import time
 from datetime import timedelta
-from waps_ies import tcp_receiver, interface
+from waps_ies import tcpreceiver, interface
 
 def run_waps_ies(args):
     """
@@ -192,7 +192,7 @@ def run_waps_ies(args):
     # Remove hardcoded IP address and port, add those to the parameters above
 
     # Initialize the WAPS IES socket
-    ies = tcp_receiver.TCP_Receiver('192.168.56.101',
+    ies = tcpreceiver.TCP_Receiver('192.168.56.101',
                                     '23456',
                                     output_path,
                                     log_path,
