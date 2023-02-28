@@ -3,19 +3,18 @@
 # Script: TCPReceiver.py
 # Author: Georgi Olentsenko
 # Purpose: Receiving CCSDS packets over TCP and filtering BIOLAB packets
-# Version: 2023-XX-XX 17:00
+# Version: 2023-XX-XX xx:xx
 #
 # Change Log:
 #  2023-XX-XX
 #  - initial version
 
 import logging
+from datetime import datetime
 import socket
 import time
 from struct import unpack
 from waps_ies import interface
-
-server_address = ( '192.168.56.101', 23456 )
 
 CCSDS1HeaderLength =  6
 CCSDS2HeaderLength = 10
@@ -25,7 +24,7 @@ CCSDS_packet_timeout_notification = 2.1 # seconds
 #class CCSDS_packet:
     
     
-class TCP_receiver:
+class TCP_Receiver:
     """
     TCP Receiver class
 
@@ -45,11 +44,11 @@ class TCP_receiver:
     connected = False
     
     continue_running = True
-    packets_since_boot = 0
     
-    interface = None
+
+
     
-    def __init__(self):
+    def __init__(self, address, port, output_path, log_path, log_level):
         """
         Initialize the TCP connection
 
@@ -60,27 +59,49 @@ class TCP_receiver:
         -------
 
         """
+
+        self.server_address = ( address, int(port) )
         
-        self.input_folder = 'input/'
-        self.output_folder = 'output/'
-        self.log_folder = 'log/'
-        self.logging_level = logging.INFO
+        self.output_path = output_path
+        self.log_path = log_path
+        self.log_level = log_level
     
         self.continue_running = True
         self.interface = None
-        
-        # Debugging parameters
+
+        # TODO implement
+        #self.image_timeout = timedelta(minutes = 60)
+
+        self.memory_slot_change_detection = False
+
+        # Set up logging
+        log_filename = (self.log_path + 'WAPS_IES_' +
+                            datetime.now().strftime('%Y%m%d_%H%M%S') + '.log')
+        logging.basicConfig(filename = log_filename,
+                            format='%(asctime)s:%(levelname)s:%(message)s',
+                            level=self.log_level)
+        logging.getLogger().addHandler(logging.StreamHandler())
+
+        # Start-up messages
+        logging.info(' ##### WAPS Image Extraction Software #####')
+        logging.info(' # Author: Georgi Olentsenko')
+        logging.info(' # Started log file: ' + log_filename)
+        logging.info(' # Path to extracted images: '+ self.output_path)
+
+        # Status parameters
         self.timeout_notified = False
+
+        self.total_packets_received = 0
         
     def add_interface(self, ies_interface):
         """ Add an interface object to the trackerer """
 
         # Check interface type before adding
         if (type(ies_interface) is interface.WAPS_interface):
-            logging.debug('Interface added')
+            logging.debug(' # Interface added')
             self.interface = ies_interface
         else:
-            logging.warning('Interface has wrong object type')
+            logging.warning(' Interface has wrong object type')
     
     def start(self):
     
@@ -90,12 +111,12 @@ class TCP_receiver:
             
                 if (not self.connected):
                     try:
-                        self.socket.connect(server_address)
+                        self.socket.connect(self.server_address)
                         self.connected = True
-                        logging.info("TCP connection to %s:%s established",
-                                       server_address[0], str(server_address[1]))
+                        logging.info(" # TCP connection to %s:%s established",
+                                       self.server_address[0], str(self.server_address[1]))
                     except Exception as err:
-                        logging.error("Could not connect to socket " + str(err))
+                        logging.error(" Could not connect to socket " + str(err))
                         time.sleep(1)
                        
                 try:
@@ -103,7 +124,7 @@ class TCP_receiver:
                     self.timeout_notified = False
                     
                     if (len(CCSDS_header) != CCSDSHeadersLength):
-                        raise Exception( "Header reception failed" )
+                        raise Exception( " Header reception failed" )
                         
                     ccsds1PacketLength = unpack( '>H', CCSDS_header[4:6] )[0]
                     
@@ -111,6 +132,7 @@ class TCP_receiver:
                     packetDataLength = ccsds1PacketLength + 1 - CCSDS2HeaderLength
                     
                     packetData = self.socket.recv( packetDataLength )
+                    # TODO see if this is actually needed
                     if( len( packetData ) != packetDataLength ):
                         logging.info("Expected data length of " + str(packetDataLength) +
                                         ' vs actual ' + str(len( packetData )))
@@ -119,13 +141,13 @@ class TCP_receiver:
                             raise Exception( "Failed to read complete CCSDS Data Block from TCP link" )
                         else:
                             logging.info("Got the rest")
-                            printCCSDSPacket( CCSDS_header + packetData + packetData2 )
+                            process_CCSDS_packet( CCSDS_header + packetData + packetData2 )
                     else:
-                        printCCSDSPacket( CCSDS_header + packetData )
+                        process_CCSDS_packet( CCSDS_header + packetData )
                     
-                    self.packets_since_boot = self.packets_since_boot + 1
+                    self.total_packets_received = self.total_packets_received + 1
                     logging.info("CCSDS length: " + str(CCSDSHeadersLength + packetDataLength))
-                    logging.info("Total nubmer of packets " + str(self.packets_since_boot))
+                    logging.info("Total nubmer of packets " + str(self.total_packets_received))
                 
                 except TimeoutError:
                     if (not self.timeout_notified):
@@ -135,20 +157,22 @@ class TCP_receiver:
                         self.timeout_notified = True
                 
         except KeyboardInterrupt:
-            logging.info(' Keyboard interrupt, closing')
+            logging.info(' # Keyboard interrupt, closing')
 
         except Exception as err:
-            logging.error(" Error during execution: " + str(err))
+            logging.error(" Unexpected error during execution: " + str(err))
             
         finally:
+            # Close interface if it is running
             if (self.interface):
                 self.interface.close()
                 
             self.socket.close()
-            logging.info(" Closed socket")
+            logging.info(" # Closed socket")
         
-        
-def printCCSDSPacket( CCSDS_Packet ):
+
+def process_CCSDS_packet(CCSDS_Packet):
+
     if( len( CCSDS_Packet ) < CCSDSHeadersLength ):
         return
 
@@ -181,28 +205,24 @@ def printCCSDSPacket( CCSDS_Packet ):
     ccsds2ElementID     = ( ccsds2PacketID32 >> 27 ) & 0x0000000f
     ccsds2PacketID27    = ( ccsds2PacketID32 >>  0 ) & 0x07ffffff
 
-    logging.info( "success: read a CCSDS packet of %d bytes in full\n" % len( CCSDS_Packet ) )
-    logging.info( "  CCSDS primary header:\n")
-    logging.info( "         version number: %d\n" % ccsds1VersionNumber )
+    logging.info( "success: read a CCSDS packet of %d bytes in full" % len( CCSDS_Packet ) )
     strType = "system"
     if( ccsds1Type == 1 ): strType = "payload"
-    logging.info( "         type: %s\n" % strType )
-    logging.info( "         secondary header present: %r\n" % ( bool( ccsds1SecondaryHdr ) ) )
-    logging.info( "         APID: %d\n" % ccsds1APID )
+    logging.info( "         type: %s" % strType )
+    logging.info( "         secondary header present: %r" % ( bool( ccsds1SecondaryHdr ) ) )
+    logging.info( "         APID: %d" % ccsds1APID )
     strSequenceFlags = "b" + str( int ( ccsds1SeqFlags > 1 ) ) + str( int( ccsds1SeqFlags & 0x1 ) )
-    logging.info( "         sequence flags: %s\n" % strSequenceFlags )
-    logging.info( "         sequence count: %d\n" % ccsds1SeqCounter )
-    logging.info( "         packet length: %d\n" % ccsds1PacketLength )
-    logging.info( "  CCSDS secondary header:\n")
-    logging.info( "         coarse time: %d\n" % ccsds2CoarseTime )
-    logging.info( "         fine time: %d\n" % ccsds2FineTime )
+    logging.info( "         packet length: %d" % ccsds1PacketLength )
+    logging.info( "  CCSDS secondary header:")
+    logging.info( "         coarse time: %d" % ccsds2CoarseTime )
+    logging.info( "         fine time: %d" % ccsds2FineTime )
     strTimeID = "b" + str( int ( ccsds2TimeID > 1 ) ) + str( int( ccsds2TimeID & 0x1 ) )
-    logging.info( "         time ID: %s\n" % strTimeID )
-    logging.info( "         checkword present: %r\n" % ( bool( ccsds2CW ) ) )
-    logging.info( "         ZOE: %r\n" % ( bool( ccsds2ZOE ) ) )
-    logging.info( "         packetType: %d\n" % ( ccsds2PacketType ) )
-    logging.info( "         spare: %d\n" % ( int( ccsds2Spare ) ) )
+    logging.info( "         time ID: %s" % strTimeID )
+    logging.info( "         checkword present: %r" % ( bool( ccsds2CW ) ) )
+    logging.info( "         ZOE: %r" % ( bool( ccsds2ZOE ) ) )
+    logging.info( "         packetType: %d" % ( ccsds2PacketType ) )
+    logging.info( "         spare: %d" % ( int( ccsds2Spare ) ) )
     strElementID = "not mapped"
     if( ccsds2ElementID == 2 ): strElementID = "Columbus"
-    logging.info( "         element ID: %d (%s)\n" % ( int( ccsds2ElementID ), strElementID ) )
-    logging.info( "         packet ID 27: %d\n" % ( ccsds2PacketID27 ) )
+    logging.info( "         element ID: %d (%s)" % ( int( ccsds2ElementID ), strElementID ) )
+    logging.info( "         packet ID 27: %d" % ( ccsds2PacketID27 ) )

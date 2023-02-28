@@ -26,7 +26,6 @@ class WAPS_interface:
 
         self.window_open = False
         self.monitor = monitor
-        self.image_folder = self.monitor.output_folder
 
         sg.theme('GreenMono')
 
@@ -35,8 +34,11 @@ class WAPS_interface:
 
         ec_number = 4
         slot_number = 8
-        layout = [[sg.Text('Input path:', size=(9,1)), sg.Text(monitor.input_folder, background_color='lightgrey', k='input_path')],
-                  [sg.Text('Output path:', size=(9,1)), sg.Text(monitor.output_folder, background_color='lightgrey', k='input_path')],
+        layout = [[sg.Text('IP address:'),
+                    sg.Text(monitor.server_address[0], background_color='lightgrey', k='input_path'),
+                    sg.Text('port:'),
+                    sg.Text(monitor.server_address[1], background_color='lightgrey', k='input_path')],
+                  [sg.Text('Output path:', size=(9,1)), sg.Text(monitor.output_path, background_color='lightgrey', k='input_path')],
                   [sg.Text('Scan not enabled', background_color='lightgrey', key='scan_status', size=(13,1), justification='c'),
                        sg.Text('Tracker not started', background_color='yellow',  key='tracker_status', size=(15,1), justification='c'),
                        sg.Text('Manually select a file to process:'),

@@ -1,4 +1,13 @@
-""" WAPS IES Software """
+#!/usr/bin/env python
+
+# Script: readCCSDSFromTCP.py
+# Author: Georgi Olentsenko
+# Purpose: WAPS PD image extraction for operations at MUSC
+# Version: 2023-xx-xx xx:xx
+#
+# Change Log:
+#  2023-xx-xx
+#  - initial version
 
 import sys
 import configparser
@@ -8,7 +17,7 @@ from datetime import datetime
 import logging
 import time
 from datetime import timedelta
-from waps_ies import tracker, interface
+from waps_ies import tcp_receiver, interface
 
 def run_waps_ies(args):
     """
@@ -160,16 +169,13 @@ def run_waps_ies(args):
         memory_slot_change_detection = '1'
 
     ##### Check critical parameters
+    # TODO check IP and port
+    # TODO if do not exist - create
     # Check existence of paths
-    if (not os.path.exists(input_path)):
-        logging.error("Input path does not exist")
-        quit()
     elif (not os.path.exists(output_path)):
         logging.error("Output path does not exist")
-        quit()
     elif (not os.path.exists(log_path)):
         logging.error("Log path does not exist")
-        quit()
     #####
 
     # Logging level definition
@@ -182,11 +188,15 @@ def run_waps_ies(args):
     else:
         log_level = logging.INFO
 
-    # Initialize the WAPS IES
-    ies = tracker.WAPS_tracker(input_path,
-                               output_path,
-                               log_path,
-                               log_level)
+    # TODO
+    # Remove hardcoded IP address and port, add those to the parameters above
+
+    # Initialize the WAPS IES socket
+    ies = tcp_receiver.TCP_Receiver('192.168.56.101',
+                                    '23456',
+                                    output_path,
+                                    log_path,
+                                    log_level)
 
     # Configure interface
     if (int(gui_enabled)):
@@ -204,36 +214,16 @@ def run_waps_ies(args):
                 logging.info("---Interface taking longer than expected to boot")
         print ('#')
 
-    # Configure input file formats
-    ies.match_patterns = file_format.split(' ')
-    logging.info(" # Processing files with the following patterns: " + str(ies.match_patterns))
-
     ies.image_timeout = timedelta(minutes = int(image_timeout))
     logging.info(" # Image timeout: " + str(int(image_timeout)) + ' minute(s)')
 
     if (int(memory_slot_change_detection)):
         logging.info(" # Detecting memory slot change from BIOLAB telemetry")
 
-    if (not int(run_tracker) and int(gui_enabled)):
-        ies.interface.update_tracker_not_enabled()
-    # Initial path scan for files with packets
-    if (int(run_scan)):
-        logging.info(" # Running initial file scan of the input path")
-        if (int(gui_enabled)):
-            ies.interface.update_scan_enabled()
-        ies.process_folder()
-        if (int(gui_enabled)):
-            ies.interface.update_scan_complete()
-
-    # Start running the IES file tracker
-    if (int(run_tracker)):
-        logging.info(" # Running file tracker to add packets from new files")
-        if (int(gui_enabled)):
-            ies.interface.update_tracker_active()
-        ies.start()
-    else:
-        run_tracker = False
-        ies.start(run_tracker)
+    logging.info(" # Running IES")
+    if (int(gui_enabled)):
+        ies.interface.update_tracker_active()
+    ies.start()
 
 if __name__ == "__main__":
     run_waps_ies(sys.argv)
