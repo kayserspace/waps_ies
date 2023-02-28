@@ -34,17 +34,13 @@ class WAPS_interface:
 
         ec_number = 4
         slot_number = 8
-        layout = [[sg.Text('IP address:'),
-                    sg.Text(monitor.server_address[0], background_color='lightgrey', k='input_path'),
-                    sg.Text('port:'),
-                    sg.Text(monitor.server_address[1], background_color='lightgrey', k='input_path')],
-                  [sg.Text('Output path:', size=(9,1)), sg.Text(monitor.output_path, background_color='lightgrey', k='input_path')],
-                  [sg.Text('Scan not enabled', background_color='lightgrey', key='scan_status', size=(13,1), justification='c'),
-                       sg.Text('Tracker not started', background_color='yellow',  key='tracker_status', size=(15,1), justification='c'),
-                       sg.Text('Manually select a file to process:'),
-                       sg.Input(key='selected_file', visible=False, enable_events=True), sg.FileBrowse()],
-                  [sg.Text('Last processed telemetry archive from the input path:')],
-                  [sg.Text('None', background_color='white', size=(63,1), k='last_processed_file')],
+        layout = [[sg.Text('Server:'),
+                    sg.Text(monitor.server_address[0]+':'+str(monitor.server_address[1]),
+                        background_color='lightgrey', k='input_path'),
+                    sg.Text('Disconnected', k='server_status', size=(11,1), justification='c',
+                        background_color='red'),
+                    sg.Text('Output path:', size=(9,1)), sg.Text(monitor.output_path,
+                        background_color='lightgrey', k='input_path')],
                   [sg.HSep()]]
                   
         column_slot = []
@@ -83,7 +79,7 @@ class WAPS_interface:
         layout.append([sg.Text('Statisctics: Total number of packets: X Missing packets: X Corrupt packets: X Images: X')])
 
         # Create the Window
-        self.window = sg.Window('WAPS Image Extractor Software', layout)
+        self.window = sg.Window('WAPS Image Extraction Software', layout)
 
         self.thread = threading.Thread(target=self.run, args=())
         self.thread.start()
@@ -126,29 +122,23 @@ class WAPS_interface:
 
         self.window['last_processed_file'].update(file_processed)
 
-    def update_scan_enabled(self):
-        """ Update scan status as "In progress" in the window """
+    def update_server_connected(self):
+        """ Update server status as "Connected" in the window """
 
-        self.window['scan_status'].update(background_color='blue')
-        self.window['scan_status'].update("Scan in progress")
+        self.window['server_status'].update(background_color='yellow')
+        self.window['server_status'].update("Connected")
 
-    def update_scan_complete(self):
-        """ Update scan status as "Complete" in the window """
+    def update_server_active(self):
+        """ Update server status as "Active" in the window """
 
-        self.window['scan_status'].update(background_color='springgreen4')
-        self.window['scan_status'].update("Scan complete")
+        self.window['server_status'].update(background_color='springgreen4')
+        self.window['server_status'].update("Active")
 
-    def update_tracker_not_enabled(self):
-        """ Update tracker status as "Not enabled" in the window """
+    def update_server_disconnected(self):
+        """ Update server status as "Active" in the window """
 
-        self.window['tracker_status'].update(background_color='lightgrey')
-        self.window['tracker_status'].update("Tracker not enabled")
-
-    def update_tracker_active(self):
-        """ Update tracker status as "Active" in the window """
-
-        self.window['tracker_status'].update(background_color='blue')
-        self.window['tracker_status'].update("Tracker active")
+        self.window['server_status'].update(background_color='red')
+        self.window['server_status'].update("Disconnected")
 
     def update_image_data(self, image):
 

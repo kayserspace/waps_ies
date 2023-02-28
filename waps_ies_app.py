@@ -220,9 +220,7 @@ def run_waps_ies(args):
     if (int(memory_slot_change_detection)):
         logging.info(" # Detecting memory slot change from BIOLAB telemetry")
 
-    logging.info(" # Running IES")
-    if (int(gui_enabled)):
-        ies.interface.update_tracker_active()
+    logging.info(" # Starting")
     ies.start()
 
 if __name__ == "__main__":

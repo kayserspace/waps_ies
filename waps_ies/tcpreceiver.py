@@ -38,18 +38,6 @@ class TCP_Receiver:
 
     """
     
-    # Initialize socket
-    socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Packet expected to be received at least once a second.
-    # Allowing more than double the time: 2.1 seconds
-    socket.settimeout(CCSDS_packet_timeout_notification)
-    connected = False
-    
-    continue_running = True
-    
-
-
-    
     def __init__(self, address, port, output_path, log_path, log_level):
         """
         Initialize the TCP connection
@@ -62,7 +50,9 @@ class TCP_Receiver:
 
         """
 
+        self.socket = None
         self.server_address = ( address, int(port) )
+        self.connected = False
         
         self.output_path = output_path
         self.log_path = log_path
@@ -114,20 +104,31 @@ class TCP_Receiver:
             
                 if (not self.connected):
                     try:
+                        # Initialize socket
+                        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        # Packet expected to be received at least once a second.
+                        # Allowing more than double the time: 2.1 seconds
+                        self.socket.settimeout(CCSDS_packet_timeout_notification)
                         self.socket.connect(self.server_address)
                         self.connected = True
+                        if (self.interface):
+                            self.interface.update_server_connected()
+
                         logging.info(" # TCP connection to %s:%s established",
                                        self.server_address[0], str(self.server_address[1]))
                     except Exception as err:
                         logging.error(" Could not connect to socket " + str(err))
                         time.sleep(1)
+                        continue
                        
                 try:
                     CCSDS_header = self.socket.recv(CCSDSHeadersLength)
                     self.timeout_notified = False
+                    if (self.interface):
+                        self.interface.update_server_active()
                     
                     if (len(CCSDS_header) != CCSDSHeadersLength):
-                        raise Exception( " Header reception failed" )
+                        raise Exception("Header reception failed")
                         
                     ccsds1PacketLength = unpack( '>H', CCSDS_header[4:6] )[0]
                     
@@ -157,12 +158,22 @@ class TCP_Receiver:
                                         str(CCSDS_packet_timeout_notification) +
                                         " seconds")
                         self.timeout_notified = True
+                        if (self.interface):
+                            self.interface.update_server_connected()
+
+                except KeyboardInterrupt:
+                    raise KeyboardInterrupt
+
+                except Exception as err:
+                    logging.error(str(err))
+                    self.connected = False
+                    self.socket.close()
+                    if (self.interface):
+                        self.interface.update_server_disconnected()
+                    time.sleep(1)
                 
         except KeyboardInterrupt:
             logging.info(' # Keyboard interrupt, closing')
-
-        except Exception as err:
-            logging.error(" Unexpected error during execution: " + str(err))
             
         finally:
             # Close interface if it is running
