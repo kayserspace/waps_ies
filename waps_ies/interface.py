@@ -39,13 +39,13 @@ class WAPS_interface:
                         background_color='lightgrey', k='input_path'),
                     sg.Text('Disconnected', k='server_status', size=(11,1), justification='c',
                         background_color='red'),
-                    sg.Text('CCSDS packets:'),
-                    sg.Text('0', k='CCSDS_pkts', size=(10,1),
+                    sg.Text('CCSDS pkts:'),
+                    sg.Text('0', k='CCSDS_pkts', size=(12,1),
                         background_color='white'),
-                    sg.Text('BIOLAB TM packets:'),
-                    sg.Text('0', k='BIOLAB_pkts', size=(6,1),
+                    sg.Text('BIOLAB TM pkts:'),
+                    sg.Text('0', k='BIOLAB_pkts', size=(8,1),
                         background_color='white'),
-                    sg.Text('WAPS image data packets:'),
+                    sg.Text('WAPS image data pkts:'),
                     sg.Text('0', k='WAPS_pkts', size=(6,1),
                         background_color='white')],
                     [sg.Text('Output path:'), sg.Text(monitor.output_path,
@@ -62,27 +62,31 @@ class WAPS_interface:
                 column_slot.append([sg.HSep()])
         
         columns = []
+        frames = []
         for ec in range(ec_number):
             columns.append([])
+            frames.append([])
+            #TODO remove hardcoded address
             if (ec==0):
-                columns[ec].append([sg.Text("EC address 171")])
+                columns[ec].append([sg.Text("EC address"),
+                                    sg.Text("171", background_color='white')])
             else:
-                columns[ec].append([sg.Text("EC address NUMBER")])
-            columns[ec].append([sg.HSep()])
+                columns[ec].append([sg.Text("EC address"),
+                                    sg.Text("X", background_color='white')])
             for i in range(slot_number):
                 cell_id = '_' + str(ec) + '_' + str(i)
-                columns[ec].append([sg.Text('Unknown', k='status' + cell_id, size=(9,1), justification='c'),
-                                 sg.ProgressBar(100, orientation='h', s=(3,16), k='progressbar' + cell_id),
-                                 sg.Text('0/0', k='packet_number' + cell_id, size=(5,1))])
-                #sg.Text('Image name', background_color='white', k='image_name' + cell_id, size=(30,1))
-                columns[ec].append([sg.Text('Missing:'),sg.Text('[]', k='missing_packets' + cell_id)])
+                frames[ec].append([sg.Text(str(i), background_color='lightgrey'),
+                                sg.Text('Unknown', k='status' + cell_id, size=(9,1), justification='c'),
+                                sg.ProgressBar(100, orientation='h', s=(3,16), k='progressbar' + cell_id),
+                                sg.Text('0/0', k='packet_number' + cell_id, size=(5,1))])
+                frames[ec].append([sg.Text('Missing:'),sg.Text('[]', k='missing_packets' + cell_id)])
                 if (i < slot_number - 1):
-                    columns[ec].append([sg.HSep()])
+                    frames[ec].append([sg.HSep()])
+            columns[ec].append([sg.Frame('Memory slots', frames[ec])])
 
-        combined_columns = [sg.Col(column_slot), sg.VSep(),
-                            sg.Col(columns[0]),sg.VSep(),
-                            sg.Col(columns[1]),sg.VSep(),
-                            sg.Col(columns[2]),sg.VSep(),
+        combined_columns = [sg.Col(columns[0]),
+                            sg.Col(columns[1]),
+                            sg.Col(columns[2]),
                             sg.Col(columns[3])]
         layout.append(combined_columns)
 
