@@ -39,7 +39,16 @@ class WAPS_interface:
                         background_color='lightgrey', k='input_path'),
                     sg.Text('Disconnected', k='server_status', size=(11,1), justification='c',
                         background_color='red'),
-                    sg.Text('Output path:', size=(9,1)), sg.Text(monitor.output_path,
+                    sg.Text('CCSDS packets:'),
+                    sg.Text('0', k='CCSDS_pkts', size=(10,1),
+                        background_color='white'),
+                    sg.Text('BIOLAB TM packets:'),
+                    sg.Text('0', k='BIOLAB_pkts', size=(6,1),
+                        background_color='white'),
+                    sg.Text('WAPS image data packets:'),
+                    sg.Text('0', k='WAPS_pkts', size=(6,1),
+                        background_color='white')],
+                    [sg.Text('Output path:'), sg.Text(monitor.output_path,
                         background_color='lightgrey', k='input_path')],
                   [sg.HSep()]]
                   
@@ -76,10 +85,21 @@ class WAPS_interface:
                             sg.Col(columns[2]),sg.VSep(),
                             sg.Col(columns[3])]
         layout.append(combined_columns)
-        layout.append([sg.Text('Statisctics: Total number of packets: X Missing packets: X Corrupt packets: X Images: X')])
+
+        status_bar = [sg.Text('Extracted images:'),
+                    sg.Text('0', k='extracted_images', size=(4,1),
+                        background_color='white'),
+                    sg.Text('Missing image packets:'),
+                    sg.Text('0', k='missing_packets', size=(4,1),
+                        background_color='white'),
+                    sg.Text('Corrupted image packets:'),
+                    sg.Text('0', k='corrupted_packets', size=(4,1),
+                        background_color='white')]
+        #sg.StatusBar('Stats. Packets - CCSDS pkts: 0 BIOLAB pkts: 0 WAPS image data pkts: 0 Miss: 0 - Images: 0')
+        layout.append(status_bar)
 
         # Create the Window
-        self.window = sg.Window('WAPS Image Extraction Software', layout)
+        self.window = sg.Window('WAPS Image Extraction Software', layout, resizable=True)
 
         self.thread = threading.Thread(target=self.run, args=())
         self.thread.start()
@@ -108,7 +128,7 @@ class WAPS_interface:
         finally:
             self.window.close()
             self.window_open = False
-            logging.info(' Closed interface')
+            logging.info(' # Closed interface')
             self.monitor.continue_running = False
 
     def close(self):
@@ -135,10 +155,20 @@ class WAPS_interface:
         self.window['server_status'].update("Active")
 
     def update_server_disconnected(self):
-        """ Update server status as "Active" in the window """
+        """ Update server status as "Disconnected" in the window """
 
         self.window['server_status'].update(background_color='red')
         self.window['server_status'].update("Disconnected")
+
+    def update_CCSDS_packets(self, CCSDS_packet_number):
+        """ Update CCSDS packet count in the window """
+
+        self.window['CCSDS_pkts'].update(str(CCSDS_packet_number))
+
+    def update_BIOLAB_TM_packets(self, BIOLAB_TM_packet_number):
+        """ Update BIOLAB TM packet count in the window """
+
+        self.window['BIOLAB_pkts'].update(str(BIOLAB_TM_packet_number))
 
     def update_image_data(self, image):
 

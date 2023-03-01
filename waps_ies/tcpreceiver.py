@@ -130,6 +130,7 @@ class TCP_Receiver:
                     self.timeout_notified = False
                     if (self.interface):
                         self.interface.update_server_active()
+                        self.interface.update_CCSDS_packets(self.total_packets_received)
                     
                     if (len(CCSDS_header) != CCSDSHeadersLength):
                         raise Exception("Header reception failed")
@@ -232,6 +233,8 @@ class TCP_Receiver:
         
         # Count BIOLAB packets
         self.total_biolab_packets = self.total_biolab_packets + 1
+        if (self.interface):
+            self.interface.update_BIOLAB_TM_packets(self.total_biolab_packets)
 
         
 
