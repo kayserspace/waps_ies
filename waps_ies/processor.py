@@ -407,7 +407,7 @@ class WAPS_Image:
 
 
 
-    def get_missing_packets(self):
+    def get_missing_packets(self, exclude_corrupted = False):
         """Get the missing packet list"""
 
         missing_packets = []
@@ -415,7 +415,8 @@ class WAPS_Image:
             # Check if all the correct packets are present
             completeness_array = [0] * self.number_of_packets
             for i in range(len(self.packets)):
-                if (self.packets[i].is_good_waps_image_packet()):
+                if (self.packets[i].is_good_waps_image_packet() or
+                    exclude_corrupted):
                     completeness_array[self.packets[i].tm_packet_id] = 1
             
             for i, present in enumerate(completeness_array):
@@ -466,7 +467,7 @@ class WAPS_Image:
 
         # Check for missing packets (reconstruct image in any case)
         accept_corrupted = True
-        missing_packets = self.get_missing_packets()
+        missing_packets = self.get_missing_packets(True) # Exclude corrupted packets
 
         image_data = bytearray(0)
 
