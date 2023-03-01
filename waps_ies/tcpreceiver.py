@@ -15,6 +15,7 @@ import socket
 import time
 from struct import unpack
 from waps_ies import interface, processor
+from datetime import timedelta
 
 CCSDS1HeaderLength =  6
 CCSDS2HeaderLength = 10
@@ -57,12 +58,14 @@ class TCP_Receiver:
         self.output_path = output_path
         self.log_path = log_path
         self.log_level = log_level
+
+        self.incomplete_images = []
     
         self.continue_running = True
         self.interface = None
 
         # TODO implement
-        #self.image_timeout = timedelta(minutes = 60)
+        self.image_timeout = timedelta(minutes = 60)
 
         self.memory_slot_change_detection = False
 
@@ -123,6 +126,7 @@ class TCP_Receiver:
                        
                 try:
                     CCSDS_header = self.socket.recv(CCSDSHeadersLength)
+                    self.total_packets_received = self.total_packets_received + 1
                     self.timeout_notified = False
                     if (self.interface):
                         self.interface.update_server_active()
@@ -135,6 +139,7 @@ class TCP_Receiver:
                     # calculate & receive remaining bytes in packet:
                     packetDataLength = ccsds1PacketLength + 1 - CCSDS2HeaderLength
                     
+                    waps_packet = None
                     packetData = self.socket.recv( packetDataLength )
                     # TODO see if this is actually needed
                     if( len( packetData ) != packetDataLength ):
@@ -145,12 +150,23 @@ class TCP_Receiver:
                             raise Exception( "Failed to read complete CCSDS Data Block from TCP link" )
                         else:
                             logging.info("Got the rest")
-                            self.process_CCSDS_packet( CCSDS_header + packetData + packetData2 )
+                            waps_packet = self.process_CCSDS_packet( CCSDS_header + packetData + packetData2 )
                     else:
-                        self.process_CCSDS_packet( CCSDS_header + packetData )
+                        waps_packet = self.process_CCSDS_packet( CCSDS_header + packetData )
                     
-                    self.total_packets_received = self.total_packets_received + 1
-                    
+                    if (waps_packet):
+                        # Sort packets into images
+                        self.incomplete_images = processor.sort_biolab_packets([waps_packet],
+                                                                               self.incomplete_images,
+                                                                               self.image_timeout,
+                                                                               self.interface,
+                                                                               self.memory_slot_change_detection)
+
+                        # Reconstruct and save images, keeping in memory the incomplete ones
+                        self.incomplete_images = processor.save_images(self.incomplete_images,
+                                                                       self.output_path,
+                                                                       True,
+                                                                       self.interface)
                 
                 except TimeoutError:
                     if (not self.timeout_notified):
@@ -277,4 +293,4 @@ class TCP_Receiver:
 
         # If packet matches biolab specification add it to list
         if (packet.in_spec()):
-            print("in spec")
+            return packet
