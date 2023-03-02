@@ -81,11 +81,15 @@ class WAPS_interface:
                                     sg.Text("X", background_color='white')])
             for i in range(slot_number):
                 cell_id = '_' + str(ec) + '_' + str(i)
-                frames[ec].append([sg.Text(str(i), background_color='lightgrey'),
-                                sg.Text('Unknown', k='status' + cell_id, size=(9,1), justification='c'),
-                                sg.ProgressBar(100, orientation='h', s=(3,16), k='progressbar' + cell_id),
-                                sg.Text('0/0', k='packet_number' + cell_id, size=(5,1))])
-                frames[ec].append([sg.Text('Missing:'),sg.Text('[]', k='missing_packets' + cell_id)])
+                frames[ec].append([sg.Text(str(i),
+                                        background_color='lightgrey'),
+                                    sg.Text('Unknown', k='status' + cell_id, size=(9,1), justification='c'),
+                                    sg.ProgressBar(100, orientation='h', s=(3,16), k='progressbar' + cell_id),
+                                    sg.Text('0/0', k='packet_number' + cell_id, size=(5,1))])
+                frames[ec].append([ sg.Text('FLIR', k='image_type' + cell_id,
+                                        background_color='lightgrey'),
+                                    sg.Text('Miss:'),
+                                    sg.Text('[]', k='missing_packets' + cell_id)])
                 if (i < slot_number - 1):
                     frames[ec].append([sg.HSep()])
             columns[ec].append([sg.Frame('Memory slots', frames[ec])])
@@ -222,6 +226,9 @@ class WAPS_interface:
                     i != image.memory_slot):
                     self.window['status_0_' + str(i)].update(
                         background_color='springgreen4')
+
+        # Image type
+        self.window['image_type_0_' + str(image.memory_slot)].update(image.camera_type)
 
         # Missing packets with colour change
         missing_packets_str = processor.WAPS_Image.number_sequence_printout(missing_packets)
