@@ -509,8 +509,8 @@ class WAPS_Image:
 
 def sort_biolab_packets(packet_list,
                         incomplete_images,
+                        receiver,
                         image_timeout = timedelta(minutes = 60),
-                        interface = None,
                         biolab_memory_slot_change_detection = False):
     """
     Takes packet list and incomplete images. Returns list of incomplete images with sorted packets.
@@ -567,6 +567,7 @@ def sort_biolab_packets(packet_list,
                         break
                 if (not matching_memory_slot_found):
                     flir_init_packets.append([packet.image_memory_slot,1])
+            receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
 
             # Track whether image is being trasmitted
             image_transmission_in_progress = True
@@ -620,6 +621,7 @@ def sort_biolab_packets(packet_list,
                         break
                 if (not matching_memory_slot_found):
                     flir_data_packets.append([packet.image_memory_slot,1])
+            receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
 
             # Track whether image is being trasmitted
             image_transmission_in_progress = True
@@ -653,6 +655,7 @@ def sort_biolab_packets(packet_list,
                         break
                 if (not matching_memory_slot_found):
                     ucam_init_packets.append([packet.image_memory_slot,1])
+            receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
 
             # Track whether image is being trasmitted
             image_transmission_in_progress = True
@@ -676,7 +679,7 @@ def sort_biolab_packets(packet_list,
                 elif (image.memory_slot == new_image.memory_slot):
                     incomplete_images[index].overwritten = True
                     logging.warning(' Previous image in memory slot ' + str(image.memory_slot) + ' overwritten')
-                    check_image_timeouts(incomplete_images, image_timeout, interface)
+                    check_image_timeouts(incomplete_images, image_timeout, receiver.interface)
             if (duplicate_image):
                 break
 
@@ -704,6 +707,7 @@ def sort_biolab_packets(packet_list,
                         break
                 if (not matching_memory_slot_found):
                     ucam_data_packets.append([packet.image_memory_slot,1])
+            receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
 
             # Track whether image is being trasmitted
             image_transmission_in_progress = True
@@ -777,7 +781,9 @@ def sort_biolab_packets(packet_list,
         for counts in other_packets:
             logging.debug('\t TM ID:  ' + hex(counts[0]) +
                           ' Count: ' + str(counts[1]))
-        
+    
+    if (receiver.interface):
+        receiver.interface.update_waps_image_packets(receiver.total_waps_image_packets)
 
     return incomplete_images
 

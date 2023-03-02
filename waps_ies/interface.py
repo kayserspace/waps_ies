@@ -184,6 +184,11 @@ class WAPS_interface:
 
         self.window['BIOLAB_pkts'].update(str(BIOLAB_TM_packet_number))
 
+    def update_waps_image_packets(self, waps_image_packet_number):
+        """ Update WAPS image packet count in the window """
+
+        self.window['WAPS_pkts'].update(str(waps_image_packet_number))
+
     def update_latets_file(self, latest_file):
         """ Update saved file name in the window """
 

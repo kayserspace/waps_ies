@@ -88,6 +88,7 @@ class TCP_Receiver:
 
         self.total_packets_received = 0
         self.total_biolab_packets = 0
+        self.total_waps_image_packets = 0
         
     def add_interface(self, ies_interface):
         """ Add an interface object to the trackerer """
@@ -159,8 +160,8 @@ class TCP_Receiver:
                         # Sort packets into images
                         self.incomplete_images = processor.sort_biolab_packets([waps_packet],
                                                                                self.incomplete_images,
+                                                                               self,
                                                                                self.image_timeout,
-                                                                               self.interface,
                                                                                self.memory_slot_change_detection)
 
                         # Reconstruct and save images, keeping in memory the incomplete ones
