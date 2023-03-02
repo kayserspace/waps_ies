@@ -219,11 +219,11 @@ class WAPS_interface:
             self.window['status_0_' + str(image.memory_slot)].update("Incomplete")
             self.window['status_0_' + str(image.memory_slot)].update(background_color='red')
         else:
-            self.window['status_0_' + str(image.memory_slot)].update("Finished")
+            self.window['status_0_' + str(image.memory_slot)].update("Complete")
             self.window['status_0_' + str(image.memory_slot)].update(background_color='springgreen1')
             # Change colours of all other finished images
             for i in range(8): # 8 memory slots
-                if (self.window['status_0_' + str(i)].get() == 'Finished' and
+                if (self.window['status_0_' + str(i)].get() == 'Complete' and
                     i != image.memory_slot):
                     self.window['status_0_' + str(i)].update(
                         background_color='springgreen4')

@@ -172,8 +172,8 @@ class TCP_Receiver:
                         # Reconstruct and save images, keeping in memory the incomplete ones
                         self.incomplete_images = processor.save_images(self.incomplete_images,
                                                                        self.output_path,
-                                                                       False,
-                                                                       self.interface)
+                                                                       self,
+                                                                       False) # Do not save incomplete images
                 
                 except TimeoutError:
                     if (not self.timeout_notified):

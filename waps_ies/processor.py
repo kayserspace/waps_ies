@@ -839,7 +839,7 @@ def write_file(image_data, file_path, filetype = 'wb', interface = None):
 
 
 
-def save_images(incomplete_images, output_path, save_incomplete = True, interface = None):
+def save_images(incomplete_images, output_path, receiver, save_incomplete = True):
     """
     Incomplete images and output path. Returns list of incomplete images with sorted packets.
 
@@ -849,7 +849,7 @@ def save_images(incomplete_images, output_path, save_incomplete = True, interfac
         Returns:
             
     """
-    
+    interface = receiver.interface
     finished_image_indexes = []
     
     for index, image in enumerate(incomplete_images):
@@ -882,7 +882,9 @@ def save_images(incomplete_images, output_path, save_incomplete = True, interfac
         missing_packets = image.get_missing_packets()
         image_percentage = '_'+ str(int(100.0*(image.number_of_packets - len(missing_packets))/image.number_of_packets))
         completeness_message = ('Image ' + image.image_name + ' is ' +
-                                 image_percentage[1:] + '% complete')
+                                 image_percentage[1:] + '% complete (' +
+                                 str(image.number_of_packets - len(missing_packets)) +
+                                 '/' + str(image.number_of_packets) + ')')
         if (len(missing_packets)):
             completeness_message =  (completeness_message + '. Missing packets: ' +
                          WAPS_Image.number_sequence_printout(missing_packets))
@@ -891,6 +893,9 @@ def save_images(incomplete_images, output_path, save_incomplete = True, interfac
             logging.info(completeness_message)
         else:
             logging.warning(completeness_message)
+
+        if (not len(missing_packets)):
+            receiver.total_completed_images = receiver.total_completed_images + 1
 
         
         if (image.camera_type == 'uCAM'):
@@ -999,6 +1004,7 @@ def save_images(incomplete_images, output_path, save_incomplete = True, interfac
         # Update interface if available
         if (interface):
             interface.update_image_data(image)
+            interface.update_stats()
 
     # Remove fully complete and written down images from the incomplete list
     if (len(finished_image_indexes)):
