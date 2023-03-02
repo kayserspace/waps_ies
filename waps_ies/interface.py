@@ -214,7 +214,7 @@ class WAPS_interface:
             self.window['status_0_' + str(image.memory_slot)].update(background_color='yellow')
         elif (image.image_transmission_active):
             self.window['status_0_' + str(image.memory_slot)].update("In progress")
-            self.window['status_0_' + str(image.memory_slot)].update(background_color='blue')
+            self.window['status_0_' + str(image.memory_slot)].update(background_color='lightblue')
         elif (len(missing_packets)):
             self.window['status_0_' + str(image.memory_slot)].update("Incomplete")
             self.window['status_0_' + str(image.memory_slot)].update(background_color='red')
