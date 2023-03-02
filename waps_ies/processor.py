@@ -573,6 +573,7 @@ def sort_biolab_packets(packet_list,
                 if (not matching_memory_slot_found):
                     flir_init_packets.append([packet.image_memory_slot,1])
             receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
+            receiver.total_initialized_images = receiver.total_initialized_images + 1
 
             # Track whether image is being trasmitted
             image_transmission_in_progress = True
@@ -661,6 +662,7 @@ def sort_biolab_packets(packet_list,
                 if (not matching_memory_slot_found):
                     ucam_init_packets.append([packet.image_memory_slot,1])
             receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
+            receiver.total_initialized_images = receiver.total_initialized_images + 1
 
             # Track whether image is being trasmitted
             image_transmission_in_progress = True
@@ -788,7 +790,7 @@ def sort_biolab_packets(packet_list,
                           ' Count: ' + str(counts[1]))
     
     if (receiver.interface):
-        receiver.interface.update_waps_image_packets(receiver.total_waps_image_packets)
+        receiver.interface.update_stats()
 
     return incomplete_images
 

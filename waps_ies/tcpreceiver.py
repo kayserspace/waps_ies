@@ -89,6 +89,11 @@ class TCP_Receiver:
         self.total_packets_received = 0
         self.total_biolab_packets = 0
         self.total_waps_image_packets = 0
+        self.total_initialized_images = 0
+        self.total_completed_images = 0
+        self.total_lost_packets = 0
+        self.total_corrupted_packets = 0
+
         
     def add_interface(self, ies_interface):
         """ Add an interface object to the trackerer """
@@ -131,7 +136,7 @@ class TCP_Receiver:
                     self.timeout_notified = False
                     if (self.interface):
                         self.interface.update_server_active()
-                        self.interface.update_CCSDS_packets(self.total_packets_received)
+                        self.interface.update_stats()
                     
                     if (len(CCSDS_header) != CCSDSHeadersLength):
                         raise Exception("Header reception failed")
@@ -235,7 +240,7 @@ class TCP_Receiver:
         # Count BIOLAB packets
         self.total_biolab_packets = self.total_biolab_packets + 1
         if (self.interface):
-            self.interface.update_BIOLAB_TM_packets(self.total_biolab_packets)
+            self.interface.update_stats()
 
         
 

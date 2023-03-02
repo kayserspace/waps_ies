@@ -100,13 +100,16 @@ class WAPS_interface:
                             sg.Col(columns[3])]
         layout.append(combined_columns)
 
-        status_bar = [sg.Text('Extracted images:'),
-                    sg.Text('0', k='extracted_images', size=(4,1),
+        status_bar = [sg.Text('Initialized images:'),
+                    sg.Text('0', k='initialized_images', size=(4,1),
                         background_color='white'),
-                    sg.Text('Missing image packets:'),
-                    sg.Text('0', k='missing_packets', size=(4,1),
+                    sg.Text('Completed images:'),
+                    sg.Text('0', k='completed_images', size=(4,1),
                         background_color='white'),
-                    sg.Text('Corrupted image packets:'),
+                    sg.Text('Lost packets:'),
+                    sg.Text('0', k='lost_packets', size=(4,1),
+                        background_color='white'),
+                    sg.Text('Corrupted packets:'),
                     sg.Text('0', k='corrupted_packets', size=(4,1),
                         background_color='white')]
         #sg.StatusBar('Stats. Packets - CCSDS pkts: 0 BIOLAB pkts: 0 WAPS image data pkts: 0 Miss: 0 - Images: 0')
@@ -146,15 +149,13 @@ class WAPS_interface:
             self.monitor.continue_running = False
 
     def close(self):
-        """ Triggers close button interface action """
+        """ Triggers close button interface action. Used externally """
         
         if (self.window_open):
             self.window.write_event_value(None, 'Exit')
 
-    def update_latest_file_processed(self, file_processed):
-        """ Update the latest processed telemetry archive name """
 
-        self.window['last_processed_file'].update(file_processed)
+
 
     def update_server_connected(self):
         """ Update server status as "Connected" in the window """
@@ -174,20 +175,19 @@ class WAPS_interface:
         self.window['server_status'].update(background_color='red')
         self.window['server_status'].update("Disconnected")
 
-    def update_CCSDS_packets(self, CCSDS_packet_number):
-        """ Update CCSDS packet count in the window """
+    def update_stats(self):
+        """ Update statistics in the window """
 
-        self.window['CCSDS_pkts'].update(str(CCSDS_packet_number))
+        # Top
+        self.window['CCSDS_pkts'].update(str(self.monitor.total_packets_received))
+        self.window['BIOLAB_pkts'].update(str(self.monitor.total_biolab_packets))
+        self.window['WAPS_pkts'].update(str(self.monitor.total_waps_image_packets))
 
-    def update_BIOLAB_TM_packets(self, BIOLAB_TM_packet_number):
-        """ Update BIOLAB TM packet count in the window """
-
-        self.window['BIOLAB_pkts'].update(str(BIOLAB_TM_packet_number))
-
-    def update_waps_image_packets(self, waps_image_packet_number):
-        """ Update WAPS image packet count in the window """
-
-        self.window['WAPS_pkts'].update(str(waps_image_packet_number))
+        # Bottom
+        self.window['initialized_images'].update(str(self.monitor.total_initialized_images))
+        self.window['completed_images'].update(str(self.monitor.total_completed_images))
+        self.window['lost_packets'].update(str(self.monitor.total_lost_packets))
+        self.window['corrupted_packets'].update(str(self.monitor.total_corrupted_packets))
 
     def update_latets_file(self, latest_file):
         """ Update saved file name in the window """
@@ -195,10 +195,6 @@ class WAPS_interface:
         self.window['latest_file'].update(latest_file)
 
     def update_image_data(self, image):
-
-
-        #logging.info(str(image))
-        #self.window['image_name_0_' + str(image.memory_slot)].update(image.image_name)
 
         # Image packets status
         missing_packets = image.get_missing_packets()
