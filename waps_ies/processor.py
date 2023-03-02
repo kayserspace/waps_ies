@@ -783,7 +783,7 @@ def sort_biolab_packets(packet_list,
 
 
 
-def write_file(image_data, file_path, filetype = 'wb'):
+def write_file(image_data, file_path, filetype = 'wb', interface = None):
     """Write image to hard drive"""
 
     readtype = 'rb'
@@ -813,6 +813,9 @@ def write_file(image_data, file_path, filetype = 'wb'):
         with open(file_path, filetype) as file:
             file.write(image_data)
             logging.info("Saved file: " + str(file_path))
+            if (interface):
+                file_name = file_path[file_path.rfind('/')-8:]
+                interface.update_latets_file(file_name)
 
     except IOError:
         logging.error('Could not open file for writing: ' + file_path)
@@ -886,7 +889,7 @@ def save_images(incomplete_images, output_path, save_incomplete = True, interfac
             # Image data is saved as is, binary
             file_path = date_path + image.image_name + image_percentage + '.jpg'
             
-            successful_write = write_file(image_data, file_path)
+            successful_write = write_file(image_data, file_path, 'wb', interface)
             if image.is_complete() and successful_write:
                 finished_image_indexes.append(index)
                 
@@ -913,7 +916,7 @@ def save_images(incomplete_images, output_path, save_incomplete = True, interfac
                         str(BIOLAB_Packet.word(image_data[i*2:i*2+2])) +
                         '\n')
 
-            successful_write = write_file(tm_image_data, file_path_tm, 'w')
+            successful_write = write_file(tm_image_data, file_path_tm, 'w', interface)
             if not successful_write:
                 continue
             
@@ -929,7 +932,7 @@ def save_images(incomplete_images, output_path, save_incomplete = True, interfac
                 csv_image_data = csv_image_data + str(BIOLAB_Packet.word(image_data[tm_length+i*2:tm_length+i*2+2]))
             csv_image_data = csv_image_data + '\n'
             
-            successful_write = write_file(csv_image_data, file_path_csv, 'w')
+            successful_write = write_file(csv_image_data, file_path_csv, 'w', interface)
             if not successful_write:
                 continue
             
@@ -953,7 +956,7 @@ def save_images(incomplete_images, output_path, save_incomplete = True, interfac
             output_image = io.BytesIO()
             img.save(output_image, format='BMP')
 
-            successful_write = write_file(output_image.getvalue(), file_path, 'wb')
+            successful_write = write_file(output_image.getvalue(), file_path, 'wb', interface)
             if image.is_complete() and successful_write:
                 finished_image_indexes.append(index)
 

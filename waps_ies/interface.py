@@ -34,9 +34,10 @@ class WAPS_interface:
 
         ec_number = 4
         slot_number = 8
+        # TODO have to see of this needs adjusting
         layout = [[sg.Text('Server:'),
                     sg.Text(monitor.server_address[0]+':'+str(monitor.server_address[1]),
-                        background_color='lightgrey', k='input_path'),
+                        background_color='lightgrey', k='server'),
                     sg.Text('Disconnected', k='server_status', size=(11,1), justification='c',
                         background_color='red'),
                     sg.Text('CCSDS pkts:'),
@@ -48,9 +49,13 @@ class WAPS_interface:
                     sg.Text('WAPS image data pkts:'),
                     sg.Text('0', k='WAPS_pkts', size=(6,1),
                         background_color='white')],
-                    [sg.Text('Output path:'), sg.Text(monitor.output_path,
-                        background_color='lightgrey', k='input_path')],
-                  [sg.HSep()]]
+                    [sg.Text('Output path:'),
+                     sg.Text(monitor.output_path, k='output_path', size=(42,1),
+                        justification='r', tooltip="Full path: " + monitor.output_path,
+                        background_color='lightgrey'),
+                     sg.Text('Latest image:'),
+                     sg.Text('None', k='latest_file', size=(46,1),
+                        background_color='white')]]
                   
         column_slot = []
         column_slot.append([sg.Text(' ')])
@@ -66,6 +71,7 @@ class WAPS_interface:
         for ec in range(ec_number):
             columns.append([])
             frames.append([])
+            columns[ec].append([sg.HSep()])
             #TODO remove hardcoded address
             if (ec==0):
                 columns[ec].append([sg.Text("EC address"),
@@ -173,6 +179,11 @@ class WAPS_interface:
         """ Update BIOLAB TM packet count in the window """
 
         self.window['BIOLAB_pkts'].update(str(BIOLAB_TM_packet_number))
+
+    def update_latets_file(self, latest_file):
+        """ Update saved file name in the window """
+
+        self.window['latest_file'].update(latest_file)
 
     def update_image_data(self, image):
 
