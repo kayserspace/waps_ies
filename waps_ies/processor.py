@@ -860,8 +860,11 @@ def save_images(incomplete_images, output_path, save_incomplete = True, interfac
             interface.update_image_data(image)
 
         # Ignore incomplete images
-        if (not save_incomplete and not image.is_complete()):
+        if (not save_incomplete and not image.is_complete() or
+            image.image_transmission_active):
             continue
+
+        image.image_transmission_active
 
         # Ignore if there is no update on the image
         if (not image.update):

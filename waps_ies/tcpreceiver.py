@@ -167,7 +167,7 @@ class TCP_Receiver:
                         # Reconstruct and save images, keeping in memory the incomplete ones
                         self.incomplete_images = processor.save_images(self.incomplete_images,
                                                                        self.output_path,
-                                                                       True,
+                                                                       False,
                                                                        self.interface)
                 
                 except TimeoutError:
@@ -267,7 +267,7 @@ class TCP_Receiver:
         ccsds2ElementID     = ( ccsds2PacketID32 >> 27 ) & 0x0000000f
         ccsds2PacketID27    = ( ccsds2PacketID32 >>  0 ) & 0x07ffffff
 
-        logging.info( "success: read a CCSDS packet of %d bytes in full" % len( CCSDS_packet ) )
+        logging.debug( "success: read a CCSDS packet of %d bytes in full" % len( CCSDS_packet ) )
         strType = "system"
         if( ccsds1Type == 1 ): strType = "payload"
         logging.debug( "         type: %s" % strType )
