@@ -41,6 +41,7 @@ class BIOLAB_Packet:
 
         # Initialize other parameters
         # Generic
+        self.ec_address = -1
         self.time_tag = -1
         self.packet_name = -1
         self.generic_tm_id = -1
@@ -70,6 +71,8 @@ class BIOLAB_Packet:
 
         # And then sort them out from data
         try:
+            # EC address
+            self.ec_address = self.data[2]
             # Packet time tag
             self.time_tag = BIOLAB_Packet.word(self.data[4:6])*65536 + BIOLAB_Packet.word(self.data[6:8])
             # Packet ID
@@ -282,15 +285,17 @@ class WAPS_Image:
     def __init__(self, camera_type, packet):
         """Image initialization with metadata"""
         
+        self.ec_address = packet.ec_address
         self.camera_type = camera_type
         self.memory_slot = packet.image_memory_slot
         self.number_of_packets = packet.image_number_of_packets
         self.timestamp = packet.source_file_timestamp
         self.extraction_timestamp = packet.extraction_time
         self.time_tag = packet.time_tag
-        self.image_name = (self.camera_type + '_' +
-                            str(self.memory_slot) + '_' +
-                            self.timestamp.strftime('%Y%m%d_%H%M') + '_' +
+        self.image_name = ("EC_" + str(self.ec_address) + '_' +
+                            self.camera_type + '_' +
+                            self.timestamp.strftime('%H%M%S') + '_' +
+                            'm' + str(self.memory_slot) + '_' +
                             str(self.time_tag))
         
         self.packets = []
@@ -860,11 +865,10 @@ def save_images(incomplete_images, output_path, save_incomplete = True, interfac
             interface.update_image_data(image)
 
         # Ignore incomplete images
-        if (not save_incomplete and not image.is_complete() or
+        if (not save_incomplete and
+            not image.is_complete() and
             image.image_transmission_active):
             continue
-
-        image.image_transmission_active
 
         # Ignore if there is no update on the image
         if (not image.update):
