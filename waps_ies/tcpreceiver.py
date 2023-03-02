@@ -269,24 +269,24 @@ class TCP_Receiver:
         logging.info( "success: read a CCSDS packet of %d bytes in full" % len( CCSDS_packet ) )
         strType = "system"
         if( ccsds1Type == 1 ): strType = "payload"
-        logging.info( "         type: %s" % strType )
-        logging.info( "         secondary header present: %r" % ( bool( ccsds1SecondaryHdr ) ) )
-        logging.info( "         APID: %d" % ccsds1APID )
+        logging.debug( "         type: %s" % strType )
+        logging.debug( "         secondary header present: %r" % ( bool( ccsds1SecondaryHdr ) ) )
+        logging.debug( "         APID: %d" % ccsds1APID )
         strSequenceFlags = "b" + str( int ( ccsds1SeqFlags > 1 ) ) + str( int( ccsds1SeqFlags & 0x1 ) )
-        logging.info( "         packet length: %d" % ccsds1PacketLength )
-        logging.info( "  CCSDS secondary header:")
-        logging.info( "         coarse time: %d" % ccsds2CoarseTime )
-        logging.info( "         fine time: %d" % ccsds2FineTime )
+        logging.debug( "         packet length: %d" % ccsds1PacketLength )
+        logging.debug( "  CCSDS secondary header:")
+        logging.debug( "         coarse time: %d" % ccsds2CoarseTime )
+        logging.debug( "         fine time: %d" % ccsds2FineTime )
         strTimeID = "b" + str( int ( ccsds2TimeID > 1 ) ) + str( int( ccsds2TimeID & 0x1 ) )
-        logging.info( "         time ID: %s" % strTimeID )
-        logging.info( "         checkword present: %r" % ( bool( ccsds2CW ) ) )
-        logging.info( "         ZOE: %r" % ( bool( ccsds2ZOE ) ) )
-        logging.info( "         packetType: %d" % ( ccsds2PacketType ) )
-        logging.info( "         spare: %d" % ( int( ccsds2Spare ) ) )
+        logging.debug( "         time ID: %s" % strTimeID )
+        logging.debug( "         checkword present: %r" % ( bool( ccsds2CW ) ) )
+        logging.debug( "         ZOE: %r" % ( bool( ccsds2ZOE ) ) )
+        logging.debug( "         packetType: %d" % ( ccsds2PacketType ) )
+        logging.debug( "         spare: %d" % ( int( ccsds2Spare ) ) )
         strElementID = "not mapped"
         if( ccsds2ElementID == 2 ): strElementID = "Columbus"
-        logging.info( "         element ID: %d (%s)" % ( int( ccsds2ElementID ), strElementID ) )
-        logging.info( "         packet ID 27: %d" % ( ccsds2PacketID27 ) )
+        logging.debug( "         element ID: %d (%s)" % ( int( ccsds2ElementID ), strElementID ) )
+        logging.debug( "         packet ID 27: %d" % ( ccsds2PacketID27 ) )
 
         # TODO proper timestamps
         # Create BIOLAB packet as is
