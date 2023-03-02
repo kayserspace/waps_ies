@@ -896,6 +896,7 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
 
         if (not len(missing_packets)):
             receiver.total_completed_images = receiver.total_completed_images + 1
+            incomplete_images[index].image_transmission_active = False
 
         
         if (image.camera_type == 'uCAM'):
