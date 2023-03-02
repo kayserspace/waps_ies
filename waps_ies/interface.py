@@ -86,7 +86,7 @@ class WAPS_interface:
                                     sg.Text('Unknown', k='status' + cell_id, size=(9,1), justification='c'),
                                     sg.ProgressBar(100, orientation='h', s=(3,16), k='progressbar' + cell_id),
                                     sg.Text('0/0', k='packet_number' + cell_id, size=(5,1))])
-                frames[ec].append([ sg.Text('FLIR', k='image_type' + cell_id,
+                frames[ec].append([ sg.Text('Type', k='image_type' + cell_id,
                                         background_color='lightgrey'),
                                     sg.Text('Miss:'),
                                     sg.Text('[]', k='missing_packets' + cell_id)])
