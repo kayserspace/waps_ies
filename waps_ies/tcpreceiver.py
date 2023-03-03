@@ -20,7 +20,6 @@ from datetime import timedelta
 CCSDS1HeaderLength =  6
 CCSDS2HeaderLength = 10
 CCSDSHeadersLength = CCSDS1HeaderLength + CCSDS2HeaderLength
-CCSDS_packet_timeout_notification = 2.1 # seconds
 
 BIOLAB_ID_position = 40
 
@@ -39,7 +38,7 @@ class TCP_Receiver:
 
     """
     
-    def __init__(self, address, port, output_path):
+    def __init__(self, address, port, output_path, tcp_timeout = '2.1'):
         """
         Initialize the TCP connection
 
@@ -53,6 +52,7 @@ class TCP_Receiver:
 
         self.socket = None
         self.server_address = ( address, int(port) )
+        self.tcp_timeout = tcp_timeout
         self.connected = False
         
         self.output_path = output_path
@@ -101,7 +101,7 @@ class TCP_Receiver:
                         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         # Packet expected to be received at least once a second.
                         # Allowing more than double the time: 2.1 seconds
-                        self.socket.settimeout(CCSDS_packet_timeout_notification)
+                        self.socket.settimeout(float(self.tcp_timeout))
                         self.socket.connect(self.server_address)
                         self.connected = True
                         if (self.interface):
@@ -162,7 +162,7 @@ class TCP_Receiver:
                 except TimeoutError:
                     if (not self.timeout_notified):
                         logging.warning("No CCSDS packets received for more than " +
-                                        str(CCSDS_packet_timeout_notification) +
+                                        str(self.tcp_timeout) +
                                         " seconds")
                         self.timeout_notified = True
                         if (self.interface):

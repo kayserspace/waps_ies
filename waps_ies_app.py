@@ -207,7 +207,8 @@ def run_waps_ies(args):
     # Initialize the WAPS IES socket
     ies = tcpreceiver.TCP_Receiver(ip_address,
                                     port,
-                                    output_path)
+                                    output_path,
+                                    tcp_timeout)
 
     # Configure interface
     if (int(gui_enabled)):
