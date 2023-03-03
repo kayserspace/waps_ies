@@ -39,7 +39,7 @@ class TCP_Receiver:
 
     """
     
-    def __init__(self, address, port, output_path, log_path, log_level):
+    def __init__(self, address, port, output_path):
         """
         Initialize the TCP connection
 
@@ -56,8 +56,6 @@ class TCP_Receiver:
         self.connected = False
         
         self.output_path = output_path
-        self.log_path = log_path
-        self.log_level = log_level
 
         self.incomplete_images = []
     
@@ -68,20 +66,6 @@ class TCP_Receiver:
         self.image_timeout = timedelta(minutes = 60)
 
         self.memory_slot_change_detection = False
-
-        # Set up logging
-        log_filename = (self.log_path + 'WAPS_IES_' +
-                            datetime.now().strftime('%Y%m%d_%H%M%S') + '.log')
-        logging.basicConfig(filename = log_filename,
-                            format='%(asctime)s:%(levelname)s:%(message)s',
-                            level=self.log_level)
-        logging.getLogger().addHandler(logging.StreamHandler())
-
-        # Start-up messages
-        logging.info(' ##### WAPS Image Extraction Software #####')
-        logging.info(' # Author: Georgi Olentsenko')
-        logging.info(' # Started log file: ' + log_filename)
-        logging.info(' # Path to extracted images: '+ self.output_path)
 
         # Status parameters
         self.timeout_notified = False
@@ -229,7 +213,7 @@ class TCP_Receiver:
         # TODO more checks on teh CCSDS packet
 
         # Check packet length and BIOLAB ID
-        if (CCSDS_packet_length < 287 or CCSDS_packet[BIOLAB_ID_position] != 0x40):
+        if (CCSDS_packet_length < 42 or CCSDS_packet[BIOLAB_ID_position] != 0x40):
             logging.debug(" Not a BIOLAB packet")
             return
 
