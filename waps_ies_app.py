@@ -44,44 +44,43 @@ def run_waps_ies(args):
 
     Command Lines Arguments:
       -h, --help            show this help message and exit
-      -i INPUT_PATH, --input_path INPUT_PATH
-                            Input path to be monitored for TM archives. Must exist. Default: input/
+      -ip IP_ADDRESS        IP address of the TCP server. Must be specified either inline or in the configuratiuon file.
+      -p PORT               Port of the TCP server. Must be specified either inline or in the configuratiuon file.
+      -tt TCP_TIMEOUT, --tcp_timeout TCP_TIMEOUT
+                            TCP timeout in seconds. After this period user is notified that not CCSDS packets are
+                            received. Default: 2.1
       -o OUTPUT_PATH, --output_path OUTPUT_PATH
-                            Output path where extracted images are saved. Must exist. Default: output/
-      -lp LOG_PATH, --log_path LOG_PATH
-                            Log path where the extraction process log is saved. Must exist. Default: log/
+                            Output path where extracted images are saved. Default: output/
+      -l LOG_PATH, --log_path LOG_PATH
+                            Log path where the IES process log is saved. Default: log/
       -er, --errors_only    Show only warnings and errors in the log. Overwritten by debug
-      -d, --debug           Debug logging is enabled
-      -dg, --disable_gui    Disable Graphical interface
-      -ns, --no_scan        Disable the scan of existing files in the input path
-      -nt, --no_tracker     Disable the file tracker in the input path
-      -f FILE_FORMAT, --file_format FILE_FORMAT
-                            Telemetry archive file pattern. Example: '*.dat' Default: '*' as all files. For multiple formats
-                            edit the configuration file instead
-      -t IMAGE_TIMEOUT, --image_timeout IMAGE_TIMEOUT
-                            Image timeout in minutes. After this period image is considered OUTDATED. Default: 60
-      -msc, --mem_slot_change
+      -d, --debug           Debug logging level is enabled
+      -dg, --disable_gui    Disable Graphical User Interface
+      -it IMAGE_TIMEOUT, --image_timeout IMAGE_TIMEOUT
+                            Image timeout in minutes. After this period image is considered OUTDATED. Default: 600
+      -msc, --memory_slot_change
                             Enable memory slot change detection from general BIOLAB telemetry
 
 
     Configuration file example ("waps_ies_config.ini"):
     [WAPS_IES]
+    # TCP server to connect
+    ip_address = localhost
+    port = 12345
+    # TCP timeout, notification of inactivity
+    tcp_timeout = 2.1
+    # Output path. Images are saved here
     output_path = output/
+    # Logging path
     log_path = log/
     # Logging level
     log_level = info
-    # User Graphical interface
+    # Enable Graphical User Interface
     gui_enabled = 1
-    # Run the initial scan of the folder
-    run_scan = 1
-    # Run file tracker to get packets from new files
-    run_tracker = 1
-    # File format pattern to proccess
-    file_format = *
-    # Image timeout in minutes. After these minutes image is considred outdated and no more packets are added to it.
-    image_timeout = 60
-    # Detect from general BIOLAB telemetry whether image memory slot is updated
-    current_slot_detection = 0
+    # Image timeout in minutes. After this period image is considered OUTDATED.
+    image_timeout = 600
+    # Enable memory slot change detection from general BIOLAB telemetry
+    memory_slot_change_detection = 1
     """
 
     # Default values
@@ -133,7 +132,7 @@ def run_waps_ies(args):
                         help="Disable Graphical User Interface")
     parser.add_argument("-it", "--image_timeout", dest="image_timeout", default=image_timeout,
                         help="Image timeout in minutes. After this period image is considered OUTDATED. Default: 600")
-    parser.add_argument("-msc", "--mem_slot_change", action="store_true",
+    parser.add_argument("-msc", "--memory_slot_change", action="store_true",
                         help="Enable memory slot change detection from general BIOLAB telemetry")
     args = parser.parse_args()
     
@@ -150,7 +149,7 @@ def run_waps_ies(args):
     if (args.disable_gui):
         gui_enabled = '0'
     image_timeout = args.image_timeout
-    if (args.mem_slot_change):
+    if (args.memory_slot_change):
         memory_slot_change_detection = '1'
 
 
@@ -167,12 +166,13 @@ def run_waps_ies(args):
 
 
     # Logging level definition
+    log_level_printout = 'INFO'
     if (log_level.upper() == 'ERROR'):
         log_level = logging.WARNING
-    elif (log_level.upper() == 'WARNING'):
-        log_level = logging.WARNING
+        log_level_printout = 'ERROR'
     elif (log_level.upper() == 'DEBUG'):
         log_level = logging.DEBUG
+        log_level_printout = 'DEBUG'
     else:
         log_level = logging.INFO
 
@@ -197,6 +197,7 @@ def run_waps_ies(args):
     logging.info(' ##### WAPS Image Extraction Software #####')
     logging.info(' # Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk')
     logging.info(' # Started log file: ' + log_filename)
+    logging.info(' # Logging level: ' + log_level_printout)
     logging.info(' # Server: %s:%s', ip_address, port)
     logging.info(' # TCP timeout: %s seconds', tcp_timeout)
     logging.info(' # Output path: '+ output_path)
@@ -209,6 +210,13 @@ def run_waps_ies(args):
                                     port,
                                     output_path,
                                     tcp_timeout)
+
+    ies.image_timeout = timedelta(minutes = int(image_timeout))
+    logging.info(" # Image timeout: " + str(int(image_timeout)) + ' minute(s)')
+
+    if (int(memory_slot_change_detection)):
+        ies.memory_slot_change_detection = int(memory_slot_change_detection)
+        logging.info(" # Detecting memory slot change from BIOLAB telemetry")
 
     # Configure interface
     if (int(gui_enabled)):
@@ -226,13 +234,7 @@ def run_waps_ies(args):
                 logging.info("---Interface taking longer than expected to boot")
         print ('#')
 
-    ies.image_timeout = timedelta(minutes = int(image_timeout))
-    logging.info(" # Image timeout: " + str(int(image_timeout)) + ' minute(s)')
-
-    if (int(memory_slot_change_detection)):
-        logging.info(" # Detecting memory slot change from BIOLAB telemetry")
-
-    logging.info(" # Starting")
+    logging.info(" # Starting reception")
     ies.start()
 
 if __name__ == "__main__":
