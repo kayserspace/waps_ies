@@ -158,6 +158,11 @@ class TCP_Receiver:
                                                                        self.output_path,
                                                                        self,
                                                                        False) # Do not save incomplete images
+
+                    # Check if any image times out
+                    self.incomplete_images = processor.check_image_timeouts(self.incomplete_images,
+                                                                            self.image_timeout,
+                                                                            self.interface)
                 
                 except TimeoutError:
                     if (not self.timeout_notified):
@@ -167,6 +172,11 @@ class TCP_Receiver:
                         self.timeout_notified = True
                         if (self.interface):
                             self.interface.update_server_connected()
+
+                    # Check if any image times out
+                    self.incomplete_images = processor.check_image_timeouts(self.incomplete_images,
+                                                                            self.image_timeout,
+                                                                            self.interface)
 
                 except KeyboardInterrupt:
                     raise KeyboardInterrupt

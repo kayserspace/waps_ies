@@ -35,6 +35,7 @@ class BIOLAB_Packet:
         """Packet initialization with metadata"""
         
         self.acquisition_time = acquisition_time
+        self.CCSDS_time = acquisition_time
         self.data = data
 
         # Initialize other parameters
@@ -1023,7 +1024,7 @@ def check_image_timeouts(incomplete_images, image_timeout, interface = None):
     outdated_image_indexes = []
 
     for index, image in enumerate(incomplete_images):
-        if (datetime.now() > incomplete_images[index].acquistion_time + image_timeout or
+        if (datetime.now() > incomplete_images[index].acquisition_time + image_timeout or
             incomplete_images[index].overwritten):
             outdated_image_indexes.append(index)
 
