@@ -50,7 +50,7 @@ class BIOLAB_Packet:
         self.image_memory_slot = -1
         self.tm_packet_id = -1
         
-        # FLIR or μCAM Init packet
+        # FLIR or uCAM Init packet
         self.image_number_of_packets = -1
         self.data_packet_id = -1
         
@@ -95,7 +95,7 @@ class BIOLAB_Packet:
                 self.generic_tm_id == 0x5200 ):
                 
                 if (self.generic_tm_id == 0x4100 or self.generic_tm_id == 0x5100):
-                    # WAPS Image number of packets (FLIR or μCAM)
+                    # WAPS Image number of packets (FLIR or uCAM)
                     self.image_number_of_packets = BIOLAB_Packet.word(self.data[90:92])
                 
                 elif (self.generic_tm_id == 0x4200):
@@ -105,11 +105,11 @@ class BIOLAB_Packet:
                     self.data_packet_crc = BIOLAB_Packet.word(self.data[92:94])
                 
                 elif (self.generic_tm_id == 0x5200):
-                    # WAPS μCAM Data packet ID
+                    # WAPS uCAM Data packet ID
                     self.data_packet_id = BIOLAB_Packet.word(self.data[90:92])
-                    # WAPS μCAM Data packet size
+                    # WAPS uCAM Data packet size
                     self.data_packet_size = BIOLAB_Packet.word(self.data[92:94])
-                    # WAPS μCAM Data packet verification code
+                    # WAPS uCAM Data packet verification code
                     self.data_packet_verify_code = BIOLAB_Packet.word(self.data[94 +
                                                                                 self.data_packet_size:94 +
                                                                                 self.data_packet_size
@@ -126,42 +126,44 @@ class BIOLAB_Packet:
         """Packet metadata"""
         
         out =  ("BIOLAB Packet " + self.packet_name + " metadata:"
-                "\n - Acquisition Time: " + self.extraction_time.strftime('%Y%m%d_%H%M') +
+                "\n - Acquisition Time: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
+                "\n - CCSDS Time: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
                 "\n - Packet Time Tag: " + str(self.time_tag) +
+                "\n - EC address: " + str(self.ec_address) +
                 "\n - Generic TM ID: " + hex(self.generic_tm_id) +
                 "\n - Generic TM Type: " + hex(self.generic_tm_type) +
                 "\n - Generic TM Length: " + str(self.generic_tm_length)
                 )
         if (self.generic_tm_id == 0x4100):
             out = out + (
-                "\n - FLIR Image Init Packet" +
-                "\n --- Image Memory Slot: " + str(self.image_memory_slot) +
-                "\n --- Image TM Packet ID: " + str(self.tm_packet_id) +
-                "\n --- Image Number of Packets: " + str(self.image_number_of_packets)
+                "\n -- FLIR Image Init Packet" +
+                "\n -- Image Memory Slot: " + str(self.image_memory_slot) +
+                "\n -- Image TM Packet ID: " + str(self.tm_packet_id) +
+                "\n -- Image Number of Packets: " + str(self.image_number_of_packets)
                 )
         elif (self.generic_tm_id == 0x4200):
             out = out + (
-                "\n - FLIR Image Data Packet" +
-                "\n --- Image Memory Slot: " + str(self.image_memory_slot) +
-                "\n --- Image TM Packet ID: " + str(self.tm_packet_id) +
-                "\n --- Image Data Packet ID: " + str(self.data_packet_id) +
-                "\n --- Image Data Packet CRC: " + str(self.data_packet_crc)
+                "\n -- FLIR Image Data Packet" +
+                "\n -- Image Memory Slot: " + str(self.image_memory_slot) +
+                "\n -- Image TM Packet ID: " + str(self.tm_packet_id) +
+                "\n -- Image Data Packet ID: " + str(self.data_packet_id) +
+                "\n -- Image Data Packet CRC: " + str(self.data_packet_crc)
                 )
         elif (self.generic_tm_id == 0x5100):
             out = out + (
-                "\n - μCAM Image Init Packet" +
-                "\n --- Image Memory Slot: " + str(self.image_memory_slot) +
-                "\n --- Image TM Packet ID: " + str(self.tm_packet_id) +
-                "\n --- Image Number of Packets: " + str(self.image_number_of_packets)
+                "\n -- uCAM Image Init Packet" +
+                "\n -- Image Memory Slot: " + str(self.image_memory_slot) +
+                "\n -- Image TM Packet ID: " + str(self.tm_packet_id) +
+                "\n -- Image Number of Packets: " + str(self.image_number_of_packets)
                 )
         elif (self.generic_tm_id == 0x5200):
             out = out + (
-                "\n - μCAM Image Data Packet" +
-                "\n --- Image Memory Slot: " + str(self.image_memory_slot) +
-                "\n --- Image TM Packet ID: " + str(self.tm_packet_id) +
-                "\n --- Image Data Packet ID: " + str(self.data_packet_id) +
-                "\n --- Image Data Packet Size: " + str(self.data_packet_size) +
-                "\n --- Image Verify Code: " + str(self.data_packet_verify_code)
+                "\n -- uCAM Image Data Packet" +
+                "\n -- Image Memory Slot: " + str(self.image_memory_slot) +
+                "\n -- Image TM Packet ID: " + str(self.tm_packet_id) +
+                "\n -- Image Data Packet ID: " + str(self.data_packet_id) +
+                "\n -- Image Data Packet Size: " + str(self.data_packet_size) +
+                "\n -- Image Verify Code: " + str(self.data_packet_verify_code)
                 )
         return out
 
@@ -531,6 +533,8 @@ def sort_biolab_packets(packet_list,
         if (not packet.in_spec()):
             logging.error(packet.packet_name + " is not a WAPS Image Packet")
             continue
+        else:
+            logging.info(str(packet))
 
         global current_biolab_memory_slot
         # Important to recognise when the currently unfinished images are overwritten
@@ -638,7 +642,7 @@ def sort_biolab_packets(packet_list,
             if (not found_matching_image):
                 logging.error(packet.packet_name + ' matching image with memory slot ' + str(packet.image_memory_slot) + ' not found')
 
-       # μCam number of picture packets
+       # uCam number of picture packets
         elif (packet.generic_tm_id == 0x5100):
             """(Generic TM ID 0x5100, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID to 0x000)."""
             if (not len(ucam_init_packets)):
@@ -690,7 +694,7 @@ def sort_biolab_packets(packet_list,
 
 
             
-        # μCam picture packet
+        # uCam picture packet
         elif (packet.generic_tm_id == 0x5200):
             """(Generic TM ID 0x5200, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID is incremented)."""
             if (not len(ucam_data_packets)):

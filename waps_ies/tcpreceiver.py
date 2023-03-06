@@ -206,7 +206,8 @@ class TCP_Receiver:
 
         CCSDS_packet_length = len(CCSDS_packet)
         
-        logging.info(" New CCSDS packet of %d bytes" % len( CCSDS_packet ))
+        logging.info(" New CCSDS packet (%d bytes) \t\t Total: %d" %
+                    (len( CCSDS_packet ), self.total_packets_received))
         if( len( CCSDS_packet ) < CCSDSHeadersLength ):
             logging.error(" CCSDS packet is too short to get the full header")
             return
@@ -266,7 +267,7 @@ class TCP_Receiver:
 
         # Check packet length and BIOLAB ID
         if (CCSDS_packet_length < 42 or CCSDS_packet[BIOLAB_ID_position] != 0x40):
-            logging.info(" Not a BIOLAB packet")
+            logging.info("Not a BIOLAB packet")
             return
 
         BIOLAB_packet_length = CCSDS_packet[BIOLAB_ID_position + 1] * 2 + 4
