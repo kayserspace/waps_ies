@@ -205,16 +205,68 @@ class TCP_Receiver:
         """
 
         CCSDS_packet_length = len(CCSDS_packet)
-
+        
+        logging.info(" New CCSDS packet of %d bytes" % len( CCSDS_packet ))
         if( len( CCSDS_packet ) < CCSDSHeadersLength ):
-            logging.error(" CCSDS packet is too short: %d bytes", CCSDS_packet_length)
+            logging.error(" CCSDS packet is too short to get the full header")
+            return
+            
+        try:
+            # CCSDS primary header:
+            word1 = unpack( '>H', CCSDS_packet[0:2] )[0]
+            ccsds1VersionNumber  = ( word1 >> 13 ) & 0x0007 # bits 0-2
+            ccsds1Type           = ( word1 >> 12 ) & 0x0001 # bit 3
+            ccsds1SecondaryHdr   = ( word1 >> 11 ) & 0x0001 # bit 4
+            ccsds1APID           = ( word1 >>  0 ) & 0x03ff # bits 5-15
+            word2 = unpack( '>H', CCSDS_packet[2:4] )[0]
+            ccsds1SeqFlags       = ( word2 >> 14 ) & 0x0003 # bits 0-1
+            ccsds1SeqCounter     = ( word2 >>  0 ) & 0x3fff # bits 2-15
+            ccsds1PacketLength = unpack( '>H', CCSDS_packet[4:6] )[0]
+
+            # CCSDS secondary header:
+            ccsds2CoarseTime = unpack( '>L', CCSDS_packet[6:10] )[0]
+            word3 = unpack( '>H', CCSDS_packet[10:12] )[0]
+            ccsds2FineTime = ( ( word3 >> 8 ) & 0x00ff ) * 1000 / 256 # calculate into milliseconds from bits 0-7
+            ccsds2TimeID     = ( word3 >> 6 ) & 0x0003   # bits 8-9
+            ccsds2CW         = ( word3 >> 5 ) & 0x0001   # bit 10
+            ccsds2ZOE        = ( word3 >> 4 ) & 0x0001   # bit 11
+            ccsds2PacketType = ( word3 >> 0 ) & 0x000f   # bits 12-15
+
+            ccsds2PacketID32 = unpack( '>L', CCSDS_packet[12:16] )[0]
+            ccsds2Spare         = ( ccsds2PacketID32 >> 31 ) & 0x00000000
+            ccsds2ElementID     = ( ccsds2PacketID32 >> 27 ) & 0x0000000f
+            ccsds2PacketID27    = ( ccsds2PacketID32 >>  0 ) & 0x07ffffff
+
+            strType = "system"
+            if( ccsds1Type == 1 ): strType = "payload"
+            logging.debug( "         type: %s" % strType )
+            logging.debug( "         secondary header present: %r" % ( bool( ccsds1SecondaryHdr ) ) )
+            logging.debug( "         APID: %d" % ccsds1APID )
+            strSequenceFlags = "b" + str( int ( ccsds1SeqFlags > 1 ) ) + str( int( ccsds1SeqFlags & 0x1 ) )
+            logging.debug( "         packet length: %d" % ccsds1PacketLength )
+            logging.debug( "  CCSDS secondary header:")
+            logging.debug( "         coarse time: %d" % ccsds2CoarseTime )
+            logging.debug( "         fine time: %d" % ccsds2FineTime )
+            strTimeID = "b" + str( int ( ccsds2TimeID > 1 ) ) + str( int( ccsds2TimeID & 0x1 ) )
+            logging.debug( "         time ID: %s" % strTimeID )
+            logging.debug( "         checkword present: %r" % ( bool( ccsds2CW ) ) )
+            logging.debug( "         ZOE: %r" % ( bool( ccsds2ZOE ) ) )
+            logging.debug( "         packetType: %d" % ( ccsds2PacketType ) )
+            logging.debug( "         spare: %d" % ( int( ccsds2Spare ) ) )
+            strElementID = "not mapped"
+            if( ccsds2ElementID == 2 ): strElementID = "Columbus"
+            logging.debug( "         element ID: %d (%s)" % ( int( ccsds2ElementID ), strElementID ) )
+            logging.debug( "         packet ID 27: %d" % ( ccsds2PacketID27 ) )
+
+        except Exception as err:
+            logging.debug(str(err))
             return
 
         # TODO more checks on teh CCSDS packet
 
         # Check packet length and BIOLAB ID
         if (CCSDS_packet_length < 42 or CCSDS_packet[BIOLAB_ID_position] != 0x40):
-            logging.debug(" Not a BIOLAB packet")
+            logging.info(" Not a BIOLAB packet")
             return
 
         BIOLAB_packet_length = CCSDS_packet[BIOLAB_ID_position + 1] * 2 + 4
@@ -225,58 +277,6 @@ class TCP_Receiver:
         self.total_biolab_packets = self.total_biolab_packets + 1
         if (self.interface):
             self.interface.update_stats()
-
-        
-
-
-        # extract data from assembled packet:
-
-        # CCSDS primary header:
-        word1 = unpack( '>H', CCSDS_packet[0:2] )[0]
-        ccsds1VersionNumber  = ( word1 >> 13 ) & 0x0007 # bits 0-2
-        ccsds1Type           = ( word1 >> 12 ) & 0x0001 # bit 3
-        ccsds1SecondaryHdr   = ( word1 >> 11 ) & 0x0001 # bit 4
-        ccsds1APID           = ( word1 >>  0 ) & 0x03ff # bits 5-15
-        word2 = unpack( '>H', CCSDS_packet[2:4] )[0]
-        ccsds1SeqFlags       = ( word2 >> 14 ) & 0x0003 # bits 0-1
-        ccsds1SeqCounter     = ( word2 >>  0 ) & 0x3fff # bits 2-15
-        ccsds1PacketLength = unpack( '>H', CCSDS_packet[4:6] )[0]
-
-        # CCSDS secondary header:
-        ccsds2CoarseTime = unpack( '>L', CCSDS_packet[6:10] )[0]
-        word3 = unpack( '>H', CCSDS_packet[10:12] )[0]
-        ccsds2FineTime = ( ( word3 >> 8 ) & 0x00ff ) * 1000 / 256 # calculate into milliseconds from bits 0-7
-        ccsds2TimeID     = ( word3 >> 6 ) & 0x0003   # bits 8-9
-        ccsds2CW         = ( word3 >> 5 ) & 0x0001   # bit 10
-        ccsds2ZOE        = ( word3 >> 4 ) & 0x0001   # bit 11
-        ccsds2PacketType = ( word3 >> 0 ) & 0x000f   # bits 12-15
-
-        ccsds2PacketID32 = unpack( '>L', CCSDS_packet[12:16] )[0]
-        ccsds2Spare         = ( ccsds2PacketID32 >> 31 ) & 0x00000000
-        ccsds2ElementID     = ( ccsds2PacketID32 >> 27 ) & 0x0000000f
-        ccsds2PacketID27    = ( ccsds2PacketID32 >>  0 ) & 0x07ffffff
-
-        logging.debug( "success: read a CCSDS packet of %d bytes in full" % len( CCSDS_packet ) )
-        strType = "system"
-        if( ccsds1Type == 1 ): strType = "payload"
-        logging.debug( "         type: %s" % strType )
-        logging.debug( "         secondary header present: %r" % ( bool( ccsds1SecondaryHdr ) ) )
-        logging.debug( "         APID: %d" % ccsds1APID )
-        strSequenceFlags = "b" + str( int ( ccsds1SeqFlags > 1 ) ) + str( int( ccsds1SeqFlags & 0x1 ) )
-        logging.debug( "         packet length: %d" % ccsds1PacketLength )
-        logging.debug( "  CCSDS secondary header:")
-        logging.debug( "         coarse time: %d" % ccsds2CoarseTime )
-        logging.debug( "         fine time: %d" % ccsds2FineTime )
-        strTimeID = "b" + str( int ( ccsds2TimeID > 1 ) ) + str( int( ccsds2TimeID & 0x1 ) )
-        logging.debug( "         time ID: %s" % strTimeID )
-        logging.debug( "         checkword present: %r" % ( bool( ccsds2CW ) ) )
-        logging.debug( "         ZOE: %r" % ( bool( ccsds2ZOE ) ) )
-        logging.debug( "         packetType: %d" % ( ccsds2PacketType ) )
-        logging.debug( "         spare: %d" % ( int( ccsds2Spare ) ) )
-        strElementID = "not mapped"
-        if( ccsds2ElementID == 2 ): strElementID = "Columbus"
-        logging.debug( "         element ID: %d (%s)" % ( int( ccsds2ElementID ), strElementID ) )
-        logging.debug( "         packet ID 27: %d" % ( ccsds2PacketID27 ) )
 
         # TODO proper timestamps
         # Create BIOLAB packet as is
