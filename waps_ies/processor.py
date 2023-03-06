@@ -31,12 +31,10 @@ class BIOLAB_Packet:
         Prints the person's name and age.
     """
     
-    def __init__(self, source_file, timestamp, extraction_time, data):
+    def __init__(self, source_file, timestamp, acquisition_time, data):
         """Packet initialization with metadata"""
         
-        self.source_file = source_file
-        self.source_file_timestamp = timestamp
-        self.extraction_time = extraction_time
+        self.acquisition_time = acquisition_time
         self.data = data
 
         # Initialize other parameters
@@ -75,14 +73,7 @@ class BIOLAB_Packet:
             self.ec_address = self.data[2]
             # Packet time tag
             self.time_tag = BIOLAB_Packet.word(self.data[4:6])*65536 + BIOLAB_Packet.word(self.data[6:8])
-            # Packet ID
-            file_name_start = self.source_file.rfind('\\') + 1
-            if (file_name_start == -1):
-                file_name_start = self.source_file.rfind('/')
-            if (file_name_start == -1):
-                file_name_start = 0
-            self.packet_name = 'pkt_' + (self.source_file[file_name_start:] +
-                        '_' + self.source_file_timestamp.strftime('%Y%m%d_%H%M')) + '_' + str(self.time_tag);
+            
             # Generic TM ID 0x4100, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID to 0x000
             self.generic_tm_id = BIOLAB_Packet.word(self.data[84:86])
             # Generic TM Type
@@ -90,14 +81,18 @@ class BIOLAB_Packet:
             # Generic TM data length
             self.generic_tm_length = BIOLAB_Packet.word(self.data[88:90])
 
+            # WAPS Image Memory slot
+            self.image_memory_slot = self.generic_tm_type >> 12
+            # WAPS Image Packet ID
+            self.tm_packet_id = self.generic_tm_type & 0x3FF
+
+            self.packet_name = ('pkt_ec_' + str(self.ec_address) + '_m' + str(self.image_memory_slot) +
+                        '_' + self.acquisition_time.strftime('%Y%m%d_%H%M') + '_' + str(self.time_tag));
+
             if (self.generic_tm_id == 0x4100 or
                 self.generic_tm_id == 0x4200 or
                 self.generic_tm_id == 0x5100 or
                 self.generic_tm_id == 0x5200 ):
-                # WAPS Image Memory slot
-                self.image_memory_slot = self.generic_tm_type >> 12
-                # WAPS Image Packet ID
-                self.tm_packet_id = self.generic_tm_type & 0x3FF
                 
                 if (self.generic_tm_id == 0x4100 or self.generic_tm_id == 0x5100):
                     # WAPS Image number of packets (FLIR or μCAM)
@@ -131,9 +126,7 @@ class BIOLAB_Packet:
         """Packet metadata"""
         
         out =  ("BIOLAB Packet " + self.packet_name + " metadata:"
-                "\n - Source file: " + self.source_file +
-                "\n - Source file Timestamp: " + self.source_file_timestamp.strftime('%Y%m%d_%H%M') +
-                "\n - Extraction Timestamp: " + self.extraction_time.strftime('%Y%m%d_%H%M') +
+                "\n - Acquisition Time: " + self.extraction_time.strftime('%Y%m%d_%H%M') +
                 "\n - Packet Time Tag: " + str(self.time_tag) +
                 "\n - Generic TM ID: " + hex(self.generic_tm_id) +
                 "\n - Generic TM Type: " + hex(self.generic_tm_type) +
@@ -289,12 +282,11 @@ class WAPS_Image:
         self.camera_type = camera_type
         self.memory_slot = packet.image_memory_slot
         self.number_of_packets = packet.image_number_of_packets
-        self.timestamp = packet.source_file_timestamp
-        self.extraction_timestamp = packet.extraction_time
+        self.acquisition_time = packet.acquisition_time
         self.time_tag = packet.time_tag
         self.image_name = ("EC_" + str(self.ec_address) + '_' +
                             self.camera_type + '_' +
-                            self.timestamp.strftime('%H%M%S') + '_' +
+                            self.acquisition_time.strftime('%H%M%S') + '_' +
                             'm' + str(self.memory_slot) + '_' +
                             str(self.time_tag))
         
@@ -316,8 +308,7 @@ class WAPS_Image:
         out =   ("WAPS Image " + self.image_name + " metadata:"
                 "\n - Camera type: " + self.camera_type +
                 "\n - Image Memory Slot: " + str(self.memory_slot) +
-                "\n - Timestamp of the first processed file: " + self.timestamp.strftime('%Y%m%d_%H%M') +
-                "\n - Timestamp of the first processed packet: " + self.extraction_timestamp.strftime('%Y%m%d_%H%M') +
+                "\n - Timestamp of the first processed file: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
                 "\n - Timetag of the first packet: " + str(self.time_tag) +
                 "\n - Available Packets: " + str(len(self.packets)-len(self.get_missing_packets())) + r'/' +  str(self.number_of_packets) +
                 "\n - Transmission active: " + str(self.image_transmission_active) +
@@ -637,7 +628,7 @@ def sort_biolab_packets(packet_list,
             for i in range(len(incomplete_images)):
                 if (incomplete_images[i].memory_slot == packet.image_memory_slot and
                     not incomplete_images[i].overwritten and
-                    packet.source_file_timestamp < incomplete_images[i].timestamp + image_timeout):
+                    packet.acquisition_time < incomplete_images[i].acquisition_time + image_timeout):
                     found_matching_image = True
 
                     incomplete_images[i].add_packet(packet)
@@ -724,7 +715,7 @@ def sort_biolab_packets(packet_list,
             for i in range(len(incomplete_images)):
                 if (incomplete_images[i].memory_slot == packet.image_memory_slot and
                     not incomplete_images[i].overwritten and
-                    packet.source_file_timestamp < incomplete_images[i].timestamp + image_timeout):
+                    packet.acquisition_time < incomplete_images[i].acquisition_time + image_timeout):
                     found_matching_image = True
 
                     incomplete_images[i].add_packet(packet)
@@ -762,7 +753,7 @@ def sort_biolab_packets(packet_list,
 
     # Relevant packet count printout
     if (len(flir_init_packets) or len(flir_data_packets) or len(ucam_init_packets) or len(ucam_data_packets)):
-        logging.info('  New WAPS Image packets from "' + packet.source_file + '":')
+        logging.info('  New WAPS Image packets')
         if (len(flir_init_packets)):
             for counts in flir_init_packets:
                 logging.info('\t FLIR_init Memory slot ' + str(counts[0]) +
@@ -855,7 +846,7 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
     for index, image in enumerate(incomplete_images):
 
         # Make sure folder with today's path exists
-        date_path = output_path + image.timestamp.strftime('%Y%m%d') + '/'
+        date_path = output_path + image.acquisition_time.strftime('%Y%m%d') + '/'
         if (not os.path.exists(date_path) or
             not os.path.isdir(date_path)):
             os.mkdir(date_path)
@@ -1028,7 +1019,7 @@ def check_image_timeouts(incomplete_images, image_timeout, interface = None):
     outdated_image_indexes = []
 
     for index, image in enumerate(incomplete_images):
-        if (datetime.now() > incomplete_images[index].timestamp + image_timeout or
+        if (datetime.now() > incomplete_images[index].acquistion_time + image_timeout or
             incomplete_images[index].overwritten):
             outdated_image_indexes.append(index)
 
