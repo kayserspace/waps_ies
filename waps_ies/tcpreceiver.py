@@ -84,7 +84,7 @@ class TCP_Receiver:
 
         # Check interface type before adding
         if (type(ies_interface) is interface.WAPS_interface):
-            logging.debug(' # Interface added')
+            logging.debug(' # Interface added linked to IES')
             self.interface = ies_interface
         else:
             logging.warning(' Interface has wrong object type')

@@ -232,7 +232,9 @@ def run_waps_ies(args):
                 not longer_time_message):
                 longer_time_message = True
                 logging.info("---Interface taking longer than expected to boot")
-        print ('#')
+        logging.debug(" Interface took " +
+                        str(datetime.now() - interface_startup) +
+                        ' to start')
 
     logging.info(" # Starting reception")
     ies.start()
