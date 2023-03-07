@@ -179,8 +179,6 @@ class TCP_Receiver:
                                     self.total_corrupted_packets))
                     if (self.logging_level == logging.DEBUG):
                         logging.debug(status_message)
-                    elif(not self.total_packets_received % 100):
-                        logging.info(status_message)
                     else:
                         print(status_message, end='')
 

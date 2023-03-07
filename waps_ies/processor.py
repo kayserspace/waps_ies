@@ -39,28 +39,6 @@ class BIOLAB_Packet:
         self.data = data
 
         # Initialize other parameters
-        # Generic
-        self.ec_address = -1
-        self.time_tag = -1
-        self.packet_name = -1
-        self.generic_tm_id = -1
-        self.generic_tm_type = -1
-        self.generic_tm_length = -1
-        
-        # Image packets
-        self.image_memory_slot = -1
-        self.tm_packet_id = -1
-        
-        # FLIR or uCAM Init packet
-        self.image_number_of_packets = -1
-        self.data_packet_id = -1
-        
-        # FLIR Data packet
-        self.data_packet_crc = -1
-        
-        # uCAM Data packet
-        self.data_packet_size = -1
-        self.data_packet_verify_code = -1
 
         # If the packet is corrupted - declare it only once
         self.packet_corruption_declared = False
@@ -128,7 +106,7 @@ class BIOLAB_Packet:
         
         out =  ("BIOLAB Packet " + self.packet_name + " metadata:"
                 "\n - Acquisition Time: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
-                "\n - CCSDS Time: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
+                "\n - CCSDS Time: " + self.CCSDS_time.strftime('%Y%m%d_%H%M') +
                 "\n - Packet Time Tag: " + str(self.time_tag) +
                 "\n - EC address: " + str(self.ec_address) +
                 "\n - Generic TM ID: " + hex(self.generic_tm_id) +
@@ -535,13 +513,21 @@ def sort_biolab_packets(packet_list,
             logging.error(packet.packet_name + " is not a WAPS Image Packet")
             continue
         else:
-            logging.info(str(packet))
+            if (packet.generic_tm_id == 0x4100 or
+                packet.generic_tm_id == 0x4200 or
+                packet.generic_tm_id == 0x5100 or
+                packet.generic_tm_id == 0x5200):
+                logging.info(str(packet))
+            else:
+                # Log not relevant BIOLAB TM packets only in DEBUG mode 
+                logging.debug(str(packet))
 
         global current_biolab_memory_slot
         # Important to recognise when the currently unfinished images are overwritten
         if (biolab_memory_slot_change_detection and
             current_biolab_memory_slot != packet.biolab_current_image_memory_slot):
-            logging.info('  Update of active Memory slot ' + str(packet.biolab_current_image_memory_slot) + ' Previous: ' + str(current_biolab_memory_slot))
+            logging.info('  Update of active Memory slot ' + str(packet.biolab_current_image_memory_slot) +
+                        ' Previous: ' + str(current_biolab_memory_slot))
             for i in range(len(incomplete_images)):
                 if (incomplete_images[i].memory_slot == packet.biolab_current_image_memory_slot):
                     incomplete_images[i].overwritten = True
