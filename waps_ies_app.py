@@ -115,9 +115,9 @@ def run_waps_ies(args):
                             ' Extracts WAPS PD images from BIOLAB telemetry and informs of missing packets.' +
                             ' IP address and port must be specified either inline or in the configuration file.')
     parser.add_argument("-ip", dest="ip_address", default=ip_address,
-                        help="IP address of the TCP server. Must be specified either inline or in the configuratiuon file.")
+                        help="IP address of the TCP server. Must be specified either inline or in the configuration file.")
     parser.add_argument("-p", dest="port", default=port,
-                        help="Port of the TCP server. Must be specified either inline or in the configuratiuon file. ")
+                        help="Port of the TCP server. Must be specified either inline or in the configuration file. ")
     parser.add_argument("-tt", "--tcp_timeout", dest="tcp_timeout", default=tcp_timeout,
                         help="TCP timeout in seconds. After this period user is notified that not CCSDS packets are received. Default: 2.1")
     parser.add_argument("-o", "--output_path", dest="output_path", default=output_path,

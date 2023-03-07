@@ -31,11 +31,11 @@ class BIOLAB_Packet:
         Prints the person's name and age.
     """
     
-    def __init__(self, source_file, timestamp, acquisition_time, data):
+    def __init__(self, CCSDS_time, acquisition_time, data):
         """Packet initialization with metadata"""
         
         self.acquisition_time = acquisition_time
-        self.CCSDS_time = acquisition_time
+        self.CCSDS_time = CCSDS_time
         self.data = data
 
         # Initialize other parameters

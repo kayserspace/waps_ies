@@ -238,6 +238,7 @@ class TCP_Receiver:
             ccsds2CoarseTime = unpack( '>L', CCSDS_packet[6:10] )[0]
             word3 = unpack( '>H', CCSDS_packet[10:12] )[0]
             ccsds2FineTime = ( ( word3 >> 8 ) & 0x00ff ) * 1000 / 256 # calculate into milliseconds from bits 0-7
+            ccsdsTime = datetime(1980, 1, 6) + timedelta(seconds=ccsds2CoarseTime+ccsds2FineTime/1000.0)
             ccsds2TimeID     = ( word3 >> 6 ) & 0x0003   # bits 8-9
             ccsds2CW         = ( word3 >> 5 ) & 0x0001   # bit 10
             ccsds2ZOE        = ( word3 >> 4 ) & 0x0001   # bit 11
@@ -258,6 +259,7 @@ class TCP_Receiver:
             logging.debug( "  CCSDS secondary header:")
             logging.debug( "         coarse time: %d" % ccsds2CoarseTime )
             logging.debug( "         fine time: %d" % ccsds2FineTime )
+            logging.debug( "         Time: %s" % str(ccsdsTime) )
             strTimeID = "b" + str( int ( ccsds2TimeID > 1 ) ) + str( int( ccsds2TimeID & 0x1 ) )
             logging.debug( "         time ID: %s" % strTimeID )
             logging.debug( "         checkword present: %r" % ( bool( ccsds2CW ) ) )
@@ -291,8 +293,8 @@ class TCP_Receiver:
 
         # TODO proper timestamps
         # Create BIOLAB packet as is
-        packet =  processor.BIOLAB_Packet("None", datetime.now(),
-                            datetime.now(),
+        print(ccsdsTime, datetime.now())
+        packet =  processor.BIOLAB_Packet(ccsdsTime, datetime.now(),
                             CCSDS_packet[BIOLAB_ID_position:BIOLAB_ID_position+BIOLAB_packet_length])
 
         # If packet matches biolab specification add it to list
