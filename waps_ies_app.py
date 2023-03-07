@@ -212,6 +212,7 @@ def run_waps_ies(args):
                                     tcp_timeout)
 
     ies.image_timeout = timedelta(minutes = int(image_timeout))
+    ies.logging_level = log_level
     logging.info(" # Image timeout: " + str(int(image_timeout)) + ' minute(s)')
 
     if (int(memory_slot_change_detection)):

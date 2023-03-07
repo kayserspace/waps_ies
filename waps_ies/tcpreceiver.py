@@ -70,6 +70,8 @@ class TCP_Receiver:
         # Status parameters
         self.timeout_notified = False
 
+        self.logging_level = logging.INFO
+
         self.total_packets_received = 0
         self.total_biolab_packets = 0
         self.total_waps_image_packets = 0
@@ -140,10 +142,12 @@ class TCP_Receiver:
                         if( len( packetData2 ) != packetDataLength - len( packetData ) ):
                             raise Exception( "Failed to read complete CCSDS Data Block from TCP link" )
                         else:
-                            logging.info("Got the rest")
+                            logging.info("Got the rest with a new request")
                             waps_packet = self.process_CCSDS_packet( CCSDS_header + packetData + packetData2 )
                     else:
                         waps_packet = self.process_CCSDS_packet( CCSDS_header + packetData )
+
+
                     
                     if (waps_packet):
                         # Sort packets into images
@@ -163,10 +167,27 @@ class TCP_Receiver:
                     self.incomplete_images = processor.check_image_timeouts(self.incomplete_images,
                                                                             self.image_timeout,
                                                                             self.interface)
+
+                    # Status information after all of the processing
+                    status_message = (" STATUS Packets:%d:%d:%d, Images:%d:%d, Missing packets:%d:%d\r " %
+                                    (self.total_packets_received,
+                                    self.total_biolab_packets,
+                                    self.total_waps_image_packets,
+                                    self.total_initialized_images,
+                                    self.total_completed_images,
+                                    self.total_lost_packets,
+                                    self.total_corrupted_packets))
+                    if (self.logging_level == logging.DEBUG):
+                        logging.debug(status_message)
+                    elif(not self.total_packets_received % 100):
+                        logging.info(status_message)
+                    else:
+                        print(status_message, end='')
+
                 
                 except TimeoutError:
                     if (not self.timeout_notified):
-                        logging.warning("No CCSDS packets received for more than " +
+                        logging.warning("\nNo CCSDS packets received for more than " +
                                         str(self.tcp_timeout) +
                                         " seconds")
                         self.timeout_notified = True
@@ -199,8 +220,15 @@ class TCP_Receiver:
                 
             self.socket.close()
             logging.info(" # Disconnected from server")
-            logging.info(" Total nubmer of packets received: %d", self.total_packets_received)
-            logging.info(" BIOLAB packets processed:         %d", self.total_biolab_packets)
+            logging.info("      Sessions total numbers")
+            logging.info("  CCSDS packets received:      %d", self.total_packets_received)
+            logging.info("  BIOLAB TM packets received:  %d", self.total_biolab_packets)
+            logging.info("  WAPS image packets received: %d", self.total_waps_image_packets)
+            logging.info("  Initializaed images:         %d", self.total_initialized_images)
+            logging.info("  Completed images:            %d", self.total_completed_images)
+            logging.info("  Lost packets:                %d", self.total_lost_packets)
+            logging.info("  Corrupted packets:           %d", self.total_corrupted_packets)
+
         
 
     def process_CCSDS_packet(self, CCSDS_packet):
@@ -216,10 +244,9 @@ class TCP_Receiver:
 
         CCSDS_packet_length = len(CCSDS_packet)
         
-        logging.info(" New CCSDS packet (%d bytes) \t\t Total: %d" %
-                    (len( CCSDS_packet ), self.total_packets_received))
+        
         if( len( CCSDS_packet ) < CCSDSHeadersLength ):
-            logging.error(" CCSDS packet is too short to get the full header")
+            logging.error(" CCSDS packet is too short for a full CCSDS header: %d bytes" % len( CCSDS_packet ))
             return
             
         try:
@@ -238,6 +265,7 @@ class TCP_Receiver:
             ccsds2CoarseTime = unpack( '>L', CCSDS_packet[6:10] )[0]
             word3 = unpack( '>H', CCSDS_packet[10:12] )[0]
             ccsds2FineTime = ( ( word3 >> 8 ) & 0x00ff ) * 1000 / 256 # calculate into milliseconds from bits 0-7
+            currentTime = datetime.now()
             ccsdsTime = datetime(1980, 1, 6) + timedelta(seconds=ccsds2CoarseTime+ccsds2FineTime/1000.0)
             ccsds2TimeID     = ( word3 >> 6 ) & 0x0003   # bits 8-9
             ccsds2CW         = ( word3 >> 5 ) & 0x0001   # bit 10
@@ -249,27 +277,22 @@ class TCP_Receiver:
             ccsds2ElementID     = ( ccsds2PacketID32 >> 27 ) & 0x0000000f
             ccsds2PacketID27    = ( ccsds2PacketID32 >>  0 ) & 0x07ffffff
 
-            strType = "system"
-            if( ccsds1Type == 1 ): strType = "payload"
-            logging.debug( "         type: %s" % strType )
-            logging.debug( "         secondary header present: %r" % ( bool( ccsds1SecondaryHdr ) ) )
-            logging.debug( "         APID: %d" % ccsds1APID )
-            strSequenceFlags = "b" + str( int ( ccsds1SeqFlags > 1 ) ) + str( int( ccsds1SeqFlags & 0x1 ) )
-            logging.debug( "         packet length: %d" % ccsds1PacketLength )
-            logging.debug( "  CCSDS secondary header:")
-            logging.debug( "         coarse time: %d" % ccsds2CoarseTime )
-            logging.debug( "         fine time: %d" % ccsds2FineTime )
-            logging.debug( "         Time: %s" % str(ccsdsTime) )
-            strTimeID = "b" + str( int ( ccsds2TimeID > 1 ) ) + str( int( ccsds2TimeID & 0x1 ) )
-            logging.debug( "         time ID: %s" % strTimeID )
-            logging.debug( "         checkword present: %r" % ( bool( ccsds2CW ) ) )
-            logging.debug( "         ZOE: %r" % ( bool( ccsds2ZOE ) ) )
-            logging.debug( "         packetType: %d" % ( ccsds2PacketType ) )
-            logging.debug( "         spare: %d" % ( int( ccsds2Spare ) ) )
+            CCSDS_str = (" New CCSDS packet (%d bytes)\n      Received at %s\n" %
+                    (len( CCSDS_packet ), str(currentTime)))
+
+            strType = "System"
+            if( ccsds1Type == 1 ): strType = "Payload"
+            CCSDS_str = CCSDS_str + ("      Type: %s " % strType)
+            CCSDS_str = CCSDS_str + ("APID: %d " % ccsds1APID)
+            CCSDS_str = CCSDS_str + ("Length: %d\n" % ccsds1PacketLength)
             strElementID = "not mapped"
             if( ccsds2ElementID == 2 ): strElementID = "Columbus"
-            logging.debug( "         element ID: %d (%s)" % ( int( ccsds2ElementID ), strElementID ) )
-            logging.debug( "         packet ID 27: %d" % ( ccsds2PacketID27 ) )
+            CCSDS_str = CCSDS_str + ( "      Element ID: %d (%s) " % ( int( ccsds2ElementID ), strElementID ) )
+            CCSDS_str = CCSDS_str + ( "Packet ID 27: %d\n" % ( ccsds2PacketID27 ) )
+            CCSDS_str = CCSDS_str + ("      Packet timestamp: (coarse: %d fine: %d) %s" %
+                            (ccsds2CoarseTime, ccsds2FineTime, str(ccsdsTime)) )
+
+            logging.debug(CCSDS_str)
 
         except Exception as err:
             logging.debug(str(err))
@@ -277,9 +300,11 @@ class TCP_Receiver:
 
         # TODO more checks on teh CCSDS packet
 
+        
+
         # Check packet length and BIOLAB ID
         if (CCSDS_packet_length < 42 or CCSDS_packet[BIOLAB_ID_position] != 0x40):
-            logging.info("Not a BIOLAB packet")
+            logging.debug("      Not a BIOLAB TM packet")
             return
 
         BIOLAB_packet_length = CCSDS_packet[BIOLAB_ID_position + 1] * 2 + 4
@@ -291,10 +316,8 @@ class TCP_Receiver:
         if (self.interface):
             self.interface.update_stats()
 
-        # TODO proper timestamps
         # Create BIOLAB packet as is
-        print(ccsdsTime, datetime.now())
-        packet =  processor.BIOLAB_Packet(ccsdsTime, datetime.now(),
+        packet =  processor.BIOLAB_Packet(ccsdsTime, currentTime,
                             CCSDS_packet[BIOLAB_ID_position:BIOLAB_ID_position+BIOLAB_packet_length])
 
         # If packet matches biolab specification add it to list
