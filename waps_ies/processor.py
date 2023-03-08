@@ -543,17 +543,6 @@ def sort_biolab_packets(packet_list,
         # FLIR camera number of packets (0x4100)
         if (packet.generic_tm_id == 0x4100):
             """(Generic TM ID 0x4100, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID to 0x000)."""
-            if (not len(flir_init_packets)):
-                flir_init_packets.append([packet.image_memory_slot,1])
-            else:
-                matching_memory_slot_found = False
-                for i in range(len(flir_init_packets)):
-                    if (flir_init_packets[i][0] == packet.image_memory_slot):
-                        flir_init_packets[i][1] = flir_init_packets[i][1] + 1
-                        matching_memory_slot_found = True
-                        break
-                if (not matching_memory_slot_found):
-                    flir_init_packets.append([packet.image_memory_slot,1])
             receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
             receiver.total_initialized_images = receiver.total_initialized_images + 1
 
@@ -597,18 +586,6 @@ def sort_biolab_packets(packet_list,
         # FLIR camera picture packet
         elif (packet.generic_tm_id == 0x4200):
             """(Generic TM ID 0x4200, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID is incremented)."""
-            if (not len(flir_data_packets)):
-                flir_data_packets.append([packet.image_memory_slot,1,[packet.tm_packet_id]])
-            else:
-                matching_memory_slot_found = False
-                for i in range(len(flir_data_packets)):
-                    if (flir_data_packets[i][0] == packet.image_memory_slot):
-                        flir_data_packets[i][1] = flir_data_packets[i][1] + 1
-                        flir_data_packets[i][2].append(packet.tm_packet_id)
-                        matching_memory_slot_found = True
-                        break
-                if (not matching_memory_slot_found):
-                    flir_data_packets.append([packet.image_memory_slot,1])
             receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
 
             # Track whether image is being trasmitted
@@ -632,17 +609,6 @@ def sort_biolab_packets(packet_list,
        # uCam number of picture packets
         elif (packet.generic_tm_id == 0x5100):
             """(Generic TM ID 0x5100, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID to 0x000)."""
-            if (not len(ucam_init_packets)):
-                ucam_init_packets.append([packet.image_memory_slot,1])
-            else:
-                matching_memory_slot_found = False
-                for i in range(len(ucam_init_packets)):
-                    if (ucam_init_packets[i][0] == packet.image_memory_slot):
-                        ucam_init_packets[i][1] = ucam_init_packets[i][1] + 1
-                        matching_memory_slot_found = True
-                        break
-                if (not matching_memory_slot_found):
-                    ucam_init_packets.append([packet.image_memory_slot,1])
             receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
             receiver.total_initialized_images = receiver.total_initialized_images + 1
 
@@ -684,18 +650,6 @@ def sort_biolab_packets(packet_list,
         # uCam picture packet
         elif (packet.generic_tm_id == 0x5200):
             """(Generic TM ID 0x5200, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID is incremented)."""
-            if (not len(ucam_data_packets)):
-                ucam_data_packets.append([packet.image_memory_slot,1,[packet.tm_packet_id]])
-            else:
-                matching_memory_slot_found = False
-                for i in range(len(ucam_data_packets)):
-                    if (ucam_data_packets[i][0] == packet.image_memory_slot):
-                        ucam_data_packets[i][1] = ucam_data_packets[i][1] + 1
-                        ucam_data_packets[i][2].append(packet.tm_packet_id)
-                        matching_memory_slot_found = True
-                        break
-                if (not matching_memory_slot_found):
-                    ucam_data_packets.append([packet.image_memory_slot,1])
             receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
 
             # Track whether image is being trasmitted
@@ -741,35 +695,6 @@ def sort_biolab_packets(packet_list,
 
                 # Reset transmission status
                 image_transmission_in_progress = False
-
-    # Relevant packet count printout
-    if (len(flir_init_packets) or len(flir_data_packets) or len(ucam_init_packets) or len(ucam_data_packets)):
-        logging.info('  New WAPS Image packets')
-        if (len(flir_init_packets)):
-            for counts in flir_init_packets:
-                logging.info('\t FLIR_init Memory slot ' + str(counts[0]) +
-                             ' Count: ' + str(counts[1]))
-        if (len(flir_data_packets)):
-            for counts in flir_data_packets:
-                logging.info('\t FLIR_data Memory slot ' + str(counts[0]) +
-                             ' Count: ' + str(counts[1]) +
-                             ' \t Packet numbers: ' + WAPS_Image.number_sequence_printout(counts[2]))
-        if (len(ucam_init_packets)):
-            for counts in ucam_init_packets:
-                logging.info('\t uCAM_init Memory slot ' + str(counts[0]) +
-                             ' Count: ' + str(counts[1]))
-        if (len(ucam_data_packets)):
-            for counts in ucam_data_packets:
-                logging.info('\t uCAM_data Memory slot ' + str(counts[0]) +
-                             ' Count: ' + str(counts[1]) +
-                             ' \t Packet numbers: ' + WAPS_Image.number_sequence_printout(counts[2]))
-    else:
-        logging.debug(" - No relevant image packets found")
-    if (len(other_packets)):
-        logging.debug('  Other BIOLAB packets:')
-        for counts in other_packets:
-            logging.debug('\t TM ID:  ' + hex(counts[0]) +
-                          ' Count: ' + str(counts[1]))
     
     if (receiver.interface):
         receiver.interface.update_stats()
