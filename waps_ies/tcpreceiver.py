@@ -90,6 +90,20 @@ class TCP_Receiver:
             self.interface = ies_interface
         else:
             logging.warning(' Interface has wrong object type')
+
+    def get_status(self):
+        """ Get receiver status message """
+        current_time = datetime.now().strftime("%Y/%m/%d, %H:%M:%S")
+        status_message = ("### STATUS %s Packets:%d:%d:%d Miss:%d:%d, Images:%d:%d" %
+                                    (current_time,
+                                    self.total_packets_received,
+                                    self.total_biolab_packets,
+                                    self.total_waps_image_packets,
+                                    self.total_lost_packets,
+                                    self.total_corrupted_packets,
+                                    self.total_initialized_images,
+                                    self.total_completed_images))
+        return status_message
     
     def start(self):
     
@@ -163,20 +177,20 @@ class TCP_Receiver:
                                                                        self,
                                                                        False) # Do not save incomplete images
 
+                        # Show current state of incomplete images if a WAPS image packet has been received
+                        if (waps_packet.generic_tm_id == 0x4100 or
+                            waps_packet.generic_tm_id == 0x4200 or
+                            waps_packet.generic_tm_id == 0x5100 or
+                            waps_packet.generic_tm_id == 0x5200 ):
+                            processor.print_incomplete_images_status(self.incomplete_images)
+
                     # Check if any image times out
                     self.incomplete_images = processor.check_image_timeouts(self.incomplete_images,
                                                                             self.image_timeout,
                                                                             self.interface)
 
                     # Status information after all of the processing
-                    status_message = (" STATUS Packets:%d:%d:%d, Images:%d:%d, Missing packets:%d:%d\r " %
-                                    (self.total_packets_received,
-                                    self.total_biolab_packets,
-                                    self.total_waps_image_packets,
-                                    self.total_initialized_images,
-                                    self.total_completed_images,
-                                    self.total_lost_packets,
-                                    self.total_corrupted_packets))
+                    status_message = self.get_status() + '\r'
                     if (self.logging_level == logging.DEBUG):
                         logging.debug(status_message)
                     else:

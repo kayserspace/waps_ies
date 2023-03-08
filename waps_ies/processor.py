@@ -104,7 +104,7 @@ class BIOLAB_Packet:
     def __str__(self):
         """Packet metadata"""
         
-        out =  ("BIOLAB Packet " + self.packet_name + " metadata:"
+        out =  ("\nBIOLAB TM Packet " + self.packet_name + " metadata:"
                 "\n - Acquisition Time: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
                 "\n - CCSDS Time: " + self.CCSDS_time.strftime('%Y%m%d_%H%M') +
                 "\n - Packet Time Tag: " + str(self.time_tag) +
@@ -264,6 +264,7 @@ class WAPS_Image:
         self.memory_slot = packet.image_memory_slot
         self.number_of_packets = packet.image_number_of_packets
         self.acquisition_time = packet.acquisition_time
+        self.CCSDS_time = packet.CCSDS_time
         self.time_tag = packet.time_tag
         self.image_name = ("EC_" + str(self.ec_address) + '_' +
                             self.camera_type + '_' +
@@ -286,12 +287,15 @@ class WAPS_Image:
         self = self.sort_packets()
         missing_packets = self.get_missing_packets()
         
-        out =   ("WAPS Image " + self.image_name + " metadata:"
+        out =   ("\nWAPS Image " + self.image_name + " information:"
+                "\n - EC address: " + str(self.ec_address) +
                 "\n - Camera type: " + self.camera_type +
                 "\n - Image Memory Slot: " + str(self.memory_slot) +
-                "\n - Timestamp of the first processed file: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
-                "\n - Timetag of the first packet: " + str(self.time_tag) +
-                "\n - Available Packets: " + str(len(self.packets)-len(self.get_missing_packets())) + r'/' +  str(self.number_of_packets) +
+                "\n - Initialization Time: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
+                "\n - CCSDS Time: " + self.CCSDS_time.strftime('%Y%m%d_%H%M') +
+                "\n - Initialization time tag: " + str(self.time_tag) +
+                "\n - Completion: " + str(len(self.packets)-len(missing_packets)) + r'/' +  str(self.number_of_packets) +
+                        ' ' + str(int((len(self.packets)-len(missing_packets))/self.number_of_packets*100.0)) + '%'
                 "\n - Transmission active: " + str(self.image_transmission_active) +
                 "\n - Memory Slot overwritten: " + str(self.overwritten))
 
@@ -499,12 +503,6 @@ def sort_biolab_packets(packet_list,
             packet_list (list): list of extracted BIOLAB packets
     """
 
-    flir_init_packets = []
-    flir_data_packets = []
-    ucam_init_packets = []
-    ucam_data_packets = []
-    other_packets =[]
-
     # Go through the packet list
     while (len(packet_list)):
         packet = packet_list.pop(0)
@@ -517,15 +515,21 @@ def sort_biolab_packets(packet_list,
                 packet.generic_tm_id == 0x4200 or
                 packet.generic_tm_id == 0x5100 or
                 packet.generic_tm_id == 0x5200):
+                status_message = receiver.get_status()
+                logging.info(status_message)
                 logging.info(str(packet))
             else:
-                # Log not relevant BIOLAB TM packets only in DEBUG mode 
+                # Log not relevant BIOLAB TM packets only in DEBUG mode
+                status_message = receiver.get_status()
+                logging.debug(status_message)
                 logging.debug(str(packet))
 
         global current_biolab_memory_slot
         # Important to recognise when the currently unfinished images are overwritten
         if (biolab_memory_slot_change_detection and
             current_biolab_memory_slot != packet.biolab_current_image_memory_slot):
+            status_message = receiver.get_status()
+            logging.info(status_message)
             logging.info('  Update of active Memory slot ' + str(packet.biolab_current_image_memory_slot) +
                         ' Previous: ' + str(current_biolab_memory_slot))
             for i in range(len(incomplete_images)):
@@ -671,22 +675,14 @@ def sort_biolab_packets(packet_list,
                 logging.error(packet.packet_name + ' matching image with image memory slot ' + str(packet.image_memory_slot) + ' not found')
 
         else:
-            if (not len(other_packets)):
-                other_packets.append([packet.generic_tm_id,1])
-            else:
-                matching_generic_tm_id = False
-                for i in range(len(other_packets)):
-                    if (other_packets[i][0] == packet.generic_tm_id):
-                        other_packets[i][1] = other_packets[i][1] + 1
-                        matching_generic_tm_id = True
-                        break
-                if (not matching_generic_tm_id):
-                    other_packets.append([packet.generic_tm_id,1])
 
             if (image_transmission_in_progress):
                 # An image is sent in one telemetry sequence
                 # Each single packet request triggers this change as well
-                logging.debug(' No more image packets in the current sequence')
+                # Status information after all of the processing
+                status_message = receiver.get_status()
+                logging.info(status_message)
+                logging.info(' End of image transmission (No WAPS image packets in BIOLAB TM)')
 
                 # Go through incomplete images and mark that transmission is finished
                 for i in range(len(incomplete_images)):
@@ -743,6 +739,25 @@ def write_file(image_data, file_path, filetype = 'wb', interface = None):
 
     # Successful write
     return True
+
+
+
+
+def print_incomplete_images_status(incomplete_images):
+
+    for index, image in enumerate(incomplete_images):
+        missing_packets = image.get_missing_packets()
+        image_percentage = '_'+ str(int(100.0*(image.number_of_packets - len(missing_packets))/image.number_of_packets))
+        completeness_message = ('Image ' + image.image_name + ' is ' +
+                                 image_percentage[1:] + '% complete (' +
+                                 str(image.number_of_packets - len(missing_packets)) +
+                                 '/' + str(image.number_of_packets) + ')')
+        if (len(missing_packets)):
+            completeness_message =  (completeness_message + '. Missing packets: ' +
+                         WAPS_Image.number_sequence_printout(missing_packets))
+            
+        logging.info(completeness_message)
+
 
 
 
@@ -805,6 +820,8 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
             receiver.total_completed_images = receiver.total_completed_images + 1
             incomplete_images[index].image_transmission_active = False
 
+        # Print detailed image information
+        logging.info(incomplete_images[index])
         
         if (image.camera_type == 'uCAM'):
             # Sanity check the data
@@ -917,8 +934,6 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
     # Remove fully complete and written down images from the incomplete list
     if (len(finished_image_indexes)):
         for index in finished_image_indexes[::-1]:
-            logging.debug(" Image completed and removed from memory:")
-            logging.debug(incomplete_images[index])
             incomplete_images.pop(index)
 
     # Go through incomplete images 
