@@ -279,6 +279,8 @@ class WAPS_Image:
         self.image_transmission_active = True
         self.update = True
         self.latest_saved_file = None
+        self.latest_saved_file_tm = None
+        self.latest_saved_file_data = None
         self.outdated = False
 
     def __str__(self):
@@ -327,7 +329,11 @@ class WAPS_Image:
             out = out + '\n - Missing or Incorrect Packets: \t' + str(missing_packets)
             
         if (self.latest_saved_file):
-            out = out + '\n - Latest Saved File: \t ' + str(self.latest_saved_file)
+            out = out + '\n - Latest saved image file: \t ' + str(self.latest_saved_file)
+        if (self.latest_saved_file_tm):
+            out = out + '\n - Latest saved flir tm file: \t ' + str(self.latest_saved_file_tm)
+        if (self.latest_saved_file_data):
+            out = out + '\n - Latest saved flir raw data file: \t ' + str(self.latest_saved_file_data)
         
         return out
 
@@ -925,6 +931,9 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
 
             # And note the latest written down file
             incomplete_images[index].latest_saved_file = file_path
+            if (incomplete_images[index].camera_type == "FLIR"):
+                incomplete_images[index].latest_saved_file_tm = file_path[:-4] + '_tm.txt'
+                incomplete_images[index].latest_saved_file_data = file_path[:-4] + '_data.csv'
 
         # Update interface if available
         if (interface):
