@@ -294,8 +294,8 @@ class WAPS_Image:
                 "\n - Initialization Time: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
                 "\n - CCSDS Time: " + self.CCSDS_time.strftime('%Y%m%d_%H%M') +
                 "\n - Initialization time tag: " + str(self.time_tag) +
-                "\n - Completion: " + str(len(self.packets)-len(missing_packets)) + r'/' +  str(self.number_of_packets) +
-                        ' ' + str(int((len(self.packets)-len(missing_packets))/self.number_of_packets*100.0)) + '%'
+                "\n - Completion: " + str(self.number_of_packets-len(missing_packets)) + r'/' +  str(self.number_of_packets) +
+                        ' ' + str(int((self.number_of_packets-len(missing_packets))/self.number_of_packets*100.0)) + '%'
                 "\n - Transmission active: " + str(self.image_transmission_active) +
                 "\n - Memory Slot overwritten: " + str(self.overwritten))
 
