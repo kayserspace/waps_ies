@@ -72,6 +72,11 @@ class BIOLAB_Packet:
                 self.generic_tm_id == 0x4200 or
                 self.generic_tm_id == 0x5100 or
                 self.generic_tm_id == 0x5200 ):
+                self.is_waps_image_packet = True
+            else:
+                self.is_waps_image_packet = False
+
+            if (self.is_waps_image_packet):
                 
                 if (self.generic_tm_id == 0x4100 or self.generic_tm_id == 0x5100):
                     # WAPS Image number of packets (FLIR or uCAM)
@@ -168,10 +173,7 @@ class BIOLAB_Packet:
             logging.error(str(self.packet_name) + ' - Incorrect data length (254). This packet:' + str(len(self.data)))
             return False
 
-        if (not (self.generic_tm_id == 0x4100 or
-                 self.generic_tm_id == 0x4200 or
-                 self.generic_tm_id == 0x5100 or
-                 self.generic_tm_id == 0x5200)):
+        if (not (self.is_waps_image_packet)):
             logging.error(str(self.packet_name) + ' - Generic TM ID does not match a WAPS Image Packet')
             return False
 
@@ -517,10 +519,7 @@ def sort_biolab_packets(packet_list,
             logging.error(packet.packet_name + " is not a WAPS Image Packet")
             continue
         else:
-            if (packet.generic_tm_id == 0x4100 or
-                packet.generic_tm_id == 0x4200 or
-                packet.generic_tm_id == 0x5100 or
-                packet.generic_tm_id == 0x5200):
+            if (packet.is_waps_image_packet):
                 status_message = receiver.get_status()
                 logging.info(status_message)
                 logging.info(str(packet))

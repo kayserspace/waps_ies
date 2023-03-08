@@ -178,10 +178,7 @@ class TCP_Receiver:
                                                                        False) # Do not save incomplete images
 
                         # Show current state of incomplete images if a WAPS image packet has been received
-                        if (waps_packet.generic_tm_id == 0x4100 or
-                            waps_packet.generic_tm_id == 0x4200 or
-                            waps_packet.generic_tm_id == 0x5100 or
-                            waps_packet.generic_tm_id == 0x5200 ):
+                        if (waps_packet.is_waps_image_packet):
                             processor.print_incomplete_images_status(self.incomplete_images)
 
                     # Check if any image times out
