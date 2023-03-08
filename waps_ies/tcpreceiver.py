@@ -136,13 +136,13 @@ class TCP_Receiver:
                     packetData = self.socket.recv( packetDataLength )
                     # TODO see if this is actually needed
                     if( len( packetData ) != packetDataLength ):
-                        logging.info("Expected data length of " + str(packetDataLength) +
+                        logging.debug("Expected data length of " + str(packetDataLength) +
                                         ' vs actual ' + str(len( packetData )))
                         packetData2 = self.socket.recv( packetDataLength - len( packetData ))
                         if( len( packetData2 ) != packetDataLength - len( packetData ) ):
-                            raise Exception( "Failed to read complete CCSDS Data Block from TCP link" )
+                            logging.error("Failed to read complete CCSDS Data Block from TCP link")
                         else:
-                            logging.info("Got the rest with a new request")
+                            logging.debug("Got the rest with a new request")
                             waps_packet = self.process_CCSDS_packet( CCSDS_header + packetData + packetData2 )
                     else:
                         waps_packet = self.process_CCSDS_packet( CCSDS_header + packetData )
