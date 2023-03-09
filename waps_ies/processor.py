@@ -523,6 +523,9 @@ def sort_biolab_packets(packet_list,
                 status_message = receiver.get_status()
                 logging.info(status_message)
                 logging.info(str(packet))
+
+                # Add packet to the database
+                receiver.add_packet_to_db(packet)
             else:
                 # Log not relevant BIOLAB TM packets only in DEBUG mode
                 status_message = receiver.get_status()
@@ -590,6 +593,9 @@ def sort_biolab_packets(packet_list,
             # Add image to the incomplete list
             incomplete_images.append(new_image)
 
+            # Add image to the database
+            receiver.add_image_to_db(new_image)
+
             
 
         # FLIR camera picture packet
@@ -653,6 +659,9 @@ def sort_biolab_packets(packet_list,
 
             # Add image to the incomplete list
             incomplete_images.append(new_image)
+
+            # Add image to the database
+            receiver.add_image_to_db(new_image)
 
 
             

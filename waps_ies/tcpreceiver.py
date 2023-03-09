@@ -92,13 +92,12 @@ class TCP_Receiver:
         # Check database tables
         db_request = self.db_cursor.execute("SELECT name FROM sqlite_master")
         db_tables = db_request.fetchall()
-        for table in db_tables:
         if (not ('packet',) in db_tables):
             logging.debug("Adding packet table to db")
-            self.db_cursor.execute("CREATE TABLE packet(packet_name, ec_address, memory_slot)")
+            self.db_cursor.execute("CREATE TABLE packet(packet_name, ec_address, image_memory_slot, tm_packet_id, image_name)")
         if (not ('image',) in db_tables):
             logging.debug("Adding image table to db")
-            self.db_cursor.execute("CREATE TABLE image(image_name, ec_address, memory_slot)")
+            self.db_cursor.execute("CREATE TABLE image(image_name, ec_address, memory_slot, number_of_packets)")
         db_request = self.db_cursor.execute("SELECT name FROM sqlite_master")
         db_tables = db_request.fetchall()
 
@@ -127,7 +126,43 @@ class TCP_Receiver:
                                     self.total_initialized_images,
                                     self.total_completed_images))
         return status_message
-    
+
+
+
+
+    def add_packet_to_db(self, packet):
+        """ Add packet to database, if not present already """
+
+        packet_data =   [(packet.packet_name,
+                        packet.ec_address,
+                        packet.image_memory_slot,
+                        packet.tm_packet_id,
+                        "Unknown"),
+                        ]
+        self.db_cursor.executemany("INSERT INTO packet VALUES(?, ?, ?, ?, ?)", packet_data)
+        self.database.commit()
+
+    def update_packet_image_name_db(self, packet):
+        """ Add packet to database, if not present already """
+
+        #TODO
+
+
+
+
+    def add_image_to_db(self, image):
+        """ Add image to database, if not present already """
+
+        image_data =    [(image.image_name,
+                        image.ec_address,
+                        image.memory_slot,
+                        image.number_of_packets),
+                        ]
+        self.db_cursor.executemany("INSERT INTO image VALUES(?, ?, ?, ?)", image_data)
+        self.database.commit()
+
+
+
     def start(self):
     
         try:
