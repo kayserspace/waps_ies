@@ -16,6 +16,8 @@ import time
 from struct import unpack
 from waps_ies import interface, processor
 from datetime import timedelta
+import os
+import sqlite3
 
 CCSDS1HeaderLength =  6
 CCSDS2HeaderLength = 10
@@ -79,6 +81,27 @@ class TCP_Receiver:
         self.total_completed_images = 0
         self.total_lost_packets = 0
         self.total_corrupted_packets = 0
+
+        # Database initialization
+        if (not os.path.exists('waps_pd.db')):
+            logging.warning("Database seems to be missing path does not exist. Creating it...")
+        self.database = sqlite3.connect("waps_pd.db")
+        self.db_cursor = self.database.cursor()
+        logging.info(" # Opened database 'waps_pd.db'")
+
+        # Check database tables
+        db_request = self.db_cursor.execute("SELECT name FROM sqlite_master")
+        db_tables = db_request.fetchall()
+        for table in db_tables:
+        if (not ('packet',) in db_tables):
+            logging.debug("Adding packet table to db")
+            self.db_cursor.execute("CREATE TABLE packet(packet_name, ec_address, memory_slot)")
+        if (not ('image',) in db_tables):
+            logging.debug("Adding image table to db")
+            self.db_cursor.execute("CREATE TABLE image(image_name, ec_address, memory_slot)")
+        db_request = self.db_cursor.execute("SELECT name FROM sqlite_master")
+        db_tables = db_request.fetchall()
+
 
         
     def add_interface(self, ies_interface):
@@ -226,6 +249,10 @@ class TCP_Receiver:
             # Close interface if it is running
             if (self.interface):
                 self.interface.close()
+
+            if (self.database):
+                self.database.close()
+                logging.info(" # Closed database")
                 
             self.socket.close()
             logging.info(" # Disconnected from server")
