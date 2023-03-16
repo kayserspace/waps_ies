@@ -69,6 +69,8 @@ class TCP_Receiver:
 
         self.memory_slot_change_detection = False
 
+        self.ec_address_position_pairs = []
+
         # Status parameters
         self.timeout_notified = False
 

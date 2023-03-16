@@ -74,19 +74,23 @@ class WAPS_interface:
             columns[ec].append([sg.HSep()])
             #TODO remove hardcoded address
             if (ec==0):
-                columns[ec].append([sg.Text("EC address"),
+                columns[ec].append([sg.Text("EC addr"),
                                     sg.Text("171", k='ec_address_' + str(ec),
                                         background_color='white', size=(3,1), justification='c'),
-                                    sg.Text("position"),
+                                    sg.Text("pos"),
                                     sg.Text("?", k='ec_position_' + str(ec),
                                         background_color='white', size=(3,1), justification='c')])
             else:
-                columns[ec].append([sg.Text("EC address"),
+                columns[ec].append([sg.Text("EC addr"),
                                     sg.Text("?",
                                         background_color='white', size=(3,1), justification='c'),
-                                    sg.Text("position"),
+                                    sg.Text("pos"),
                                     sg.Text("?",
                                         background_color='white', size=(3,1), justification='c')])
+            columns[ec].append([sg.Text("Total image count:"),
+                                sg.Text("0", k='image_count_' + str(ec),
+                                    background_color='white', size=(3,1), justification='c'),
+                                sg.Button('List', k='list_button_' + str(ec))])
             for i in range(slot_number):
                 cell_id = '_' + str(ec) + '_' + str(i)
                 frames[ec].append([sg.Text(str(i),
@@ -101,9 +105,7 @@ class WAPS_interface:
                 if (i < slot_number - 1):
                     frames[ec].append([sg.HSep()])
             columns[ec].append([sg.Frame('Memory slots', frames[ec])])
-            columns[ec].append([sg.Text("Total images:"),
-                                sg.Text("0", background_color='white', size=(3,1), justification='c'),
-                                sg.Button('List', k='list_button_' + str(ec))])
+            
 
         combined_columns = [sg.Col(columns[0]),
                             sg.Col(columns[1]),

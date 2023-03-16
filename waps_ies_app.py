@@ -93,6 +93,7 @@ def run_waps_ies(args):
     gui_enabled = '1'                   # Graphical Interface
     image_timeout = '600'               # minutes (10h)
     memory_slot_change_detection = '0'  # False
+    ec_address_position_pairs = []      # EC position assignment according to EC address
     
     # Check the configuration file waps_ies_conf.ini
     config = configparser.ConfigParser()
@@ -108,6 +109,9 @@ def run_waps_ies(args):
         image_timeout = config.get('WAPS_IES','image_timeout', fallback=image_timeout)
         memory_slot_change_detection = config.get('WAPS_IES','memory_slot_change_detection',
                                                         fallback=memory_slot_change_detection)
+    if ('EC_POSITIONS' in config.sections()):
+        for ec_addr_pos in config.items('EC_POSITIONS'):
+            ec_address_position_pairs.append([int(ec_addr_pos[0]), ec_addr_pos[1]])
 
     # Define command line arguments
     parser = ArgumentParser(description='WAPS Image Extraction Software.' +
@@ -222,6 +226,17 @@ def run_waps_ies(args):
     if (int(memory_slot_change_detection)):
         ies.memory_slot_change_detection = int(memory_slot_change_detection)
         logging.info(" # Detecting memory slot change from BIOLAB telemetry")
+
+    if (len(ec_address_position_pairs)):
+        ec_addr_pos_printout = "   EC address / position"
+        for ec_addr_pos in ec_address_position_pairs:
+            ec_addr_pos_printout = (ec_addr_pos_printout +
+                "\n   " + str(ec_addr_pos[0]) + " / " + ec_addr_pos[1])
+
+        logging.info(" # Configuration file contained the following EC address/position pairs:\n" +
+                        ec_addr_pos_printout)
+
+        ies.ec_address_position_pairs = ec_address_position_pairs
 
     # Configure interface
     if (int(gui_enabled)):
