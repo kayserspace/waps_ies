@@ -156,10 +156,14 @@ def run_waps_ies(args):
 
     ##### Check critical parameters
     if (not ip_address):
-        logging.error("Server IP address not specified")
+        logging.error("Server IP address not specified\n" +
+            "Please specify IP address and port inline or in the configuration file\n" +
+            "Example: waps_ies_app.py -ip localhost -p 12345")
         quit()
     if (not port):
-        logging.error("Server port not specified")
+        logging.error("Server port not specified\n" +
+            "Please specify IP address and port inline or in the configuration file\n" +
+            "Example: waps_ies_app.py -ip localhost -p 12345")
         quit()
     #####
 
