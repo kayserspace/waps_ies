@@ -129,7 +129,16 @@ class TCP_Receiver:
                                     self.total_completed_images))
         return status_message
 
+    def get_ec_position(self, ec_address):
+        """ Get EC position from address """
 
+        for ec_pair in self.ec_address_position_pairs:
+            if (ec_pair[0] == ec_address):
+                return ec_pair[1]
+
+        return '?'
+
+        
 
 
     def add_packet_to_db(self, packet):

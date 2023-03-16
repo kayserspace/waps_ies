@@ -73,20 +73,13 @@ class WAPS_interface:
             frames.append([])
             columns[ec].append([sg.HSep()])
             #TODO remove hardcoded address
-            if (ec==0):
-                columns[ec].append([sg.Text("EC addr"),
-                                    sg.Text("171", k='ec_address_' + str(ec),
-                                        background_color='white', size=(3,1), justification='c'),
-                                    sg.Text("pos"),
-                                    sg.Text("?", k='ec_position_' + str(ec),
-                                        background_color='white', size=(3,1), justification='c')])
-            else:
-                columns[ec].append([sg.Text("EC addr"),
-                                    sg.Text("?",
-                                        background_color='white', size=(3,1), justification='c'),
-                                    sg.Text("pos"),
-                                    sg.Text("?",
-                                        background_color='white', size=(3,1), justification='c')])
+            columns[ec].append([sg.Text("EC addr"),
+                                sg.Text("?", k='ec_address_' + str(ec),
+                                    background_color='lightgrey', size=(3,1), justification='c'),
+                                sg.Text("pos"),
+                                sg.Text("?", k='ec_position_' + str(ec),
+                                    background_color='white', size=(6,1), justification='c')])
+
             columns[ec].append([sg.Text("Total image count:"),
                                 sg.Text("0", k='image_count_' + str(ec),
                                     background_color='white', size=(3,1), justification='c'),
@@ -212,6 +205,11 @@ class WAPS_interface:
         self.window['latest_file'].update(latest_file)
 
     def update_image_data(self, image):
+
+        # TODO add multiple ECs / fix the column with one EC address
+        # EC address / position update
+        self.window['ec_address_0'].update(str(image.ec_address))
+        self.window['ec_position_0'].update(self.monitor.get_ec_position(image.ec_address))
 
         # Image packets status
         missing_packets = image.get_missing_packets()
