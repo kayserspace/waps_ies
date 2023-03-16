@@ -75,10 +75,18 @@ class WAPS_interface:
             #TODO remove hardcoded address
             if (ec==0):
                 columns[ec].append([sg.Text("EC address"),
-                                    sg.Text("171", background_color='white')])
+                                    sg.Text("171", k='ec_address_' + str(ec),
+                                        background_color='white', size=(3,1), justification='c'),
+                                    sg.Text("position"),
+                                    sg.Text("?", k='ec_position_' + str(ec),
+                                        background_color='white', size=(3,1), justification='c')])
             else:
                 columns[ec].append([sg.Text("EC address"),
-                                    sg.Text("X", background_color='white')])
+                                    sg.Text("?",
+                                        background_color='white', size=(3,1), justification='c'),
+                                    sg.Text("position"),
+                                    sg.Text("?",
+                                        background_color='white', size=(3,1), justification='c')])
             for i in range(slot_number):
                 cell_id = '_' + str(ec) + '_' + str(i)
                 frames[ec].append([sg.Text(str(i),
@@ -93,6 +101,9 @@ class WAPS_interface:
                 if (i < slot_number - 1):
                     frames[ec].append([sg.HSep()])
             columns[ec].append([sg.Frame('Memory slots', frames[ec])])
+            columns[ec].append([sg.Text("Total images:"),
+                                sg.Text("0", background_color='white', size=(3,1), justification='c'),
+                                sg.Button('List', k='list_button_' + str(ec))])
 
         combined_columns = [sg.Col(columns[0]),
                             sg.Col(columns[1]),
@@ -112,7 +123,6 @@ class WAPS_interface:
                     sg.Text('Corrupted packets:'),
                     sg.Text('0', k='corrupted_packets', size=(4,1),
                         background_color='white')]
-        #sg.StatusBar('Stats. Packets - CCSDS pkts: 0 BIOLAB pkts: 0 WAPS image data pkts: 0 Miss: 0 - Images: 0')
         layout.append(status_bar)
 
         # Create the Window
@@ -133,9 +143,14 @@ class WAPS_interface:
                 self.window_open = True
                 if event == sg.WIN_CLOSED or event == 'Exit': # if user closes window or clicks cancel
                     break
-                elif (str(event) == 'selected_file'):
-                    self.monitor.add_file_for_processing(values['selected_file'])
-                    logging.info(' Manually added file: ' + values['selected_file'])
+                elif (str(event) == 'list_button_0'):
+                    logging.info(' List EC 0 images')
+                elif (str(event) == 'list_button_1'):
+                    logging.info(' List EC 1 images')
+                elif (str(event) == 'list_button_2'):
+                    logging.info(' List EC 2 images')
+                elif (str(event) == 'list_button_3'):
+                    logging.info(' List EC 3 images')
                 elif (str(event) != '__TIMEOUT__'):
                     logging.info(' Interface event: ' + str(event) + ' ' + str(values))
                 if (first_run):
