@@ -1,5 +1,6 @@
 """ WAPS IES Image Packet processor """
 
+import uuid
 import logging
 from datetime import datetime, timedelta
 
@@ -31,11 +32,15 @@ class BIOLAB_Packet:
         Prints the person's name and age.
     """
 
+    uuid = str(uuid.uuid4()) # Random UUID
+
     image_number_of_packets = -1
     data_packet_id = -1
     data_packet_size = -1
     data_packet_crc = -1
     data_packet_verify_code = -1
+
+    image_uuid = -1
     
     def __init__(self, CCSDS_time, acquisition_time, data):
         """Packet initialization with metadata"""
@@ -263,11 +268,14 @@ class WAPS_Image:
     info(additional=""):
         Checks if the file image is complete.
     """
+
+    uuid = str(uuid.uuid4()) # Random UUID
     
     def __init__(self, camera_type, packet):
         """Image initialization with metadata"""
         
         self.ec_address = packet.ec_address
+        self.ec_position = '?'
         self.camera_type = camera_type
         self.memory_slot = packet.image_memory_slot
         self.number_of_packets = packet.image_number_of_packets
@@ -531,7 +539,7 @@ def sort_biolab_packets(packet_list,
                 logging.info(str(packet))
 
                 # Add packet to the database
-                receiver.db.add_packet(packet)
+                packet.uuid = receiver.db.add_packet(packet)
             else:
                 # Log not relevant BIOLAB TM packets only in DEBUG mode
                 status_message = receiver.get_status()
@@ -596,11 +604,12 @@ def sort_biolab_packets(packet_list,
                          ' with ' +  str(image_number_of_packets) + ' expected packets (' +
                          new_image.image_name + ')')
 
-            # Add image to the incomplete list
-            incomplete_images.append(new_image)
-
             # Add image to the database
             receiver.db.add_image(new_image)
+            receiver.db.update_packet(packet, new_image.uuid)
+
+            # Add image to the incomplete list
+            incomplete_images.append(new_image)
 
             
 
@@ -622,6 +631,7 @@ def sort_biolab_packets(packet_list,
 
                     incomplete_images[i].add_packet(packet)
                     incomplete_images[i].update = True
+                    receiver.db.update_packet(packet, incomplete_images[i].uuid)
                     break
             
             if (not found_matching_image):
@@ -663,11 +673,12 @@ def sort_biolab_packets(packet_list,
                          ' with ' +  str(packet.image_number_of_packets) + ' expected packets (' +
                          new_image.image_name + ')')
 
-            # Add image to the incomplete list
-            incomplete_images.append(new_image)
-
             # Add image to the database
             receiver.db.add_image(new_image)
+            receiver.db.update_packet(packet, new_image.uuid)
+
+            # Add image to the incomplete list
+            incomplete_images.append(new_image)
 
 
             
@@ -689,6 +700,7 @@ def sort_biolab_packets(packet_list,
 
                     incomplete_images[i].add_packet(packet)
                     incomplete_images[i].update = True
+                    receiver.db.update_packet(packet, incomplete_images[i].uuid)
                     break
             
             if (not found_matching_image):

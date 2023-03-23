@@ -14,7 +14,6 @@
 import os
 import logging
 import sqlite3
-import uuid
 
 class WAPS_Database:
     """
@@ -33,9 +32,9 @@ class WAPS_Database:
         # Database initialization
         if (not os.path.exists(database_filename)):
             logging.warning("Database seems to be missing path does not exist. Creating it...")
-        self.database = sqlite3.connect("waps_pd.db")
+        self.database = sqlite3.connect(database_filename)
         self.db_cursor = self.database.cursor()
-        logging.info(" # Opened database 'waps_pd.db'")
+        logging.info(" # Opened database " + database_filename)
 
         # Check database tables
         db_request = self.db_cursor.execute("SELECT name FROM sqlite_master")
@@ -67,9 +66,27 @@ class WAPS_Database:
 
         if (not ('image',) in db_tables):
             logging.debug("Adding image table to db")
-            self.db_cursor.execute("CREATE TABLE image(image_name, ec_address, memory_slot, number_of_packets)")
-        db_request = self.db_cursor.execute("SELECT name FROM sqlite_master")
-        db_tables = db_request.fetchall()
+            image_table_contents = ("CREATE TABLE image(" +
+                                    "image_uuid, " +
+                                    "acquisition_time, " +
+                                    "CCSDS_time, " +
+                                    "time_tag, " +
+                                    "image_name, " +
+                                    "camera_type, " +
+                                    "ec_address, " +
+                                    "ec_position, " +
+                                    "memory_slot, " +
+                                    "number_of_packets, " +
+                                    "received_packets, " +
+                                    "overwritten, " +
+                                    "outdated, " +
+                                    "transmission_active, " +
+                                    "image_update, " +
+                                    "latest_image_file, " +
+                                    "latest_data_file, " +
+                                    "latest_tm_file, " +
+                                    "finalization_time)")
+            self.db_cursor.execute(image_table_contents)
 
 
     def add_packet(self, packet):
@@ -77,7 +94,7 @@ class WAPS_Database:
 
         #TODO check for duplicate
 
-        packet_data =   [(str(uuid.uuid4()), # Random UUID
+        packet_data =   [(packet.uuid,
                         packet.acquisition_time,
                         packet.CCSDS_time,
                         packet.data,
@@ -101,15 +118,36 @@ class WAPS_Database:
         self.db_cursor.executemany("INSERT INTO packet VALUES" + packet_param, packet_data)
         self.database.commit()
 
+
     def add_image(self, image):
         """ Add image to database, if not present already """
 
         #TODO check for duplicate
 
-        image_data =    [(image.image_name,
+        image_data =    [(image.uuid,
+                        image.acquisition_time,
+                        image.CCSDS_time,
+                        image.time_tag,
+                        image.image_name,
+                        image.camera_type,
                         image.ec_address,
+                        image.ec_position,
                         image.memory_slot,
-                        image.number_of_packets),
+                        image.number_of_packets,
+                        len(image.packets),
+                        image.overwritten,
+                        image.outdated,
+                        image.image_transmission_active,
+                        image.update,
+                        image.latest_saved_file,
+                        image.latest_saved_file_data,
+                        image.latest_saved_file_tm,
+                        'Unknown'),
                         ]
-        self.db_cursor.executemany("INSERT INTO image VALUES(?, ?, ?, ?)", image_data)
+        image_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        self.db_cursor.executemany("INSERT INTO image VALUES" + image_param, image_data)
         self.database.commit()
+
+    def update_packet(self, packet, image_uuid):
+
+        print ("update packet's image uuid")
