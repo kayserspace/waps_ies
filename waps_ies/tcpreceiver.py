@@ -14,7 +14,7 @@ from datetime import datetime
 import socket
 import time
 from struct import unpack
-from waps_ies import interface, processor
+from waps_ies import interface, processor, database
 from datetime import timedelta
 import os
 import sqlite3
@@ -84,26 +84,7 @@ class TCP_Receiver:
         self.total_lost_packets = 0
         self.total_corrupted_packets = 0
 
-        # Database initialization
-        if (not os.path.exists('waps_pd.db')):
-            logging.warning("Database seems to be missing path does not exist. Creating it...")
-        self.database = sqlite3.connect("waps_pd.db")
-        self.db_cursor = self.database.cursor()
-        logging.info(" # Opened database 'waps_pd.db'")
-
-        # Check database tables
-        db_request = self.db_cursor.execute("SELECT name FROM sqlite_master")
-        db_tables = db_request.fetchall()
-        if (not ('packet',) in db_tables):
-            logging.debug("Adding packet table to db")
-            self.db_cursor.execute("CREATE TABLE packet(packet_name, ec_address, image_memory_slot, tm_packet_id, image_name)")
-        if (not ('image',) in db_tables):
-            logging.debug("Adding image table to db")
-            self.db_cursor.execute("CREATE TABLE image(image_name, ec_address, memory_slot, number_of_packets)")
-        db_request = self.db_cursor.execute("SELECT name FROM sqlite_master")
-        db_tables = db_request.fetchall()
-
-
+        self.db = database.WAPS_Database()
         
     def add_interface(self, ies_interface):
         """ Add an interface object to the trackerer """
@@ -141,36 +122,7 @@ class TCP_Receiver:
         
 
 
-    def add_packet_to_db(self, packet):
-        """ Add packet to database, if not present already """
 
-        packet_data =   [(packet.packet_name,
-                        packet.ec_address,
-                        packet.image_memory_slot,
-                        packet.tm_packet_id,
-                        "Unknown"),
-                        ]
-        self.db_cursor.executemany("INSERT INTO packet VALUES(?, ?, ?, ?, ?)", packet_data)
-        self.database.commit()
-
-    def update_packet_image_name_db(self, packet):
-        """ Add packet to database, if not present already """
-
-        #TODO
-
-
-
-
-    def add_image_to_db(self, image):
-        """ Add image to database, if not present already """
-
-        image_data =    [(image.image_name,
-                        image.ec_address,
-                        image.memory_slot,
-                        image.number_of_packets),
-                        ]
-        self.db_cursor.executemany("INSERT INTO image VALUES(?, ?, ?, ?)", image_data)
-        self.database.commit()
 
 
 
