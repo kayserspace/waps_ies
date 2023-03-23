@@ -22,6 +22,9 @@ class WAPS_interface:
         Prints the person's name and age.
     """
 
+    # Window with list of received images
+    list_window = None
+
     def __init__(self, monitor):
 
         self.window_open = False
@@ -80,10 +83,10 @@ class WAPS_interface:
                                 sg.Text("?", k='ec_position_' + str(ec),
                                     background_color='white', size=(6,1), justification='c')])
 
-            columns[ec].append([sg.Text("Total image count:"),
+            columns[ec].append([sg.Text("Image count:"),
                                 sg.Text("0", k='image_count_' + str(ec),
                                     background_color='white', size=(3,1), justification='c'),
-                                sg.Button('List', k='list_button_' + str(ec))])
+                                sg.Button('Show list', k='list_button_' + str(ec))])
             for i in range(slot_number):
                 cell_id = '_' + str(ec) + '_' + str(i)
                 frames[ec].append([sg.Text(str(i),
@@ -106,12 +109,14 @@ class WAPS_interface:
                             sg.Col(columns[3])]
         layout.append(combined_columns)
 
-        status_bar = [sg.Text('Initialized images:'),
+        status_bar = [ sg.Button('List all received images', k='list_all_button'),
+                    sg.Text('Initialized images:'),
                     sg.Text('0', k='initialized_images', size=(4,1),
                         background_color='white'),
                     sg.Text('Completed images:'),
                     sg.Text('0', k='completed_images', size=(4,1),
                         background_color='white'),
+
                     sg.Text('Lost packets:'),
                     sg.Text('0', k='lost_packets', size=(4,1),
                         background_color='white'),
@@ -131,26 +136,23 @@ class WAPS_interface:
         
         try:
             # Event Loop to process "events" and get the "values" of the inputs
-            first_run = True
-            timeout_value = 1
             while self.monitor.continue_running:
-                event, values = self.window.read(timeout = timeout_value) # 1 s timeout
+                event, values = self.window.read(timeout = 100)
                 self.window_open = True
                 if event == sg.WIN_CLOSED or event == 'Exit': # if user closes window or clicks cancel
                     break
                 elif (str(event) == 'list_button_0'):
-                    logging.info(' List EC 0 images')
+                    self.show_image_list(self.window['ec_address_0'].get())
                 elif (str(event) == 'list_button_1'):
-                    logging.info(' List EC 1 images')
+                    self.show_image_list(self.window['ec_address_1'].get())
                 elif (str(event) == 'list_button_2'):
-                    logging.info(' List EC 2 images')
+                    self.show_image_list(self.window['ec_address_2'].get())
                 elif (str(event) == 'list_button_3'):
-                    logging.info(' List EC 3 images')
+                    self.show_image_list(self.window['ec_address_3'].get())
+                elif (str(event) == 'list_all_button'):
+                    self.show_image_list()
                 elif (str(event) != '__TIMEOUT__'):
                     logging.info(' Interface event: ' + str(event) + ' ' + str(values))
-                if (first_run):
-                    first_run = False
-                    timeout_value = 1000
 
         finally:
             self.window.close()
@@ -261,3 +263,28 @@ class WAPS_interface:
         else:
             self.window['missing_packets_0_' + str(image.memory_slot)].update(
                 background_color=sg.theme_background_color())
+
+
+
+    def show_image_list(self, ec_address=None):
+
+        # TODO request database for this data
+        data = [["EC_171_uCAM_114128_m6_7430564", "Incomplete", "11:41:28", "81% (27/33)", "[4, 10, 14, 20-21, 27]"],
+                ["EC_171_FLIR_105830_m5_6539398", "Complete", "10:58:30", "100% (63/63)", "[]"]]
+
+        layout = [
+                    [sg.Table(data,
+                        ['    Image name    ', 'Status', 'Timestamp','Completion', 'Missing packets'],
+                        num_rows=30,
+                        alternating_row_color='lightgrey',
+                        justification='l',
+                        expand_x=True, expand_y=True)]]      
+
+        # Create a new window
+        list_window_title = 'List of received images'
+        if (ec_address):
+            list_window_title = list_window_title + ' from EC ' + str(ec_address)
+        self.list_window = sg.Window(list_window_title, layout, resizable=True)
+        logging.info(list_window_title)
+
+        event, values = self.list_window.read(timeout = 100)
