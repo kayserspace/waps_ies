@@ -248,8 +248,8 @@ class TCP_Receiver:
             if (self.interface):
                 self.interface.close()
 
-            if (self.database):
-                self.database.close()
+            if (self.db):
+                self.db.database.close()
                 logging.info(" # Closed database")
                 
             self.socket.close()
