@@ -32,8 +32,6 @@ class BIOLAB_Packet:
         Prints the person's name and age.
     """
 
-    uuid = str(uuid.uuid4()) # Random UUID
-
     image_number_of_packets = -1
     data_packet_id = -1
     data_packet_size = -1
@@ -44,6 +42,8 @@ class BIOLAB_Packet:
     
     def __init__(self, CCSDS_time, acquisition_time, data):
         """Packet initialization with metadata"""
+
+        self.uuid = str(uuid.uuid4()) # Random UUID
         
         self.acquisition_time = acquisition_time
         self.CCSDS_time = CCSDS_time
@@ -268,11 +268,11 @@ class WAPS_Image:
     info(additional=""):
         Checks if the file image is complete.
     """
-
-    uuid = str(uuid.uuid4()) # Random UUID
     
     def __init__(self, camera_type, packet):
         """Image initialization with metadata"""
+
+        self.uuid = str(uuid.uuid4()) # Random UUID
         
         self.ec_address = packet.ec_address
         self.ec_position = '?'
