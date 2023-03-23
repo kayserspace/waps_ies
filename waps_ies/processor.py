@@ -525,7 +525,7 @@ def sort_biolab_packets(packet_list,
                 logging.info(str(packet))
 
                 # Add packet to the database
-                receiver.add_packet_to_db(packet)
+                receiver.db.add_packet(packet)
             else:
                 # Log not relevant BIOLAB TM packets only in DEBUG mode
                 status_message = receiver.get_status()
@@ -594,7 +594,7 @@ def sort_biolab_packets(packet_list,
             incomplete_images.append(new_image)
 
             # Add image to the database
-            receiver.add_image_to_db(new_image)
+            receiver.db.add_image(new_image)
 
             
 
