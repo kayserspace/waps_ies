@@ -14,6 +14,7 @@
 import os
 import logging
 import sqlite3
+import uuid
 
 class WAPS_Database:
     """
@@ -39,9 +40,31 @@ class WAPS_Database:
         # Check database tables
         db_request = self.db_cursor.execute("SELECT name FROM sqlite_master")
         db_tables = db_request.fetchall()
+        
         if (not ('packet',) in db_tables):
             logging.debug("Adding packet table to db")
-            self.db_cursor.execute("CREATE TABLE packet(packet_name, ec_address, image_memory_slot, tm_packet_id, image_name)")
+            packet_table_contents = ("CREATE TABLE packet(" +
+                                    "packet_uuid, " +
+                                    "acquisition_time, " +
+                                    "CCSDS_time, " +
+                                    "data, " +
+                                    "time_tag, " +
+                                    "packet_name, " +
+                                    "ec_address, " +
+                                    "generic_tm_id, " +
+                                    "generic_tm_type, " +
+                                    "generic_tm_length, " +
+                                    "image_memory_slot, " +
+                                    "tm_packet_id, " +
+                                    "image_number_of_packets, " +
+                                    "data_packet_id, " +
+                                    "data_packet_crc, " +
+                                    "data_packet_size, " +
+                                    "data_packet_verify_code, " +
+                                    "good_packet, " +
+                                    "image_id)")
+            self.db_cursor.execute(packet_table_contents)
+
         if (not ('image',) in db_tables):
             logging.debug("Adding image table to db")
             self.db_cursor.execute("CREATE TABLE image(image_name, ec_address, memory_slot, number_of_packets)")
@@ -54,13 +77,28 @@ class WAPS_Database:
 
         #TODO check for duplicate
 
-        packet_data =   [(packet.packet_name,
+        packet_data =   [(str(uuid.uuid4()), # Random UUID
+                        packet.acquisition_time,
+                        packet.CCSDS_time,
+                        packet.data,
+                        packet.time_tag,
+                        packet.packet_name,
                         packet.ec_address,
+                        packet.generic_tm_id,
+                        packet.generic_tm_type,
+                        packet.generic_tm_length,
                         packet.image_memory_slot,
                         packet.tm_packet_id,
+                        packet.image_number_of_packets,
+                        packet.data_packet_id,
+                        packet.data_packet_crc,
+                        packet.data_packet_size,
+                        packet.data_packet_verify_code,
+                        packet.is_good_waps_image_packet(),
                         "Unknown"),
                         ]
-        self.db_cursor.executemany("INSERT INTO packet VALUES(?, ?, ?, ?, ?)", packet_data)
+        packet_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        self.db_cursor.executemany("INSERT INTO packet VALUES" + packet_param, packet_data)
         self.database.commit()
 
     def add_image(self, image):
