@@ -39,6 +39,8 @@ class TCP_Receiver:
     -------
 
     """
+
+    socket_connection_failure_count = 0
     
     def __init__(self, address, port, output_path, tcp_timeout = '2.1'):
         """
@@ -146,10 +148,21 @@ class TCP_Receiver:
 
                         logging.info(" # TCP connection to %s:%s established",
                                        self.server_address[0], str(self.server_address[1]))
+                        self.socket_connection_failure_count = 0
+
                     except Exception as err:
-                        logging.error(" Could not connect to socket " + str(err))
+                        self.socket_connection_failure_count = self.socket_connection_failure_count + 1
+                        if (self.socket_connection_failure_count < 10):
+                            logging.error(" Could not connect to socket. Error:" + str(err))
+                        else:
+                            if (not self.socket_connection_failure_count%60):
+                                logging.error(" Connection failed " +
+                                            str(self.socket_connection_failure_count) + " times. Error:" + str(err))
+                            print(" Connection failed " + str(self.socket_connection_failure_count)
+                                            + " times\r", end='')
                         time.sleep(1)
                         continue
+                
                        
                 try:
                     CCSDS_header = self.socket.recv(CCSDSHeadersLength)
