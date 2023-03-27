@@ -250,19 +250,21 @@ class WAPS_interface:
 
         # Missing packets with colour change
         missing_packets_str = processor.WAPS_Image.number_sequence_printout(missing_packets)
+        packets_sequential = processor.WAPS_Image.is_sequential(image.number_of_packets, missing_packets)
         if (len(missing_packets_str) > 15):
             missing_packets_str = missing_packets_str[:16] + '..'
         self.window['missing_packets_0_' + str(image.memory_slot)].update(missing_packets_str)
-        if (len(missing_packets)):
+        if (not len(missing_packets) or image.image_transmission_active and packets_sequential):
+            self.window['missing_packets_0_' + str(image.memory_slot)].update(
+                background_color=sg.theme_background_color())
+        else:
             if (image.overwritten or image.outdated or image.image_transmission_active):
                 self.window['missing_packets_0_' + str(image.memory_slot)].update(
                     background_color='yellow')
             else:
                 self.window['missing_packets_0_' + str(image.memory_slot)].update(
                     background_color='red')
-        else:
-            self.window['missing_packets_0_' + str(image.memory_slot)].update(
-                background_color=sg.theme_background_color())
+            
 
 
 

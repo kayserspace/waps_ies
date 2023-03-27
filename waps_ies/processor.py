@@ -432,6 +432,21 @@ class WAPS_Image:
         
         return missing_packets
 
+    def is_sequential(expected_packet_number, missing_packets):
+
+
+        # Check that the missing packet list is sequenctial
+        count = len(missing_packets)
+        if (count > 1):
+            for i in range(count-1):
+                if (missing_packets[i] + 1 != missing_packets[i + 1]):
+                    return False
+
+        # Check that the last packet missing is the last packet number expected
+        if (count > 0 and missing_packets[count-1] != expected_packet_number - 1):
+            return False
+
+        return True
 
 
     def sort_packets(self):
