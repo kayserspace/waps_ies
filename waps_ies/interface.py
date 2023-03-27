@@ -135,9 +135,10 @@ class WAPS_interface:
         """ Interface main loop """
         
         try:
+            gui_timeout = 100
             # Event Loop to process "events" and get the "values" of the inputs
             while self.monitor.continue_running:
-                event, values = self.window.read(timeout = 100)
+                event, values = self.window.read(timeout = gui_timeout)
                 self.window_open = True
                 if event == sg.WIN_CLOSED or event == 'Exit': # if user closes window or clicks cancel
                     break
@@ -153,6 +154,7 @@ class WAPS_interface:
                     self.show_image_list()
                 elif (str(event) != '__TIMEOUT__'):
                     logging.info(' Interface event: ' + str(event) + ' ' + str(values))
+                gui_timeout = 10000 # ms
 
         finally:
             self.window.close()
