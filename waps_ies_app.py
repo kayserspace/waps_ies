@@ -190,28 +190,9 @@ def run_waps_ies(args):
         os.makedirs(log_path)
     # Check existence of output path
     if (not os.path.exists(output_path)):
-        logging.warning("Output path does not exist. Making it...")
+        print("Output path does not exist. Making it...")
         os.makedirs(output_path)
 
-    # Set up logging
-    log_filename = (log_path + 'WAPS_IES_' +
-                        datetime.now().strftime('%Y%m%d_%H%M%S') + '.log')
-    logging.basicConfig(filename = log_filename,
-                        format='%(asctime)s:%(levelname)s:%(message)s',
-                        level=log_level)
-    logging.getLogger().addHandler(logging.StreamHandler())
-
-    # Start-up messages
-    logging.info(' ##### WAPS Image Extraction Software #####')
-    logging.info(' # Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk')
-    logging.info(' # Started log file: ' + log_filename)
-    logging.info(' # Logging level: ' + log_level_printout)
-    logging.info(' # Server: %s:%s', ip_address, port)
-    logging.info(' # TCP timeout: %s seconds', tcp_timeout)
-    logging.info(' # Output path: '+ output_path)
-
-
-    
 
     # Initialize the WAPS IES socket
     ies = tcpreceiver.TCP_Receiver(ip_address,
@@ -219,8 +200,23 @@ def run_waps_ies(args):
                                     output_path,
                                     tcp_timeout)
 
+    # Start logging to file
+    ies.log_path = log_path
+    ies.log_level = log_level
+    ies.start_new_log()
+
+    # Start-up messages
+    logging.info(' ##### WAPS Image Extraction Software #####')
+    logging.info(' # Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk')
+    logging.info(' # Logging path: ' + log_path)
+    logging.info(' # Logging level: ' + log_level_printout)
+    logging.info(' # Server: %s:%s', ip_address, port)
+    logging.info(' # TCP timeout: %s seconds', tcp_timeout)
+    logging.info(' # Output path: '+ output_path)
+
     ies.image_timeout = timedelta(minutes = int(image_timeout))
     ies.logging_level = log_level
+    ies.log_path = log_path
     logging.info(" # Image timeout: " + str(int(image_timeout)) + ' minute(s)')
 
     if (int(memory_slot_change_detection)):

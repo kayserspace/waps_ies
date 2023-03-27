@@ -41,6 +41,12 @@ class TCP_Receiver:
     """
 
     socket_connection_failure_count = 0
+
+    log_path = 'log/'
+    log_level = logging.INFO
+    log_file = None
+    log_start = 0
+
     
     def __init__(self, address, port, output_path, tcp_timeout = '2.1'):
         """
@@ -76,8 +82,6 @@ class TCP_Receiver:
         # Status parameters
         self.timeout_notified = False
 
-        self.logging_level = logging.INFO
-
         self.total_packets_received = 0
         self.total_biolab_packets = 0
         self.total_waps_image_packets = 0
@@ -88,6 +92,27 @@ class TCP_Receiver:
 
         self.db = database.WAPS_Database()
         
+
+    def start_new_log(self):
+        """ Start a new log file """
+
+        # Set up logging
+        new_log_filename = (self.log_path + 'WAPS_IES_' +
+                            datetime.now().strftime('%Y%m%d_%H%M%S') + '.log')
+        if (self.log_file):
+            logging.info( " Closing this log file. Next one is: " + new_log_filename)
+        logging.basicConfig(filename = new_log_filename,
+                            format='%(asctime)s:%(levelname)s:%(message)s',
+                            level=self.log_level,
+                            force=True)
+        logging.getLogger().addHandler(logging.StreamHandler())
+        if (self.log_file):
+            logging.info( " Previos log file: " + self.log_file)
+
+        self.log_start = datetime.now()
+        self.log_file = new_log_filename
+
+
     def add_interface(self, ies_interface):
         """ Add an interface object to the trackerer """
 
@@ -133,6 +158,10 @@ class TCP_Receiver:
         try:
         
             while self.continue_running:
+
+                # On change of date move on to a new log file
+                if (datetime.now().strftime('%d') != self.log_start.strftime('%d')):
+                    self.start_new_log()
             
                 if (not self.connected):
                     try:
