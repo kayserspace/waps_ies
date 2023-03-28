@@ -1,5 +1,6 @@
 """ WAPS IES Image Packet processor """
 
+from struct import unpack
 import uuid
 import logging
 from datetime import datetime, timedelta
@@ -63,14 +64,14 @@ class BIOLAB_Packet:
             # EC address
             self.ec_address = self.data[2]
             # Packet time tag
-            self.time_tag = BIOLAB_Packet.word(self.data[4:6])*65536 + BIOLAB_Packet.word(self.data[6:8])
+            self.time_tag = unpack( '>i', self.data[4:8] )[0]
             
             # Generic TM ID 0x4100, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID to 0x000
-            self.generic_tm_id = BIOLAB_Packet.word(self.data[84:86])
+            self.generic_tm_id = unpack( '>H', self.data[84:86] )[0]
             # Generic TM Type
-            self.generic_tm_type = BIOLAB_Packet.word(self.data[86:88])
+            self.generic_tm_type = unpack( '>H', self.data[86:88] )[0]
             # Generic TM data length
-            self.generic_tm_length = BIOLAB_Packet.word(self.data[88:90])
+            self.generic_tm_length = unpack( '>H', self.data[88:90] )[0]
 
             # WAPS Image Memory slot
             self.image_memory_slot = self.generic_tm_type >> 12
@@ -92,28 +93,26 @@ class BIOLAB_Packet:
                 
                 if (self.generic_tm_id == 0x4100 or self.generic_tm_id == 0x5100):
                     # WAPS Image number of packets (FLIR or uCAM)
-                    self.image_number_of_packets = BIOLAB_Packet.word(self.data[90:92])
+                    self.image_number_of_packets = unpack( '>H', self.data[90:92] )[0]
                 
                 elif (self.generic_tm_id == 0x4200):
                     # WAPS FLIR Data packet ID
-                    self.data_packet_id = BIOLAB_Packet.word(self.data[90:92]) & 0x0FFF # 4 upper bits are reserved
+                    self.data_packet_id = unpack( '>H', self.data[90:92] )[0] & 0x0FFF # 4 upper bits are reserved
                     # WAPS FLIR Data packet CRC
-                    self.data_packet_crc = BIOLAB_Packet.word(self.data[92:94])
+                    self.data_packet_crc = unpack( '>H', self.data[92:94] )[0]
                 
                 elif (self.generic_tm_id == 0x5200):
                     # WAPS uCAM Data packet ID
-                    self.data_packet_id = BIOLAB_Packet.word(self.data[90:92])
+                    self.data_packet_id = unpack( '>H', self.data[90:92] )[0]
                     # WAPS uCAM Data packet size
-                    self.data_packet_size = BIOLAB_Packet.word(self.data[92:94])
+                    self.data_packet_size = unpack( '>H', self.data[92:94] )[0]
                     # WAPS uCAM Data packet verification code
-                    self.data_packet_verify_code = BIOLAB_Packet.word(self.data[94 +
-                                                                                self.data_packet_size:94 +
-                                                                                self.data_packet_size
-                                                                                + 2])
+                    self.data_packet_verify_code = unpack( '>H', self.data[94 + self.data_packet_size:
+                                                                            94 + self.data_packet_size + 2] )[0]
 
             # Other telemetry data
             # Last taken image memory slot
-            self.biolab_current_image_memory_slot = BIOLAB_Packet.word(self.data[56:58]) >> 12
+            self.biolab_current_image_memory_slot = unpack( '>H', self.data[56:58] )[0] >> 12
 
         except IndexError:
             logging.warning(str(self.packet_name) + ' - Unexpected end of packet data')
@@ -247,13 +246,6 @@ class BIOLAB_Packet:
                 return False
 
         return True
-
-    def word(msb_byte_couple):
-        
-        """Convert a list of two bytes into a word"""
-        return msb_byte_couple[0]*256+msb_byte_couple[1]
-
-
 
 
 
@@ -856,7 +848,7 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
                 else:
                     tm_image_data = tm_image_data + 'C'
                 tm_image_data = tm_image_data + (str(i%80) + ':' +
-                        str(BIOLAB_Packet.word(image_data[i*2:i*2+2])) +
+                        str(unpack( '>H', image_data[i*2:i*2+2] )[0]) +
                         '\n')
 
             successful_write = write_file(tm_image_data, file_path_tm, 'w', interface)
@@ -866,13 +858,13 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
             # FLIR Image data is converted to .csv file
             file_path_csv = date_path + image.image_name + image_percentage + '_data.csv'
             
-            csv_image_data = str(BIOLAB_Packet.word(image_data[tm_length:tm_length+2])) # first value
+            csv_image_data = str(unpack( '>H', image_data[tm_length:tm_length+2] )[0]) # first value
             for i in range(1, int((len(image_data)-tm_length)/2)):
                 if (i % 80): # 80 values in one row
                     csv_image_data = csv_image_data + ','
                 else: 
                     csv_image_data = csv_image_data + '\n'
-                csv_image_data = csv_image_data + str(BIOLAB_Packet.word(image_data[tm_length+i*2:tm_length+i*2+2]))
+                csv_image_data = csv_image_data + str(unpack( '>H', image_data[tm_length+i*2:tm_length+i*2+2])[0])
             csv_image_data = csv_image_data + '\n'
             
             successful_write = write_file(csv_image_data, file_path_csv, 'w', interface)
@@ -886,7 +878,7 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
             # Structure image data
             array_image_data = []
             for i in range(int((len(image_data)-tm_length)/2)):
-                pixel = BIOLAB_Packet.word(image_data[tm_length+i*2:tm_length+i*2+2])
+                pixel = unpack( '>H', image_data[tm_length+i*2:tm_length+i*2+2] )[0]
                 array_image_data.append([pixel])
             
      
