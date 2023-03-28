@@ -85,7 +85,7 @@ class WAPS_Database:
                                     "latest_image_file, " +
                                     "latest_data_file, " +
                                     "latest_tm_file, " +
-                                    "finalization_time)")
+                                    "completion_time)")
             self.db_cursor.execute(image_table_contents)
 
 
@@ -142,8 +142,46 @@ class WAPS_Database:
                         image.latest_saved_file,
                         image.latest_saved_file_data,
                         image.latest_saved_file_tm,
-                        'fin_time'),
+                        image.completion_time),
                         ]
         image_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         self.db_cursor.executemany("INSERT INTO image VALUES" + image_param, image_data)
+        self.database.commit()
+
+    def update_image_status(self, image):
+        """ Update an existing image in the database with status"""
+
+        image_data =    (len(image.packets),
+                        image.overwritten,
+                        image.outdated,
+                        image.image_transmission_active,
+                        image.update,
+                        image.completion_time,
+                        image.uuid),
+
+        self.db_cursor.executemany("""UPDATE image SET
+                                        received_packets=?,
+                                        overwritten=?,
+                                        outdated=?,
+                                        transmission_active=?,
+                                        image_update=?,
+                                        completion_time=?
+                                        WHERE image_uuid=?""", 
+                                    image_data)
+        self.database.commit()
+
+    def update_image_filenames(self, image):
+        """ Update an existing image in the database with saved file names"""
+
+        image_data =    (image.latest_saved_file,
+                        image.latest_saved_file_data,
+                        image.latest_saved_file_tm,
+                        image.uuid),
+
+        self.db_cursor.executemany("""UPDATE image SET
+                                        latest_image_file=?,
+                                        latest_data_file=?,
+                                        latest_tm_file=?
+                                        WHERE image_uuid=?""", 
+                                    image_data)
         self.database.commit()

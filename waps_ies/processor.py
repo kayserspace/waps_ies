@@ -271,6 +271,8 @@ class WAPS_Image:
     info(additional=""):
         Checks if the file image is complete.
     """
+
+    completion_time = -1
     
     def __init__(self, packet):
         """Image initialization with metadata"""
@@ -654,6 +656,7 @@ def sort_biolab_packets(packet_list,
 
                     # Add packet to the database
                     packet.image_uuid = incomplete_images[i].uuid
+                    receiver.db.update_image_status(incomplete_images[i])
                     break
             
             if (not found_matching_image):
@@ -674,6 +677,7 @@ def sort_biolab_packets(packet_list,
                 for i in range(len(incomplete_images)):
                     if (incomplete_images[i].image_transmission_active):
                         incomplete_images[i].image_transmission_active = False
+                        receiver.db.update_image_status(incomplete_images[i])
 
                 # Reset transmission status
                 image_transmission_in_progress = False
@@ -931,12 +935,15 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
             interface.update_image_data(image)
             interface.update_stats()
 
+        # Update image filenames in database
+        receiver.db.update_image_status(incomplete_images[index])
+        receiver.db.update_image_filenames(incomplete_images[index])
+
     # Remove fully complete and written down images from the incomplete list
     if (len(finished_image_indexes)):
         for index in finished_image_indexes[::-1]:
+            receiver.db.update_image_status(incomplete_images[index])
             incomplete_images.pop(index)
-
-    # Go through incomplete images 
 
     return incomplete_images
 
