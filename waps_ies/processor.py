@@ -269,15 +269,21 @@ class WAPS_Image:
         Checks if the file image is complete.
     """
     
-    def __init__(self, camera_type, packet):
+    def __init__(self, packet):
         """Image initialization with metadata"""
 
         self.uuid = str(uuid.uuid4()) # Random UUID
         
         self.ec_address = packet.ec_address
         self.ec_position = '?'
-        self.camera_type = camera_type
         self.memory_slot = packet.image_memory_slot
+        if (packet.generic_tm_id == 0x4100):
+            self.camera_type = "FLIR"
+        elif(packet.generic_tm_id == 0x5100):
+            self.camera_type = "uCAM"
+        else:
+            logging.debug(" Creating an image with the wrong Generic TM ID: " +
+                        hex(packet.generic_tm_id))
         self.number_of_packets = packet.image_number_of_packets
         self.acquisition_time = packet.acquisition_time
         self.CCSDS_time = packet.CCSDS_time
@@ -581,8 +587,8 @@ def sort_biolab_packets(packet_list,
         # Process the packet according to Generic TM ID (packet.data[84])
         # Only TM IDs of interest processed
 
-        # FLIR camera number of packets (0x4100)
-        if (packet.generic_tm_id == 0x4100):
+        # Image initialization packet
+        if (packet.generic_tm_id == 0x4100 or packet.generic_tm_id == 0x5100):
             """(Generic TM ID 0x4100, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID to 0x000)."""
             receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
             receiver.total_initialized_images = receiver.total_initialized_images + 1
@@ -597,7 +603,7 @@ def sort_biolab_packets(packet_list,
             image_number_of_packets = BIOLAB_Packet.word(packet.data[90:92])
 
             # Create an image with the above data
-            new_image = WAPS_Image("FLIR", packet)
+            new_image = WAPS_Image(packet)
 
             # Check for overwritten memory slot and whether this is a duplicate image
             duplicate_image = False
@@ -615,7 +621,7 @@ def sort_biolab_packets(packet_list,
             if (duplicate_image):
                 break
 
-            logging.info('  New FLIR image in Memory slot ' +  str(packet.image_memory_slot) +
+            logging.info('  New ' + new_image.camera_type + ' image in Memory slot ' +  str(packet.image_memory_slot) +
                          ' with ' +  str(image_number_of_packets) + ' expected packets (' +
                          new_image.image_name + ')')
 
@@ -628,8 +634,8 @@ def sort_biolab_packets(packet_list,
 
             
 
-        # FLIR camera picture packet
-        elif (packet.generic_tm_id == 0x4200):
+        # Image data packet
+        elif (packet.generic_tm_id == 0x4200 or packet.generic_tm_id == 0x5200):
             """(Generic TM ID 0x4200, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID is incremented)."""
             receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
 
@@ -652,74 +658,6 @@ def sort_biolab_packets(packet_list,
             if (not found_matching_image):
                 logging.error(packet.packet_name + ' matching image with memory slot ' + str(packet.image_memory_slot) + ' not found')
 
-       # uCam number of picture packets
-        elif (packet.generic_tm_id == 0x5100):
-            """(Generic TM ID 0x5100, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID to 0x000)."""
-            receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
-            receiver.total_initialized_images = receiver.total_initialized_images + 1
-
-            # Track whether image is being trasmitted
-            image_transmission_in_progress = True
-
-            if (packet.tm_packet_id != 0):
-                logging.error(packet.packet_name + ' - Packet ID is not zero')
-                continue
-
-            # Create an image with the above data
-            new_image = WAPS_Image("uCAM", packet)
-
-            # Check for overwritten memory slot and whether this is a duplicate image
-            duplicate_image = False
-            for index, image in enumerate(incomplete_images):
-                if (image.camera_type == new_image.camera_type and
-                    image.memory_slot == new_image.memory_slot and
-                    image.number_of_packets == new_image.number_of_packets and
-                    image.time_tag == new_image.time_tag):
-                    logging.warning(' Duplicated image detected')
-                    duplicate_image = True
-                elif (image.memory_slot == new_image.memory_slot):
-                    incomplete_images[index].overwritten = True
-                    logging.warning(' Previous image in memory slot ' + str(image.memory_slot) + ' overwritten')
-                    check_image_timeouts(incomplete_images, image_timeout, receiver.interface)
-            if (duplicate_image):
-                break
-
-            logging.info('  New uCAM image in Memory slot ' +  str(packet.image_memory_slot) +
-                         ' with ' +  str(packet.image_number_of_packets) + ' expected packets (' +
-                         new_image.image_name + ')')
-
-            # Add image to the database
-            receiver.db.add_image(new_image)
-            receiver.db.update_packet(packet, new_image.uuid)
-
-            # Add image to the incomplete list
-            incomplete_images.append(new_image)
-
-
-            
-        # uCam picture packet
-        elif (packet.generic_tm_id == 0x5200):
-            """(Generic TM ID 0x5200, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID is incremented)."""
-            receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
-
-            # Track whether image is being trasmitted
-            image_transmission_in_progress = True
-
-            # Search through incomplete images, matching by image_memory_slot
-            found_matching_image = False
-            for i in range(len(incomplete_images)):
-                if (incomplete_images[i].memory_slot == packet.image_memory_slot and
-                    not incomplete_images[i].overwritten and
-                    packet.acquisition_time < incomplete_images[i].acquisition_time + image_timeout):
-                    found_matching_image = True
-
-                    incomplete_images[i].add_packet(packet)
-                    incomplete_images[i].update = True
-                    receiver.db.update_packet(packet, incomplete_images[i].uuid)
-                    break
-            
-            if (not found_matching_image):
-                logging.error(packet.packet_name + ' matching image with image memory slot ' + str(packet.image_memory_slot) + ' not found')
 
         else:
 
