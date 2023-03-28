@@ -47,6 +47,7 @@ class TCP_Receiver:
     log_file = None
     log_start = 0
 
+    last_packet_CCSDS_time = datetime(1980, 1, 6)
     
     def __init__(self, address, port, output_path, tcp_timeout = '2.1'):
         """
@@ -125,8 +126,8 @@ class TCP_Receiver:
 
     def get_status(self):
         """ Get receiver status message """
-        current_time = datetime.now().strftime("%Y/%m/%d, %H:%M:%S")
-        status_message = ("### STATUS %s Packets:%d:%d:%d Miss:%d:%d, Images:%d:%d" %
+        current_time = self.last_packet_CCSDS_time.strftime("%Y/%m/%d, %H:%M:%S")
+        status_message = ("### STATUS CCSDS Time: %s Packets:%d:%d:%d Miss:%d:%d, Images:%d:%d" %
                                     (current_time,
                                     self.total_packets_received,
                                     self.total_biolab_packets,
@@ -382,7 +383,7 @@ class TCP_Receiver:
 
         # TODO more checks on teh CCSDS packet
 
-        
+        self.last_packet_CCSDS_time = ccsdsTime
 
         # Check packet length and BIOLAB ID
         if (CCSDS_packet_length < 42 or CCSDS_packet[BIOLAB_ID_position] != 0x40):
