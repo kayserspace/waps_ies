@@ -112,7 +112,7 @@ class WAPS_Database:
                         packet.data_packet_size,
                         packet.data_packet_verify_code,
                         packet.is_good_waps_image_packet(),
-                        "Unknown"),
+                        packet.image_uuid),
                         ]
         packet_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         self.db_cursor.executemany("INSERT INTO packet VALUES" + packet_param, packet_data)
@@ -142,12 +142,8 @@ class WAPS_Database:
                         image.latest_saved_file,
                         image.latest_saved_file_data,
                         image.latest_saved_file_tm,
-                        'Unknown'),
+                        'fin_time'),
                         ]
         image_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         self.db_cursor.executemany("INSERT INTO image VALUES" + image_param, image_data)
         self.database.commit()
-
-    def update_packet(self, packet, image_uuid):
-
-        print ("update packet's image uuid")

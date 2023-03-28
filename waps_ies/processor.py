@@ -558,9 +558,6 @@ def sort_biolab_packets(packet_list,
                 status_message = receiver.get_status()
                 logging.info(status_message)
                 logging.info(str(packet))
-
-                # Add packet to the database
-                packet.uuid = receiver.db.add_packet(packet)
             else:
                 # Log not relevant BIOLAB TM packets only in DEBUG mode
                 status_message = receiver.get_status()
@@ -627,7 +624,8 @@ def sort_biolab_packets(packet_list,
 
             # Add image to the database
             receiver.db.add_image(new_image)
-            receiver.db.update_packet(packet, new_image.uuid)
+            # Update packet's image uuid
+            packet.image_uuid = new_image.uuid
 
             # Add image to the incomplete list
             incomplete_images.append(new_image)
@@ -652,7 +650,9 @@ def sort_biolab_packets(packet_list,
 
                     incomplete_images[i].add_packet(packet)
                     incomplete_images[i].update = True
-                    receiver.db.update_packet(packet, incomplete_images[i].uuid)
+
+                    # Add packet to the database
+                    packet.image_uuid = incomplete_images[i].uuid
                     break
             
             if (not found_matching_image):
@@ -676,6 +676,11 @@ def sort_biolab_packets(packet_list,
 
                 # Reset transmission status
                 image_transmission_in_progress = False
+
+        if (packet.generic_tm_id == 0x4100 or packet.generic_tm_id == 0x5100 or 
+            packet.generic_tm_id == 0x4200 or packet.generic_tm_id == 0x5200):
+            # Add packet to the database
+            receiver.db.add_packet(packet)
     
     if (receiver.interface):
         receiver.interface.update_stats()
