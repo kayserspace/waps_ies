@@ -599,9 +599,6 @@ def sort_biolab_packets(packet_list,
 
             if (packet.tm_packet_id != 0):
                 logging.warning(packet.packet_name + ' Packet ID is not zero: ' + str(packet.tm_packet_id))
-            
-            # Number of packets that contain this image (Byte# 90-91)
-            image_number_of_packets = BIOLAB_Packet.word(packet.data[90:92])
 
             # Create an image with the above data
             new_image = WAPS_Image(packet)
@@ -623,7 +620,7 @@ def sort_biolab_packets(packet_list,
                 break
 
             logging.info('  New ' + new_image.camera_type + ' image in Memory slot ' +  str(packet.image_memory_slot) +
-                         ' with ' +  str(image_number_of_packets) + ' expected packets (' +
+                         ' with ' +  str(new_image.number_of_packets) + ' expected packets (' +
                          new_image.image_name + ')')
 
             # Add image to the database
