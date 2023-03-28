@@ -194,9 +194,15 @@ class TCP_Receiver:
                 
                        
                 try:
+                    # Get the next packet
                     CCSDS_header = self.socket.recv(CCSDSHeadersLength)
-                    self.total_packets_received = self.total_packets_received + 1
                     self.timeout_notified = False
+
+                    # Increase packet count
+                    if (len(CCSDS_header)):
+                        self.total_packets_received = self.total_packets_received + 1
+
+                    # Update interfeace status
                     if (self.interface):
                         self.interface.update_server_active()
                         self.interface.update_stats()
@@ -394,7 +400,8 @@ class TCP_Receiver:
 
         # Create BIOLAB packet as is
         packet =  processor.BIOLAB_Packet(ccsdsTime, currentTime,
-                            CCSDS_packet[BIOLAB_ID_position:BIOLAB_ID_position+BIOLAB_packet_length])
+                            CCSDS_packet[BIOLAB_ID_position:BIOLAB_ID_position+BIOLAB_packet_length],
+                            self)
 
         # If packet matches biolab specification add it to list
         if (packet.in_spec()):

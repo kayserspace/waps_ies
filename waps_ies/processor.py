@@ -40,10 +40,11 @@ class BIOLAB_Packet:
 
     image_uuid = -1
     
-    def __init__(self, CCSDS_time, acquisition_time, data):
+    def __init__(self, CCSDS_time, acquisition_time, data, receiver=None):
         """Packet initialization with metadata"""
 
         self.uuid = str(uuid.uuid4()) # Random UUID
+        self.receiver = receiver
         
         self.acquisition_time = acquisition_time
         self.CCSDS_time = CCSDS_time
@@ -224,6 +225,7 @@ class BIOLAB_Packet:
             if (crc16_ccitt(0, crc_data) != self.data_packet_crc):
                 if (not self.packet_corruption_declared):
                     logging.warning(str(self.packet_name) + ' - CRC mismatch. ' + str(self.tm_packet_id) + ' packet is likely corrupted')
+                    self.receiver.total_corrupted_packets = self.receiver.total_corrupted_packets + 1
                     self.packet_corruption_declared = True
                 return False
 
@@ -240,6 +242,7 @@ class BIOLAB_Packet:
             if (calc_verif_code !=self.data_packet_verify_code):
                 if (not self.packet_corruption_declared):
                     logging.warning(str(self.packet_name) + ' - Verify code mismatch. ' + str(self.tm_packet_id) + ' packet is likely corrupted')
+                    self.receiver.total_corrupted_packets = self.receiver.total_corrupted_packets + 1
                     self.packet_corruption_declared = True
                 return False
 
@@ -587,7 +590,6 @@ def sort_biolab_packets(packet_list,
         # Image initialization packet
         if (packet.generic_tm_id == 0x4100 or packet.generic_tm_id == 0x5100):
             """(Generic TM ID 0x4100, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID to 0x000)."""
-            receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
             receiver.total_initialized_images = receiver.total_initialized_images + 1
 
             # Track whether image is being trasmitted
@@ -635,7 +637,6 @@ def sort_biolab_packets(packet_list,
         # Image data packet
         elif (packet.generic_tm_id == 0x4200 or packet.generic_tm_id == 0x5200):
             """(Generic TM ID 0x4200, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID is incremented)."""
-            receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
 
             # Track whether image is being trasmitted
             image_transmission_in_progress = True
@@ -679,6 +680,10 @@ def sort_biolab_packets(packet_list,
 
         if (packet.generic_tm_id == 0x4100 or packet.generic_tm_id == 0x5100 or 
             packet.generic_tm_id == 0x4200 or packet.generic_tm_id == 0x5200):
+            
+            # Increase total WAPS packet count
+            receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1
+
             # Add packet to the database
             receiver.db.add_packet(packet)
     
@@ -809,6 +814,8 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
         if (not len(missing_packets)):
             receiver.total_completed_images = receiver.total_completed_images + 1
             incomplete_images[index].image_transmission_active = False
+        elif (not image.latest_saved_file): # Only during first transmission
+            receiver.total_lost_packets = receiver.total_lost_packets + len(image.get_missing_packets(True))
 
         # Print detailed image information
         logging.info(incomplete_images[index])
