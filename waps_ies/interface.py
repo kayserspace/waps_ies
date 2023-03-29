@@ -251,8 +251,8 @@ class WAPS_interface:
         self.window['image_type_0_' + str(image.memory_slot)].update(image.camera_type)
 
         # Missing packets with colour change
-        missing_packets_str = processor.WAPS_Image.number_sequence_printout(missing_packets)
-        packets_sequential = processor.WAPS_Image.is_sequential(image.number_of_packets, missing_packets)
+        missing_packets_str = image.missing_packets_string()
+        packets_sequential = image.packets_are_sequential()
         if (len(missing_packets_str) > 15):
             missing_packets_str = missing_packets_str[:16] + '..'
         self.window['missing_packets_0_' + str(image.memory_slot)].update(missing_packets_str)
