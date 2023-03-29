@@ -70,7 +70,7 @@ class BIOLAB_Packet:
             self.tm_packet_id = self.generic_tm_type & 0x3FF
 
             self.packet_name = ('pkt_ec_' + str(self.ec_address) + '_m' + str(self.image_memory_slot) +
-                        '_' + self.acquisition_time.strftime('%Y%m%d_%H%M%S') + '_' + str(self.time_tag));
+                        '_' + self.CCSDS_time.strftime('%Y%m%d_%H%M%S') + '_' + str(self.time_tag));
 
             if (self.generic_tm_id == 0x4100 or
                 self.generic_tm_id == 0x4200 or
