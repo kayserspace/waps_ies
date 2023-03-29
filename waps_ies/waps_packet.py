@@ -111,8 +111,8 @@ class BIOLAB_Packet:
         """Packet metadata"""
         
         out =  ("\nBIOLAB TM Packet " + self.packet_name + " metadata:"
-                "\n - Acquisition Time: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
-                "\n - CCSDS Time: " + self.CCSDS_time.strftime('%Y%m%d_%H%M') +
+                "\n - Acquisition Time: " + str(self.acquisition_time) +
+                "\n - CCSDS Time: " + str(self.CCSDS_time) +
                 "\n - Packet Time Tag: " + str(self.time_tag) +
                 "\n - EC address: " + str(self.ec_address) +
                 "\n - Generic TM ID: " + hex(self.generic_tm_id) +
