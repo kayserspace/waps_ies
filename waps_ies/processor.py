@@ -156,8 +156,7 @@ def sort_biolab_packets(packet_list,
                 # Reset transmission status
                 receiver.ECs_state[ec_i]["transmission_active"] = False
 
-        if (packet.generic_tm_id == 0x4100 or packet.generic_tm_id == 0x5100 or 
-            packet.generic_tm_id == 0x4200 or packet.generic_tm_id == 0x5200):
+        if (packet.is_waps_image_packet):
             
             # Increase total WAPS packet count
             receiver.total_waps_image_packets = receiver.total_waps_image_packets + 1

@@ -24,13 +24,18 @@ class BIOLAB_Packet:
         Prints the person's name and age.
     """
 
+    # WAPS image data packet values
     image_number_of_packets = -1
     data_packet_id = -1
     data_packet_size = -1
     data_packet_crc = -1
     data_packet_verify_code = -1
 
+    # Unique ID
     image_uuid = -1
+
+    # If the packet is corrupted - declare it only once
+    packet_corruption_declared = False
     
     def __init__(self, CCSDS_time, acquisition_time, data, receiver=None):
         """Packet initialization with metadata"""
@@ -42,71 +47,65 @@ class BIOLAB_Packet:
         self.CCSDS_time = CCSDS_time
         self.data = data
 
-        # Initialize other parameters
+        self.packet_name = ('pkt_' + self.CCSDS_time.strftime('%Y%m%d_%H%M%S'))
 
-        # If the packet is corrupted - declare it only once
-        self.packet_corruption_declared = False
-
-        # Other relevant TM data
-        self.biolab_current_image_memory_slot = -1
+        if (len(self.data) < 254):
+            logging.error(' Unexpectedly short packet data: ' + str(len(self.data)))
+            return
 
         # And then sort them out from data
-        try:
-            # EC address
-            self.ec_address = self.data[2]
-            # Packet time tag
-            self.time_tag = unpack( '>i', self.data[4:8] )[0]
+        # EC address
+        self.ec_address = self.data[2]
+        # Packet time tag
+        self.time_tag = unpack( '>i', self.data[4:8] )[0]
+
+        # Last taken image memory slot
+        self.biolab_current_image_memory_slot = unpack( '>H', self.data[56:58] )[0] >> 12
+        
+        # Generic TM ID 0x4100, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID to 0x000
+        self.generic_tm_id = unpack( '>H', self.data[84:86] )[0]
+        # Generic TM Type
+        self.generic_tm_type = unpack( '>H', self.data[86:88] )[0]
+        # Generic TM data length
+        self.generic_tm_length = unpack( '>H', self.data[88:90] )[0]
+
+        # WAPS Image Memory slot
+        self.image_memory_slot = self.generic_tm_type >> 12
+        # WAPS Image Packet ID
+        self.tm_packet_id = self.generic_tm_type & 0x3FF
+
+        self.packet_name = ('pkt_ec_' + str(self.ec_address) + '_m' + str(self.image_memory_slot) +
+                    '_' + self.CCSDS_time.strftime('%Y%m%d_%H%M%S') + '_' + str(self.time_tag));
+
+        if (self.generic_tm_id == 0x4100 or
+            self.generic_tm_id == 0x4200 or
+            self.generic_tm_id == 0x5100 or
+            self.generic_tm_id == 0x5200 ):
+
+            self.is_waps_image_packet = True
+
+            if (self.generic_tm_id == 0x4100 or self.generic_tm_id == 0x5100):
+                # WAPS Image number of packets (FLIR or uCAM)
+                self.image_number_of_packets = unpack( '>H', self.data[90:92] )[0]
             
-            # Generic TM ID 0x4100, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID to 0x000
-            self.generic_tm_id = unpack( '>H', self.data[84:86] )[0]
-            # Generic TM Type
-            self.generic_tm_type = unpack( '>H', self.data[86:88] )[0]
-            # Generic TM data length
-            self.generic_tm_length = unpack( '>H', self.data[88:90] )[0]
+            elif (self.generic_tm_id == 0x4200):
+                # WAPS FLIR Data packet ID
+                self.data_packet_id = unpack( '>H', self.data[90:92] )[0] & 0x0FFF # 4 upper bits are reserved
+                # WAPS FLIR Data packet CRC
+                self.data_packet_crc = unpack( '>H', self.data[92:94] )[0]
+            
+            elif (self.generic_tm_id == 0x5200):
+                # WAPS uCAM Data packet ID
+                self.data_packet_id = unpack( '>H', self.data[90:92] )[0]
+                # WAPS uCAM Data packet size
+                self.data_packet_size = unpack( '>H', self.data[92:94] )[0]
+                # WAPS uCAM Data packet verification code
+                self.data_packet_verify_code = unpack( '>H', self.data[94 + self.data_packet_size:
+                                                                        94 + self.data_packet_size + 2] )[0]
+        else:
+            self.is_waps_image_packet = False
 
-            # WAPS Image Memory slot
-            self.image_memory_slot = self.generic_tm_type >> 12
-            # WAPS Image Packet ID
-            self.tm_packet_id = self.generic_tm_type & 0x3FF
 
-            self.packet_name = ('pkt_ec_' + str(self.ec_address) + '_m' + str(self.image_memory_slot) +
-                        '_' + self.CCSDS_time.strftime('%Y%m%d_%H%M%S') + '_' + str(self.time_tag));
-
-            if (self.generic_tm_id == 0x4100 or
-                self.generic_tm_id == 0x4200 or
-                self.generic_tm_id == 0x5100 or
-                self.generic_tm_id == 0x5200 ):
-                self.is_waps_image_packet = True
-            else:
-                self.is_waps_image_packet = False
-
-            if (self.is_waps_image_packet):
-                
-                if (self.generic_tm_id == 0x4100 or self.generic_tm_id == 0x5100):
-                    # WAPS Image number of packets (FLIR or uCAM)
-                    self.image_number_of_packets = unpack( '>H', self.data[90:92] )[0]
-                
-                elif (self.generic_tm_id == 0x4200):
-                    # WAPS FLIR Data packet ID
-                    self.data_packet_id = unpack( '>H', self.data[90:92] )[0] & 0x0FFF # 4 upper bits are reserved
-                    # WAPS FLIR Data packet CRC
-                    self.data_packet_crc = unpack( '>H', self.data[92:94] )[0]
-                
-                elif (self.generic_tm_id == 0x5200):
-                    # WAPS uCAM Data packet ID
-                    self.data_packet_id = unpack( '>H', self.data[90:92] )[0]
-                    # WAPS uCAM Data packet size
-                    self.data_packet_size = unpack( '>H', self.data[92:94] )[0]
-                    # WAPS uCAM Data packet verification code
-                    self.data_packet_verify_code = unpack( '>H', self.data[94 + self.data_packet_size:
-                                                                            94 + self.data_packet_size + 2] )[0]
-
-            # Other telemetry data
-            # Last taken image memory slot
-            self.biolab_current_image_memory_slot = unpack( '>H', self.data[56:58] )[0] >> 12
-
-        except IndexError:
-            logging.warning(str(self.packet_name) + ' - Unexpected end of packet data')
 
     def __str__(self):
         """Packet metadata"""
@@ -164,7 +163,7 @@ class BIOLAB_Packet:
 
         if (len(self.data) != self.data[1]*2+4): # BIOLAB packet data length fixed at 254
             logging.info(str(self.packet_name) + ' - Actual data length and corresponding value in the packet do not match. '
-                        + str(len(self.data)) + ' vs ' + self.data[1]*2+4)
+                        + str(len(self.data)) + ' vs ' + str(self.data[1]*2+4))
             return False
             
         return True
@@ -179,7 +178,7 @@ class BIOLAB_Packet:
             logging.error(str(self.packet_name) + ' - Generic TM ID does not match a WAPS Image Packet')
             return False
 
-        if (self.image_memory_slot < 0 and self.image_memory_slot > 7): # Memory slot between 0 and 7
+        if (self.image_memory_slot < 0 or self.image_memory_slot > 7): # Memory slot between 0 and 7
             logging.error(str(self.packet_name) + ' - Memory slot out of bounds (0 to 7). This packet: ' + str(self.image_memory_slot))
             return False
 
@@ -187,11 +186,11 @@ class BIOLAB_Packet:
             logging.error(str(self.packet_name) + ' - Data packet number not defined')
             return False
 
-        if (self.data_packet_id != self.tm_packet_id and self.data_packet_id != self.tm_packet_id + 1):
-            # Currently packet id in image data packets are inconsistent
-            logging.debug(str(self.packet_name) + ' - packet id inconsistent: ' + str(self.tm_packet_id) + ' vs ' + str(self.data_packet_id))
-
         if (self.generic_tm_id == 0x4200):
+
+            if (self.data_packet_id != self.tm_packet_id):
+                logging.debug(str(self.packet_name) + ' - packet id inconsistent: ' + str(self.tm_packet_id) + ' vs ' + str(self.data_packet_id))
+
             # Calculate CRC for FLIR data packets.
             crc_data = bytearray(self.data[90:])
             crc_data[0] = crc_data[0] & 0x0F # 4 upper bits of the packet ID are reserved
@@ -220,6 +219,10 @@ class BIOLAB_Packet:
                 return False
 
         if (self.generic_tm_id == 0x5200):
+
+            if (self.data_packet_id != self.tm_packet_id + 1):
+                logging.debug(str(self.packet_name) + ' - packet id inconsistent: ' + str(self.tm_packet_id) + ' vs ' + str(self.data_packet_id))
+
             # Calculate Verify Code for uCAM data packets.
             verify_data = self.data[90:90+4+self.data_packet_size+2] # biolab + id and length + data length + verify code + 1
             #print(len(self.data), self.data_packet_size, len(verify_data), 90+4+self.data_packet_size+2+1)
