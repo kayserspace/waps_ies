@@ -95,7 +95,7 @@ def sort_biolab_packets(packet_list,
                 elif (image.memory_slot == new_image.memory_slot):
                     incomplete_images[index].overwritten = True
                     logging.warning(' Previous image in memory slot ' + str(image.memory_slot) + ' overwritten')
-                    check_overwritten_images(incomplete_images, interface)
+                    check_overwritten_images(incomplete_images, receiver.interface)
             if (duplicate_image):
                 break
 
