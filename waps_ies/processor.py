@@ -11,9 +11,6 @@ import numpy as np
 from PIL import Image
 import io
 
-# Global variables
-current_biolab_memory_slot = None
-image_transmission_in_progress = False
 
 
 def sort_biolab_packets(packet_list,
@@ -49,22 +46,21 @@ def sort_biolab_packets(packet_list,
                 logging.debug(status_message)
                 logging.debug(str(packet))
 
-        global current_biolab_memory_slot
+        # Get index of the ECs in
+        ec_i = receiver.get_ecs_state_index(packet.ec_address)
+
         # Important to recognise when the currently unfinished images are overwritten
         if (biolab_memory_slot_change_detection and
-            current_biolab_memory_slot != packet.biolab_current_image_memory_slot):
+            receiver.ECs_state[ec_i]["last_memory_slot"] != packet.biolab_current_image_memory_slot):
             status_message = receiver.get_status()
             logging.info(status_message)
             logging.info('  Update of active Memory slot ' + str(packet.biolab_current_image_memory_slot) +
-                        ' Previous: ' + str(current_biolab_memory_slot))
+                        ' Previous: ' + str(receiver.ECs_state[ec_i]["last_memory_slot"]))
             for i in range(len(incomplete_images)):
                 if (incomplete_images[i].memory_slot == packet.biolab_current_image_memory_slot):
                     incomplete_images[i].overwritten = True
                     logging.warning(' Incomplete image ' + incomplete_images[i].image_name + ' has been overwritten')
-            current_biolab_memory_slot = packet.biolab_current_image_memory_slot
-
-        
-        global image_transmission_in_progress
+            receiver.ECs_state[ec_i]["last_memory_slot"] = packet.biolab_current_image_memory_slot
 
         # Process the packet according to Generic TM ID (packet.data[84])
         # Only TM IDs of interest processed
@@ -75,7 +71,7 @@ def sort_biolab_packets(packet_list,
             receiver.total_initialized_images = receiver.total_initialized_images + 1
 
             # Track whether image is being trasmitted
-            image_transmission_in_progress = True
+            receiver.ECs_state[ec_i]["transmission_active"] = True
 
             if (packet.tm_packet_id != 0):
                 logging.warning(packet.packet_name + ' Packet ID is not zero: ' + str(packet.tm_packet_id))
@@ -118,7 +114,7 @@ def sort_biolab_packets(packet_list,
             """(Generic TM ID 0x4200, Generic TM Type set with corresponding Picture ID, 0 to 7, and Packet ID is incremented)."""
 
             # Track whether image is being trasmitted
-            image_transmission_in_progress = True
+            receiver.ECs_state[ec_i]["transmission_active"] = True
 
             # Search through incomplete images, matching image_memory_slot
             found_matching_image = False
@@ -141,7 +137,7 @@ def sort_biolab_packets(packet_list,
 
         else:
 
-            if (image_transmission_in_progress):
+            if (receiver.ECs_state[ec_i]["transmission_active"]):
                 # An image is sent in one telemetry sequence
                 # Each single packet request triggers this change as well
                 # Status information after all of the processing
@@ -156,7 +152,7 @@ def sort_biolab_packets(packet_list,
                         receiver.db.update_image_status(incomplete_images[i])
 
                 # Reset transmission status
-                image_transmission_in_progress = False
+                receiver.ECs_state[ec_i]["transmission_active"] = False
 
         if (packet.generic_tm_id == 0x4100 or packet.generic_tm_id == 0x5100 or 
             packet.generic_tm_id == 0x4200 or packet.generic_tm_id == 0x5200):

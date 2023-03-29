@@ -93,7 +93,14 @@ def run_waps_ies(args):
     gui_enabled = '1'                   # Graphical Interface
     image_timeout = '600'               # minutes (10h)
     memory_slot_change_detection = '0'  # False
-    ec_address_position_pairs = []      # EC position assignment according to EC address
+
+    # ECs state contains
+    # - EC address
+    # - EC position
+    # - EC column in the GUI
+    # - Image transmission is active
+    # - Last memory slot used
+    ECs_state = []
     
     # Check the configuration file waps_ies_conf.ini
     config = configparser.ConfigParser()
@@ -111,7 +118,13 @@ def run_waps_ies(args):
                                                         fallback=memory_slot_change_detection)
     if ('EC_POSITIONS' in config.sections()):
         for ec_addr_pos in config.items('EC_POSITIONS'):
-            ec_address_position_pairs.append([int(ec_addr_pos[0]), ec_addr_pos[1]])
+            ec = {  "ec_address": int(ec_addr_pos[0]),
+                    "ec_position": ec_addr_pos[1],
+                    "gui_column": None, # Update on receipt of packets
+                    "transmission_active": False,
+                    "last_memory_slot": None
+                }
+            ECs_state.append(ec)
 
     # Define command line arguments
     parser = ArgumentParser(description='WAPS Image Extraction Software.' +
@@ -223,16 +236,16 @@ def run_waps_ies(args):
         ies.memory_slot_change_detection = int(memory_slot_change_detection)
         logging.info(" # Detecting memory slot change from BIOLAB telemetry")
 
-    if (len(ec_address_position_pairs)):
+    if (len(ECs_state)):
         ec_addr_pos_printout = "   EC address / position"
-        for ec_addr_pos in ec_address_position_pairs:
+        for ec in ECs_state:
             ec_addr_pos_printout = (ec_addr_pos_printout +
-                "\n   " + str(ec_addr_pos[0]) + " / " + ec_addr_pos[1])
+                "\n   " + str(ec["ec_address"]) + " / " + ec["ec_position"])
 
         logging.info(" # Configuration file contained the following EC address/position pairs:\n" +
                         ec_addr_pos_printout)
 
-        ies.ec_address_position_pairs = ec_address_position_pairs
+        ies.ECs_state = ECs_state
 
     # Configure interface
     if (int(gui_enabled)):

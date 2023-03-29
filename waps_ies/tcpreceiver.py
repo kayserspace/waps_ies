@@ -48,6 +48,8 @@ class TCP_Receiver:
     log_start = 0
 
     last_packet_CCSDS_time = datetime(1980, 1, 6)
+
+    ECs_state = []
     
     def __init__(self, address, port, output_path, tcp_timeout = '2.1'):
         """
@@ -77,8 +79,6 @@ class TCP_Receiver:
         self.image_timeout = timedelta(minutes = 60)
 
         self.memory_slot_change_detection = False
-
-        self.ec_address_position_pairs = []
 
         # Status parameters
         self.timeout_notified = False
@@ -141,11 +141,30 @@ class TCP_Receiver:
     def get_ec_position(self, ec_address):
         """ Get EC position from address """
 
-        for ec_pair in self.ec_address_position_pairs:
-            if (ec_pair[0] == ec_address):
-                return ec_pair[1]
+        for ec in self.ECs_state:
+            if (ec["ec_address"] == ec_address):
+                return ec["ec_position"]
 
         return '?'
+
+    def get_ecs_state_index(self, ec_address):
+        """ Get EC index in the ECs_state table """
+
+        # Find existing entry
+        for i in range(len(self.ECs_state)):
+            if (self.ECs_state[i]["ec_address"] == ec_address):
+                return i
+
+        # Create a new entry
+        ec = {  "ec_address": ec_address,
+                "ec_position": '?',
+                "gui_column": None, # Update on receipt of packets
+                "transmission_active": False,
+                "last_memory_slot": None
+                }
+        self.ECs_state.append(ec)
+
+        return len(ECs_state - 1)
 
         
 
