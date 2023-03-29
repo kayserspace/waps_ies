@@ -164,7 +164,7 @@ class TCP_Receiver:
                 }
         self.ECs_state.append(ec)
 
-        return len(ECs_state - 1)
+        return len(self.ECs_state - 1)
 
         
 
