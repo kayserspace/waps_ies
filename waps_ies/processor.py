@@ -82,7 +82,8 @@ def sort_biolab_packets(packet_list,
             # Check for overwritten memory slot and whether this is a duplicate image
             duplicate_image = False
             for index, image in enumerate(incomplete_images):
-                if (image.camera_type == new_image.camera_type and
+                if (image.ec_address == new_image.ec_address and
+                    image.camera_type == new_image.camera_type and
                     image.memory_slot == new_image.memory_slot and
                     image.number_of_packets == new_image.number_of_packets and
                     image.time_tag == new_image.time_tag):
@@ -119,7 +120,8 @@ def sort_biolab_packets(packet_list,
             # Search through incomplete images, matching image_memory_slot
             found_matching_image = False
             for i in range(len(incomplete_images)):
-                if (incomplete_images[i].memory_slot == packet.image_memory_slot and
+                if (incomplete_images[i].ec_address == packet.ec_address and
+                    incomplete_images[i].memory_slot == packet.image_memory_slot and
                     not incomplete_images[i].overwritten):
                     found_matching_image = True
 
