@@ -14,7 +14,7 @@ from datetime import datetime
 import socket
 import time
 from struct import unpack
-from waps_ies import interface, processor, database
+from waps_ies import interface, processor, database, waps_packet
 from datetime import timedelta
 import os
 import sqlite3
@@ -400,7 +400,7 @@ class TCP_Receiver:
             self.interface.update_stats()
 
         # Create BIOLAB packet as is
-        packet =  processor.BIOLAB_Packet(ccsdsTime, currentTime,
+        packet =  waps_packet.BIOLAB_Packet(ccsdsTime, currentTime,
                             CCSDS_packet[BIOLAB_ID_position:BIOLAB_ID_position+BIOLAB_packet_length],
                             self)
 
