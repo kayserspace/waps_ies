@@ -95,7 +95,7 @@ def sort_biolab_packets(packet_list,
                 elif (image.memory_slot == new_image.memory_slot):
                     incomplete_images[index].overwritten = True
                     logging.warning(' Previous image in memory slot ' + str(image.memory_slot) + ' overwritten')
-                    check_image_timeouts(incomplete_images, image_timeout, interface)
+                    check_overwritten_images(incomplete_images, interface)
             if (duplicate_image):
                 break
 
@@ -124,8 +124,7 @@ def sort_biolab_packets(packet_list,
             found_matching_image = False
             for i in range(len(incomplete_images)):
                 if (incomplete_images[i].memory_slot == packet.image_memory_slot and
-                    not incomplete_images[i].overwritten and
-                    packet.acquisition_time < incomplete_images[i].acquisition_time + image_timeout):
+                    not incomplete_images[i].overwritten):
                     found_matching_image = True
 
                     incomplete_images[i].add_packet(packet)
@@ -253,7 +252,7 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
     for index, image in enumerate(incomplete_images):
 
         # Make sure folder with today's path exists
-        date_path = output_path + image.acquisition_time.strftime('%Y%m%d') + '/'
+        date_path = output_path + image.CCSDS_time.strftime('%Y%m%d') + '/'
         if (not os.path.exists(date_path) or
             not os.path.isdir(date_path)):
             os.mkdir(date_path)
@@ -426,7 +425,7 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
 
 
 
-def check_image_timeouts(incomplete_images, image_timeout, interface = None):
+def check_overwritten_images(incomplete_images, interface = None):
     """
     Incomplete images as input. Returns list of incomplete images still within grace period.
     """
@@ -434,8 +433,7 @@ def check_image_timeouts(incomplete_images, image_timeout, interface = None):
     outdated_image_indexes = []
 
     for index, image in enumerate(incomplete_images):
-        if (datetime.now() > incomplete_images[index].acquisition_time + image_timeout or
-            incomplete_images[index].overwritten):
+        if (incomplete_images[index].overwritten):
             outdated_image_indexes.append(index)
 
     # Remove the outdated images from incomplete images list

@@ -252,9 +252,8 @@ class TCP_Receiver:
                             processor.print_incomplete_images_status(self.incomplete_images)
 
                     # Check if any image times out
-                    self.incomplete_images = processor.check_image_timeouts(self.incomplete_images,
-                                                                            self.image_timeout,
-                                                                            self.interface)
+                    self.incomplete_images = processor.check_overwritten_images(self.incomplete_images,
+                                                                                self.interface)
 
                     # Status information after all of the processing
                     status_message = self.get_status() + '\r'
@@ -274,8 +273,7 @@ class TCP_Receiver:
                             self.interface.update_server_connected()
 
                     # Check if any image times out
-                    self.incomplete_images = processor.check_image_timeouts(self.incomplete_images,
-                                                                            self.image_timeout,
+                    self.incomplete_images = processor.check_overwritten_images(self.incomplete_images,
                                                                             self.interface)
 
                 except KeyboardInterrupt:
