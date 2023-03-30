@@ -110,7 +110,7 @@ class BIOLAB_Packet:
     def __str__(self):
         """Packet metadata"""
         
-        out =  ("\nBIOLAB TM Packet " + self.packet_name + " metadata:"
+        out =  ("\nBIOLAB TM Packet " + self.packet_name + " metadata:" +
                 "\n - Acquisition Time: " + str(self.acquisition_time) +
                 "\n - CCSDS Time: " + str(self.CCSDS_time) +
                 "\n - Packet Time Tag: " + str(self.time_tag) +

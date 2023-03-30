@@ -46,6 +46,23 @@ class TestPacket(unittest.TestCase):
         self.assertTrue(packet.in_spec())
         self.assertTrue(packet.is_good_waps_image_packet())
 
+        self.maxDiff = None
+
+        expected_packet_string = ("\nBIOLAB TM Packet pkt_ec_171_m6_20230329_141154_7430564 metadata:\n" +
+                                 " - Acquisition Time: 2023-03-29 14:11:54.200000\n" +
+                                 " - CCSDS Time: 2023-03-29 14:11:54.100000\n" +
+                                 " - Packet Time Tag: 7430564\n" +
+                                 " - EC address: 171\n" +
+                                 " - Generic TM ID: 0x5100\n" +
+                                 " - Generic TM Type: 0x6000\n" +
+                                 " - Generic TM Length: 2\n" +
+                                 " -- uCAM Image Init Packet\n" +
+                                 " -- Image Memory Slot: 6\n" +
+                                 " -- Image TM Packet ID: 0\n" +
+                                 " -- Image Number of Packets: 33") 
+        self.assertEqual(str(packet), expected_packet_string)
+
+
     def test_uCAM_data_packet(self):
         """ Create and test a uCAM data packet"""
 
@@ -85,6 +102,25 @@ class TestPacket(unittest.TestCase):
 
         self.assertTrue(packet.in_spec())
         self.assertTrue(packet.is_good_waps_image_packet())
+
+        self.maxDiff = None
+
+        expected_packet_string = ("\nBIOLAB TM Packet pkt_ec_171_m6_20230329_141154_7440564 metadata:\n" +
+                                 " - Acquisition Time: 2023-03-29 14:11:54.400000\n" +
+                                 " - CCSDS Time: 2023-03-29 14:11:54.300000\n" +
+                                 " - Packet Time Tag: 7440564\n" +
+                                 " - EC address: 171\n" +
+                                 " - Generic TM ID: 0x5200\n" +
+                                 " - Generic TM Type: 0x6000\n" +
+                                 " - Generic TM Length: 164\n" +
+                                 " -- uCAM Image Data Packet\n" +
+                                 " -- Image Memory Slot: 6\n" +
+                                 " -- Image TM Packet ID: 0\n" +
+                                 " -- Image Data Packet ID: 1\n" +
+                                 " -- Image Data Packet Size: 158\n" +
+                                 " -- Image Verify Code: 63744") 
+        self.assertEqual(str(packet), expected_packet_string)
+
 
     def test_FLIR_init_packet(self):
         """ Create and test a FLIR init packet"""
@@ -126,6 +162,23 @@ class TestPacket(unittest.TestCase):
         self.assertTrue(packet.in_spec())
         self.assertTrue(packet.is_good_waps_image_packet())
 
+        self.maxDiff = None
+
+        expected_packet_string = ("\nBIOLAB TM Packet pkt_ec_171_m0_20230329_141154_14018473 metadata:\n" +
+                                 " - Acquisition Time: 2023-03-29 14:11:54.600000\n" +
+                                 " - CCSDS Time: 2023-03-29 14:11:54.500000\n" +
+                                 " - Packet Time Tag: 14018473\n" +
+                                 " - EC address: 171\n" +
+                                 " - Generic TM ID: 0x4100\n" +
+                                 " - Generic TM Type: 0x0\n" +
+                                 " - Generic TM Length: 2\n" +
+                                 " -- FLIR Image Init Packet\n" +
+                                 " -- Image Memory Slot: 0\n" +
+                                 " -- Image TM Packet ID: 0\n" +
+                                 " -- Image Number of Packets: 63") 
+        self.assertEqual(str(packet), expected_packet_string)
+
+
     def test_FLIR_data_packet(self):
         """ Create and test a FLIR data packet"""
 
@@ -165,6 +218,24 @@ class TestPacket(unittest.TestCase):
 
         self.assertTrue(packet.in_spec())
         self.assertTrue(packet.is_good_waps_image_packet())
+
+        self.maxDiff = None
+
+        expected_packet_string = ("\nBIOLAB TM Packet pkt_ec_171_m0_20230329_141154_14019472 metadata:\n" +
+                                 " - Acquisition Time: 2023-03-29 14:11:54.800000\n" +
+                                 " - CCSDS Time: 2023-03-29 14:11:54.700000\n" +
+                                 " - Packet Time Tag: 14019472\n" +
+                                 " - EC address: 171\n" +
+                                 " - Generic TM ID: 0x4200\n" +
+                                 " - Generic TM Type: 0x0\n" +
+                                 " - Generic TM Length: 164\n" +
+                                 " -- FLIR Image Data Packet\n" +
+                                 " -- Image Memory Slot: 0\n" +
+                                 " -- Image TM Packet ID: 0\n" +
+                                 " -- Image Data Packet ID: 0\n" +
+                                 " -- Image Data Packet CRC: 56736") 
+        self.assertEqual(str(packet), expected_packet_string)
+
 
     def test_other_BIOLAB_TM_packet(self):
         """ Create and test generic BIOLAB telemetry packet"""
@@ -206,6 +277,19 @@ class TestPacket(unittest.TestCase):
         self.assertTrue(packet.in_spec())
         self.assertFalse(packet.is_good_waps_image_packet())
 
+        self.maxDiff = None
+
+        expected_packet_string = ("\nBIOLAB TM Packet pkt_ec_171_m6_20230329_141154_7430564 metadata:\n" +
+                                 " - Acquisition Time: 2023-03-29 14:11:54.990000\n" +
+                                 " - CCSDS Time: 2023-03-29 14:11:54.900000\n" +
+                                 " - Packet Time Tag: 7430564\n" +
+                                 " - EC address: 171\n" +
+                                 " - Generic TM ID: 0xff00\n" +
+                                 " - Generic TM Type: 0x6000\n" +
+                                 " - Generic TM Length: 2")
+        self.assertEqual(str(packet), expected_packet_string)
+
+
     def test_wrong_packet_length(self):
         """ Create and test packet with wrong length of data"""
 
@@ -224,6 +308,7 @@ class TestPacket(unittest.TestCase):
 
         self.assertFalse(packet.in_spec())
         self.assertFalse(packet.is_good_waps_image_packet())
+
 
     def test_FLIR_bad_packet(self):
         """ Create and test a wrong FLIR packet"""
@@ -291,6 +376,7 @@ class TestPacket(unittest.TestCase):
 
         packet.data = packet.data[:200]
         self.assertFalse(packet.is_good_waps_image_packet())
+
 
 if __name__ == '__main__':
     unittest.main()
