@@ -108,6 +108,9 @@ def sort_biolab_packets(packet_list,
             # Add image to the incomplete list
             incomplete_images.append(new_image)
 
+            # On creation of a new image assign a GUI column 
+            if (receiver.interface):
+                receiver.assign_ec_column(new_image.ec_address)
             
 
         # Image data packet

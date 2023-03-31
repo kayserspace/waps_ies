@@ -166,12 +166,34 @@ class TCP_Receiver:
 
         return len(self.ECs_state) - 1
 
-        
+    def assign_ec_column(self, ec_address):
+        """ Assign an EC column in the WAPS GUI """
 
+        index = self.get_ecs_state_index(ec_address)
+        if (not self.ECs_state[index]["gui_column"]):
 
+            # Get current column occupation
+            column_occupation = [None, None, None, None]
+            for i, ec in enumerate(self.ECs_state):
+                if (ec["gui_column"] != None and
+                    ec["gui_column"] < 4 and ec["gui_column"] >= 0):
+                    column_occupation[ec["gui_column"]] = ec["ec_address"]
 
+            # Assign an empty column
+            for i in range(4):
+                if(not column_occupation[i]):
+                    self.ECs_state[index]["gui_column"] = i
+                    break
 
-
+            if(self.ECs_state[index]["gui_column"] == None):
+                logging.warning(' All GUI columns are occupied already')
+            elif (self.interface):
+                logging.info( " EC address " + str(self.ECs_state[index]["ec_address"]) +
+                            " with position " + self.ECs_state[index]["ec_position"] +
+                            " occupies GUI column " + str(self.ECs_state[index]["gui_column"]))
+                self.interface.update_column_occupation(self.ECs_state[index]["gui_column"],
+                                                        self.ECs_state[index]["ec_address"],
+                                                        self.ECs_state[index]["ec_position"])
 
     def start(self):
     

@@ -208,12 +208,15 @@ class WAPS_interface:
 
         self.window['latest_file'].update(latest_file)
 
+    def update_column_occupation(self, ec_column, ec_address, ec_position):
+        """ Update GUI EC column occupation """
+
+        # EC address / position update
+        self.window['ec_address_' + str(ec_column)].update(str(ec_address))
+        self.window['ec_position_' + str(ec_column)].update(ec_position)
+
     def update_image_data(self, image):
 
-        # TODO add multiple ECs / fix the column with one EC address
-        # EC address / position update
-        self.window['ec_address_0'].update(str(image.ec_address))
-        self.window['ec_position_0'].update(self.monitor.get_ec_position(image.ec_address))
 
         # Image packets status
         missing_packets = image.get_missing_packets()
