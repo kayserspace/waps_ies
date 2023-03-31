@@ -170,14 +170,14 @@ class TCP_Receiver:
         """ Assign an EC column in the WAPS GUI """
 
         index = self.get_ecs_state_index(ec_address)
-        if (not self.ECs_state[index]["gui_column"]):
+        if (self.ECs_state[index]["gui_column"] == None):
 
             # Get current column occupation
             column_occupation = [None, None, None, None]
             for i, ec in enumerate(self.ECs_state):
-                if (ec["gui_column"] != None and
-                    ec["gui_column"] < 4 and ec["gui_column"] >= 0):
-                    column_occupation[ec["gui_column"]] = ec["ec_address"]
+                if(ec["gui_column"] != None):
+                    if (ec["gui_column"] < 4 and ec["gui_column"] >= 0):
+                        column_occupation[ec["gui_column"]] = ec["ec_address"]
 
             # Assign an empty column
             for i in range(4):
