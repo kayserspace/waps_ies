@@ -10,10 +10,6 @@ class TestReceiver(unittest.TestCase):
     def setUpClass(self):
 
         self.receiver = tcpreceiver.TCP_Receiver("192.168.0.1", 12345, "output/")
-        self.interface = interface.WAPS_interface(self.receiver)
-        self.receiver.add_interface(self.interface)
-        while (not self.receiver.interface.window_open):
-            time.sleep(0.1)
 
     def test_gui_column_assignment(self):
         """ A receiver and test GUI column assignment """
@@ -49,10 +45,6 @@ class TestReceiver(unittest.TestCase):
         self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr3)]["gui_column"], 3)
         receiver.assign_ec_column(ec_addr4)
         self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr4)]["gui_column"], None)
-
-    @classmethod
-    def tearDownClass(self):
-        self.receiver.interface.close()
 
 if __name__ == '__main__':
     unittest.main()

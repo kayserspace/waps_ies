@@ -261,6 +261,10 @@ def run_waps_ies(args):
                 not longer_time_message):
                 longer_time_message = True
                 logging.info("---Interface taking longer than expected to boot")
+            if (datetime.now() - interface_startup > timedelta(seconds = 60)):
+                longer_time_message = True
+                logging.error("---Something precents GUI from starting")
+                break
         logging.debug(" Interface took " +
                         str(datetime.now() - interface_startup) +
                         ' to start')
