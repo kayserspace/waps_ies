@@ -1,3 +1,4 @@
 *.pyc
 *.db
 changed_rt_files/
+tests/output/
