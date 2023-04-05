@@ -1,17 +1,12 @@
 """ WAPS IES Image Packet processor """
 
-from struct import unpack
+from struct import unpack, pack
 import uuid
 import logging
 from datetime import datetime, timedelta
 from waps_ies import waps_image
-
 import os
-import numpy as np
-from PIL import Image
 import io
-
-
 
 def sort_biolab_packets(packet_list,
                         incomplete_images,
@@ -364,21 +359,36 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
 
             # Structure image data
             array_image_data = []
+            bmp_image_data = []
             for i in range(int((len(image_data)-tm_length)/2)):
                 pixel = unpack( '>H', image_data[tm_length+i*2:tm_length+i*2+2] )[0]
-                array_image_data.append([pixel])
-            
-     
-            array_image_data = np.array(array_image_data)
-            min_value = min(array_image_data)
-            max_value = max(array_image_data)
-            array_image_data = np.uint8((array_image_data - min_value) * (256.0/(max_value - min_value)))
-            array_image_data = array_image_data.reshape((60,80))
-            img = Image.fromarray(array_image_data, 'L')
-            output_image = io.BytesIO()
-            img.save(output_image, format='BMP')
+                array_image_data.append(pixel)
+            max_pixel = max(array_image_data)
+            min_pixel = min(array_image_data)
+            range_pixel = max_pixel - min_pixel
+            for pixel in array_image_data:
+                bmp_pixel = int((pixel - min_pixel)/range_pixel*255)
+                bmp_image_data.append(bmp_pixel)
+                bmp_image_data.append(bmp_pixel)
+                bmp_image_data.append(bmp_pixel)
+                bmp_image_data.append(255)
+            bmp_image_data=bytearray(bmp_image_data)
 
-            successful_write = write_file(output_image.getvalue(), file_path, 'wb', interface)
+            bmp_header = bytes("BM", 'utf-8') + pack('IHHIIIIHHIIIIII',\
+                                19200 + 54, # file size
+                                0,0,        # reserved
+                                54,         # offset
+                                40,         # header size
+                                80,         # image width
+                                60,         # image height
+                                1,          # planes
+                                32,         # bits per pixel
+                                0,0,        # no compression
+                                3780,3780,  #
+                                0,0)        # unused
+            bmp_data = bmp_header + bmp_image_data
+
+            successful_write = write_file(bmp_data, file_path, 'wb', interface)
             if image.is_complete() and successful_write:
                 finished_image_indexes.append(index)
 
