@@ -26,6 +26,7 @@ def read_rt_file(file_path):
             packet_list (list): list of extracted BIOLAB packets
     """
     
+    start_pointer = 0
     packet_list = []
     
     # Read the file
