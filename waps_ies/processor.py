@@ -357,7 +357,7 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
             # FLIR Image data is converted is saved as .bmp file
             file_path = date_path + image.image_name + image_percentage + '.bmp'
 
-            # Structure image data
+            # Structure BMP image data
             array_image_data = []
             bmp_image_data = []
             for i in range(int((len(image_data)-tm_length)/2)):
@@ -366,12 +366,15 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
             max_pixel = max(array_image_data)
             min_pixel = min(array_image_data)
             range_pixel = max_pixel - min_pixel
-            for pixel in array_image_data:
-                bmp_pixel = int((pixel - min_pixel)/range_pixel*255)
-                bmp_image_data.append(bmp_pixel)
-                bmp_image_data.append(bmp_pixel)
-                bmp_image_data.append(bmp_pixel)
-                bmp_image_data.append(255)
+            # Restructure because BMP is flipped
+            for y in range(60):
+                for x in range(80):
+                    pixel = array_image_data[(59-y)*80+x]
+                    bmp_pixel = int((pixel - min_pixel)/range_pixel*255)
+                    bmp_image_data.append(bmp_pixel)
+                    bmp_image_data.append(bmp_pixel)
+                    bmp_image_data.append(bmp_pixel)
+                    bmp_image_data.append(255)
             bmp_image_data=bytearray(bmp_image_data)
 
             bmp_header = bytes("BM", 'utf-8') + pack('IHHIIIIHHIIIIII',\
