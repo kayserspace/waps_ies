@@ -25,26 +25,87 @@ import logging
 from waps_ies import tcpreceiver, interface
 
 
-def run_waps_ies(args):
+def check_config_file():
     """
-    WAPS Image Extraction Software.
-    Acquires CCSDS packets from a TCP stream and searches for TM packets.
-    Extracts WAPS PD images from BIOLAB telemetry and
-        declares and highlights missing packets.
-    IP address and port must be specified either inline or
-        in the configuration file.
+    Get WAPS IES configuration from file.
 
-    On start-up process the input parameters in priority:
-    1. Command Line Arguments
-    2. Configuation file
-    3. Defaults
+    Configuration file example ("waps_ies_config.ini"):
+    [WAPS_IES]
+    # TCP server to connect
+    ip_address = localhost
+    port = 12345
+    # TCP timeout, notification of inactivity
+    tcp_timeout = 2.1
+    # Output path. Images are saved here
+    output_path = output/
+    # Logging path
+    log_path = log/
+    # Logging level
+    log_level = info
+    # Enable Graphical User Interface
+    gui_enabled = 1
+    # Image timeout in minutes. After this period image is considered OUTDATED.
+    image_timeout = 600
+    # Enable memory slot change detection from general BIOLAB telemetry
+    memory_slot_change_detection = 1
+    """
 
-    After start-up IES has the following sequence:
-    If GUI is enabled - GUI is started.
-    IES attempts to establish a connection to the specified TCP server.
-    IP address and port must be specified.
-    IES acquires CCSDS packets continuously, automatically assembles images
-    and checks for missing packets.
+    # Default WAPS IES configuration
+    waps = {"ip_address": None,
+            "port": None,
+            "tcp_timeout": '2.1',       # seconds
+            "output_path": 'output/',
+            "log_path": 'log/',
+            "log_level": 'INFO',      # INFO / DEBUG / WARNING / ERROR
+            "gui_enabled": '1',      # Graphical Interface
+            "image_timeout": '600',     # minutes (10h)
+            "detect_mem_slot": '1'}  # False
+
+    # EC list contains
+    # - EC address
+    # - EC position
+    # - EC column in the GUI
+    # - Image transmission is active
+    # - Last memory slot used
+    ec_list = []
+
+    # Check the configuration file waps_ies_conf.ini
+    config = configparser.ConfigParser()
+    config.read('waps_ies_config.ini')
+    if 'WAPS_IES' in config.sections():  # [WAPS_IES] section is required
+        waps["ip_address"] = config.get('WAPS_IES', 'ip_address',
+                                        fallback=waps["ip_address"])
+        waps["port"] = config.get('WAPS_IES', 'port',
+                                  fallback=waps["port"])
+        waps["tcp_timeout"] = config.get('WAPS_IES', 'tcp_timeout',
+                                         fallback=waps["tcp_timeout"])
+        waps["output_path"] = config.get('WAPS_IES', 'output_path',
+                                         fallback=waps["output_path"])
+        waps["log_path"] = config.get('WAPS_IES', 'log_path',
+                                      fallback=waps["log_path"])
+        waps["log_level"] = config.get('WAPS_IES', 'log_level',
+                                       fallback=waps["log_level"])
+        waps["gui_enabled"] = config.get('WAPS_IES', 'gui_enabled',
+                                         fallback=waps["gui_enabled"])
+        waps["image_timeout"] = config.get('WAPS_IES', 'image_timeout',
+                                           fallback=waps["image_timeout"])
+        waps["detect_mem_slot"] = config.get('WAPS_IES',
+                                             'memory_slot_change_detection',
+                                             fallback=waps["detect_mem_slot"])
+    if 'EC_POSITIONS' in config.sections():
+        for ec_addr_pos in config.items('EC_POSITIONS'):
+            ec_list.append({"ec_address": int(ec_addr_pos[0]),
+                            "ec_position": ec_addr_pos[1],
+                            "gui_column": None,
+                            "transmission_active": False,
+                            "last_memory_slot": None})
+
+    return waps, ec_list
+
+
+def check_arguments(args, config):
+    """
+    Check command line arguments for WAPS IES configuration.
 
     Command Lines Arguments:
       -h, --help            show this help message and exit
@@ -75,78 +136,7 @@ def run_waps_ies(args):
       -msc, --memory_slot_change
                             Enable memory slot change detection from
                             general BIOLAB telemetry
-
-
-    Configuration file example ("waps_ies_config.ini"):
-    [WAPS_IES]
-    # TCP server to connect
-    ip_address = localhost
-    port = 12345
-    # TCP timeout, notification of inactivity
-    tcp_timeout = 2.1
-    # Output path. Images are saved here
-    output_path = output/
-    # Logging path
-    log_path = log/
-    # Logging level
-    log_level = info
-    # Enable Graphical User Interface
-    gui_enabled = 1
-    # Image timeout in minutes. After this period image is considered OUTDATED.
-    image_timeout = 600
-    # Enable memory slot change detection from general BIOLAB telemetry
-    memory_slot_change_detection = 1
     """
-
-    # Default values
-    ip_address = None
-    port = None
-    tcp_timeout = '2.1'         # seconds
-    output_path = 'output/'
-    log_path = 'log/'
-    log_level = 'INFO'          # INFO / DEBUG / WARNING / ERROR
-    gui_enabled = '1'           # Graphical Interface
-    image_timeout = '600'       # minutes (10h)
-    detect_mem_slot = '0'       # False
-
-    # ECs state contains
-    # - EC address
-    # - EC position
-    # - EC column in the GUI
-    # - Image transmission is active
-    # - Last memory slot used
-    ec_list = []
-
-    # Check the configuration file waps_ies_conf.ini
-    config = configparser.ConfigParser()
-    config.read('waps_ies_config.ini')
-    if 'WAPS_IES' in config.sections():  # [WAPS_IES] section is required
-        ip_address = config.get('WAPS_IES', 'ip_address',
-                                fallback=ip_address)
-        port = config.get('WAPS_IES', 'port',
-                          fallback=port)
-        tcp_timeout = config.get('WAPS_IES', 'tcp_timeout',
-                                 fallback=tcp_timeout)
-        output_path = config.get('WAPS_IES', 'output_path',
-                                 fallback=output_path)
-        log_path = config.get('WAPS_IES', 'log_path',
-                              fallback=log_path)
-        log_level = config.get('WAPS_IES', 'log_level',
-                               fallback=log_level)
-        gui_enabled = config.get('WAPS_IES', 'gui_enabled',
-                                 fallback=gui_enabled)
-        image_timeout = config.get('WAPS_IES', 'image_timeout',
-                                   fallback=image_timeout)
-        detect_mem_slot = config.get('WAPS_IES',
-                                     'memory_slot_change_detection',
-                                     fallback=detect_mem_slot)
-    if 'EC_POSITIONS' in config.sections():
-        for ec_addr_pos in config.items('EC_POSITIONS'):
-            ec_list.append({"ec_address": int(ec_addr_pos[0]),
-                            "ec_position": ec_addr_pos[1],
-                            "gui_column": None,
-                            "transmission_active": False,
-                            "last_memory_slot": None})
 
     # Define command line arguments
     parser = ArgumentParser(description='WAPS Image Extraction Software.' +
@@ -156,25 +146,25 @@ def run_waps_ies(args):
                             ' telemetry and informs of missing packets.' +
                             ' IP address and port must be specified' +
                             ' either inline or in the configuration file.')
-    parser.add_argument("-ip", dest="ip_address", default=ip_address,
+    parser.add_argument("-ip", dest="ip_address", default=config["ip_address"],
                         help="IP address of the TCP server." +
                         " Must be specified either inline or" +
                         " in the configuration file.")
-    parser.add_argument("-p", dest="port", default=port,
+    parser.add_argument("-p", dest="port", default=config["port"],
                         help="Port of the TCP server." +
                         " Must be specified either inline or" +
                         " in the configuration file. ")
     parser.add_argument("-tt", "--tcp_timeout", dest="tcp_timeout",
-                        default=tcp_timeout,
+                        default=config["tcp_timeout"],
                         help="TCP timeout in seconds. After this period" +
                         " user is notified that not CCSDS packets" +
                         " are received. Default: 2.1")
     parser.add_argument("-o", "--output_path", dest="output_path",
-                        default=output_path,
+                        default=config["output_path"],
                         help="Output path where extracted images are saved." +
                         " Default: output/")
     parser.add_argument("-l", "--log_path", dest="log_path",
-                        default=log_path,
+                        default=config["log_path"],
                         help="Log path where the IES process log is saved." +
                         " Default: log/")
     parser.add_argument("-er", "--errors_only", action="store_true",
@@ -185,7 +175,7 @@ def run_waps_ies(args):
     parser.add_argument("-dg", "--disable_gui", action="store_true",
                         help="Disable Graphical User Interface")
     parser.add_argument("-it", "--image_timeout", dest="image_timeout",
-                        default=image_timeout,
+                        default=config["image_timeout"],
                         help="Image timeout in minutes. After this period" +
                         " image is considered OUTDATED. Default: 600")
     parser.add_argument("-msc", "--memory_slot_change", action="store_true",
@@ -194,76 +184,108 @@ def run_waps_ies(args):
     args = parser.parse_args()
 
     # Process command line arguments
-    ip_address = args.ip_address
-    port = args.port
-    tcp_timeout = args.tcp_timeout
-    output_path = args.output_path
-    log_path = args.log_path
+    config["ip_address"] = args.ip_address
+    config["port"] = args.port
+    config["tcp_timeout"] = args.tcp_timeout
+    config["output_path"] = args.output_path
+    config["log_path"] = args.log_path
     if args.debug:
-        log_level = 'DEBUG'
+        config["log_level"] = 'DEBUG'
     elif args.errors_only:
-        log_level = 'ERROR'
+        config["log_level"] = 'ERROR'
     if args.disable_gui:
-        gui_enabled = '0'
-    image_timeout = args.image_timeout
+        config["gui_enabled"] = '0'
+    config["image_timeout"] = args.image_timeout
     if args.memory_slot_change:
-        detect_mem_slot = '1'
+        config["detect_mem_slot"] = '1'
+
+    return config
+
+
+def run_waps_ies(args):
+    """
+    WAPS Image Extraction Software (IES)
+    Acquires CCSDS packets from a TCP stream and searches for TM packets.
+    Extracts WAPS PD images from BIOLAB telemetry and
+        declares and highlights missing packets.
+    IP address and port must be specified either inline or
+        in the configuration file.
+
+    On start-up process the input parameters in priority:
+    1. Command Line Arguments
+    2. Configuation file
+    3. Defaults
+
+    After start-up IES has the following sequence:
+    If GUI is enabled - GUI is started.
+    IES attempts to establish a connection to the specified TCP server.
+    IP address and port must be specified.
+    IES acquires CCSDS packets continuously, automatically assembles images
+    and checks for missing packets.
+    """
+
+    # Config file
+    waps_config, ec_list = check_config_file()
+    # Command line arguments
+    waps_config = check_arguments(args, waps_config)
 
     # Check critical parameters
-    if not ip_address or not port:
-        logging.error("%s%s%s%s", "Server IP address not specified\n",
+    if not waps_config["ip_address"] or not waps_config["port"]:
+        logging.error("%s%s%s%s", "Server IP address or port not specified\n",
                       "Please specify IP address and port",
                       " inline or in the configuration file\n",
                       "Example: waps_ies_app.py -ip localhost -p 12345")
         sys.exit()
-    #
 
     # Logging level definition
     log_level_printout = 'INFO'
-    if log_level.upper() == 'ERROR':
-        log_level = logging.WARNING
+    if waps_config["log_level"].upper() == 'ERROR':
+        waps_config["log_level"] = logging.WARNING
         log_level_printout = 'ERROR'
-    elif log_level.upper() == 'DEBUG':
-        log_level = logging.DEBUG
+    elif waps_config["log_level"].upper() == 'DEBUG':
+        waps_config["log_level"] = logging.DEBUG
         log_level_printout = 'DEBUG'
     else:
-        log_level = logging.INFO
+        waps_config["log_level"] = logging.INFO
 
     # Check existence of the log path
-    if not os.path.exists(log_path):
+    if not os.path.exists(waps_config["log_path"]):
         print("Log path does not exist. Making it...")
-        os.makedirs(log_path)
+        os.makedirs(waps_config["log_path"])
     # Check existence of output path
-    if not os.path.exists(output_path):
+    if not os.path.exists(waps_config["output_path"]):
         print("Output path does not exist. Making it...")
-        os.makedirs(output_path)
+        os.makedirs(waps_config["output_path"])
 
     # Initialize the WAPS IES socket
-    ies = tcpreceiver.TCP_Receiver(ip_address,
-                                   port,
-                                   output_path,
-                                   tcp_timeout)
+    ies = tcpreceiver.TCP_Receiver(waps_config["ip_address"],
+                                   waps_config["port"],
+                                   waps_config["output_path"],
+                                   waps_config["tcp_timeout"])
 
     # Start logging to file
-    ies.log_path = log_path
-    ies.log_level = log_level
+    ies.log_path = waps_config["log_path"]
+    ies.log_level = waps_config["log_level"]
     ies.start_new_log()
 
     # Start-up messages
     logging.info(' ##### WAPS Image Extraction Software #####')
-    logging.info(' # Logging path: %s',log_path)
+    logging.info(' # Logging path: %s', waps_config["log_path"])
     logging.info(' # Logging level: %s', log_level_printout)
-    logging.info(' # Server: %s:%s', ip_address, port)
-    logging.info(' # TCP timeout: %s seconds', tcp_timeout)
-    logging.info(' # Output path: %s', output_path)
+    logging.info(' # Server: %s:%s',
+                 waps_config["ip_address"],
+                 waps_config["port"])
+    logging.info(' # TCP timeout: %s seconds', waps_config["tcp_timeout"])
+    logging.info(' # Output path: %s', waps_config["output_path"])
 
-    ies.image_timeout = timedelta(minutes=int(image_timeout))
-    ies.logging_level = log_level
-    ies.log_path = log_path
-    logging.info(' # Image timeout: %i minute(s)', int(image_timeout))
+    ies.image_timeout = timedelta(minutes=int(waps_config["image_timeout"]))
+    ies.logging_level = waps_config["log_level"]
+    ies.log_path = waps_config["log_path"]
+    logging.info(' # Image timeout: %i minute(s)',
+                 int(waps_config["image_timeout"]))
 
-    if int(detect_mem_slot):
-        ies.memory_slot_change_detection = int(detect_mem_slot)
+    if int(waps_config["detect_mem_slot"]):
+        ies.memory_slot_change_detection = int(waps_config["detect_mem_slot"])
         logging.info(" # Detecting memory slot change from BIOLAB telemetry")
 
     if len(ec_list) > 0:
@@ -279,7 +301,7 @@ def run_waps_ies(args):
         ies.ECs_state = ec_list
 
     # Configure interface
-    if int(gui_enabled):
+    if int(waps_config["gui_enabled"]):
         logging.info(" # Running graphical interface")
         ies_interface = interface.WAPS_interface(ies)
         ies.add_interface(ies_interface)
