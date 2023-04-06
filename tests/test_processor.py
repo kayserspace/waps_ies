@@ -10,7 +10,7 @@ from waps_ies import processor, tcpreceiver, file_reader
 import datetime
 import os
 
-class TestPacket(unittest.TestCase):
+class TestProcessor(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
@@ -20,7 +20,7 @@ class TestPacket(unittest.TestCase):
             not os.path.isdir("tests/output/")):
             os.mkdir("tests/output/")
 
-    def test_bed_packet_sorting(self):
+    def test_bed_data(self):
         """ Get packet list from the test bed output file and test sorting """
 
         packet_list = file_reader.read_test_bed_file("tests/test_bed_files/EC RAW Data.txt")
@@ -31,14 +31,55 @@ class TestPacket(unittest.TestCase):
         self.receiver.incomplete_images = processor.sort_biolab_packets(packet_list, incomplete_images, self.receiver)
 
         self.assertEqual(len(self.receiver.incomplete_images), 2)
-
-
-    def test_image_saving(self):
-
-
+        flir_image_name = self.receiver.incomplete_images[0].image_name
+        ucam_image_name = self.receiver.incomplete_images[1].image_name
         processor.save_images(self.receiver.incomplete_images, 'tests/output/', self.receiver)
         self.assertEqual(len(self.receiver.incomplete_images), 0)
 
+        # Compare original to the new JPEG files
+        original_file_data = None
+        new_file_data = None
+        with open("tests/test_bed_files/color_20221024_1052.jpeg", 'rb') as file:
+            original_file_data = file.read()
+            file.close()
+        with open("tests/output/20230406/"+ucam_image_name+"_100.jpg", 'rb') as file:
+            new_file_data = file.read()
+            file.close()
+
+        # JPEGs are equal except for last packet is not cut as it should be
+        # according to specification (12 bytes extra)
+        self.assertEqual(new_file_data, original_file_data[:len(new_file_data)])
+        self.assertEqual(len(original_file_data) - len(new_file_data), 12)
+
+        # Compare original to the new raw FLIR files
+        with open("tests/test_bed_files/ir_20221024_1049_pic.csv", 'rb') as file:
+            original_file_data = file.read()
+            file.close()
+        with open("tests/output/20230406/"+flir_image_name+"_100_data.csv", 'rb') as file:
+            new_file_data = file.read()
+            file.close()
+
+        self.assertEqual(new_file_data, original_file_data[:len(new_file_data)])
+
+        # Compare original to the new meta FLIR files
+        with open("tests/test_bed_files/ir_20221024_1049_tm.txt", 'rb') as file:
+            original_file_data = file.read()
+            file.close()
+        with open("tests/output/20230406/"+flir_image_name+"_100_tm.txt", 'rb') as file:
+            new_file_data = file.read()
+            file.close()
+
+        self.assertEqual(new_file_data, original_file_data[:len(new_file_data)])
+
+        # Compare original to the new meta FLIR files
+        with open("tests/test_bed_files/ir_20221024_1049.bmp", 'rb') as file:
+            original_file_data = file.read()
+            file.close()
+        with open("tests/output/20230406/"+flir_image_name+"_100.bmp", 'rb') as file:
+            new_file_data = file.read()
+            file.close()
+
+        self.assertEqual(new_file_data, original_file_data[:len(new_file_data)])
 
 
 if __name__ == '__main__':
