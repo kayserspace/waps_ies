@@ -6,7 +6,9 @@
 # Version: 2023-04-05 17:00, version 0.1
 
 import unittest
-from waps_ies import processor, tcpreceiver, file_reader
+import waps_ies.receiver
+import waps_ies.file_reader
+import waps_ies.processor
 import datetime
 import os
 
@@ -15,7 +17,9 @@ class TestProcessor(unittest.TestCase):
     @classmethod
     def setUpClass(self):
 
-        self.receiver = tcpreceiver.TCP_Receiver("192.168.0.1", 12345, "tests/output/")
+        self.receiver = waps_ies.receiver.TCP_Receiver("192.168.0.1",
+                                                       12345,
+                                                       "tests/output/")
         if (not os.path.exists("tests/output/") or
             not os.path.isdir("tests/output/")):
             os.mkdir("tests/output/")
@@ -23,17 +27,17 @@ class TestProcessor(unittest.TestCase):
     def test_bed_data(self):
         """ Get packet list from the test bed output file and test sorting """
 
-        packet_list = file_reader.read_test_bed_file("tests/test_bed_files/EC RAW Data.txt")
+        packet_list = waps_ies.file_reader.read_test_bed_file("tests/test_bed_files/EC RAW Data.txt")
 
         self.assertEqual(len(packet_list), 309)
 
         incomplete_images = []
-        self.receiver.incomplete_images = processor.sort_biolab_packets(packet_list, incomplete_images, self.receiver)
+        self.receiver.incomplete_images = waps_ies.processor.sort_biolab_packets(packet_list, incomplete_images, self.receiver)
 
         self.assertEqual(len(self.receiver.incomplete_images), 2)
         flir_image_name = self.receiver.incomplete_images[0].image_name
         ucam_image_name = self.receiver.incomplete_images[1].image_name
-        processor.save_images(self.receiver.incomplete_images, 'tests/output/', self.receiver)
+        waps_ies.processor.save_images(self.receiver.incomplete_images, 'tests/output/', self.receiver)
         self.assertEqual(len(self.receiver.incomplete_images), 0)
 
         # Compare original to the new JPEG files

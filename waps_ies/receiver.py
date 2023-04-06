@@ -326,6 +326,7 @@ class TCP_Receiver:
                     self.socket.close()
                     if (self.interface):
                         self.interface.update_server_disconnected()
+                    raise err
                     time.sleep(1)
                 
         except KeyboardInterrupt:

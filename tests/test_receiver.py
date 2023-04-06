@@ -1,7 +1,7 @@
 
 
 import unittest
-from waps_ies import tcpreceiver, interface
+import waps_ies.receiver
 import time
 
 class TestReceiver(unittest.TestCase):
@@ -9,7 +9,7 @@ class TestReceiver(unittest.TestCase):
     @classmethod
     def setUpClass(self):
 
-        self.receiver = tcpreceiver.TCP_Receiver("192.168.0.1", 12345, "output/")
+        self.receiver = waps_ies.receiver.TCP_Receiver("192.168.0.1", 12345, "output/")
 
     def test_gui_column_assignment(self):
         """ A receiver and test GUI column assignment """

@@ -22,7 +22,7 @@ import os
 from datetime import datetime, timedelta
 import time
 import logging
-from waps_ies import tcpreceiver, interface
+import waps_ies.receiver
 
 
 def check_config_file():
@@ -258,10 +258,10 @@ def run_waps_ies(args):
         os.makedirs(waps_config["output_path"])
 
     # Initialize the WAPS IES socket
-    ies = tcpreceiver.TCP_Receiver(waps_config["ip_address"],
-                                   waps_config["port"],
-                                   waps_config["output_path"],
-                                   waps_config["tcp_timeout"])
+    ies = waps_ies.receiver.TCP_Receiver(waps_config["ip_address"],
+                                         waps_config["port"],
+                                         waps_config["output_path"],
+                                         waps_config["tcp_timeout"])
 
     # Start logging to file
     ies.log_path = waps_config["log_path"]
@@ -303,7 +303,7 @@ def run_waps_ies(args):
     # Configure interface
     if int(waps_config["gui_enabled"]):
         logging.info(" # Running graphical interface")
-        ies_interface = interface.WAPS_interface(ies)
+        ies_interface = waps_ies.interface.WAPS_interface(ies)
         ies.add_interface(ies_interface)
         interface_startup = datetime.now()
         longer_time_message = False
