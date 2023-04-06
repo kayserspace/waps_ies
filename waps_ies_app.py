@@ -1,26 +1,27 @@
 #!/usr/bin/env python
 
-# Script: waps_ies_app.py
-# Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
-# Purpose: WAPS PD image extraction software for operations at MUSC
-# Version: 2023-03-10 14:00, version 0.2
-#
-# Change Log:
-#  2023-02-17 version 0.1
-#  - initial version, file based
-#  - prototype stage
-#  2023-03-10 version 0.2
-#  - moved from file based packet extraction to TCP stream acquisition
-#  - prototype stage
+"""
+Script: waps_ies_app.py
+Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
+Purpose: WAPS PD image extraction software for operations at MUSC
+Version: 2023-03-10 14:00, version 0.2
+
+Change Log:
+2023-02-17 version 0.1
+ - initial version, file based
+ - prototype stage
+ 2023-03-10 version 0.2
+ - moved from file based packet extraction to TCP stream acquisition
+ - prototype stage
+"""
 
 import sys
 import configparser
 from argparse import ArgumentParser
 import os
-from datetime import datetime
-import logging
+from datetime import datetime, timedelta
 import time
-from datetime import timedelta
+import logging
 from waps_ies import tcpreceiver, interface
 
 
@@ -100,13 +101,13 @@ def run_waps_ies(args):
     # Default values
     ip_address = None
     port = None
-    tcp_timeout = '2.1'                 # seconds
+    tcp_timeout = '2.1'         # seconds
     output_path = 'output/'
     log_path = 'log/'
-    log_level = 'INFO'                  # INFO / DEBUG / WARNING / ERROR
-    gui_enabled = '1'                   # Graphical Interface
-    image_timeout = '600'               # minutes (10h)
-    memory_slot_change_detection = '0'  # False
+    log_level = 'INFO'          # INFO / DEBUG / WARNING / ERROR
+    gui_enabled = '1'           # Graphical Interface
+    image_timeout = '600'       # minutes (10h)
+    detect_mem_slot = '0'       # False
 
     # ECs state contains
     # - EC address
@@ -114,7 +115,7 @@ def run_waps_ies(args):
     # - EC column in the GUI
     # - Image transmission is active
     # - Last memory slot used
-    ECs_state = []
+    ec_list = []
 
     # Check the configuration file waps_ies_conf.ini
     config = configparser.ConfigParser()
@@ -136,17 +137,16 @@ def run_waps_ies(args):
                                  fallback=gui_enabled)
         image_timeout = config.get('WAPS_IES', 'image_timeout',
                                    fallback=image_timeout)
-        memory_slot_change_detection = config.get('WAPS_IES',
-                                        'memory_slot_change_detection',
-                                        fallback=memory_slot_change_detection)
-    if ('EC_POSITIONS' in config.sections()):
+        detect_mem_slot = config.get('WAPS_IES',
+                                     'memory_slot_change_detection',
+                                     fallback=detect_mem_slot)
+    if 'EC_POSITIONS' in config.sections():
         for ec_addr_pos in config.items('EC_POSITIONS'):
-            ec = {"ec_address": int(ec_addr_pos[0]),
-                  "ec_position": ec_addr_pos[1],
-                  "gui_column": None,  # Update on receipt of packets
-                  "transmission_active": False,
-                  "last_memory_slot": None}
-            ECs_state.append(ec)
+            ec_list.append({"ec_address": int(ec_addr_pos[0]),
+                            "ec_position": ec_addr_pos[1],
+                            "gui_column": None,
+                            "transmission_active": False,
+                            "last_memory_slot": None})
 
     # Define command line arguments
     parser = ArgumentParser(description='WAPS Image Extraction Software.' +
@@ -199,42 +199,42 @@ def run_waps_ies(args):
     tcp_timeout = args.tcp_timeout
     output_path = args.output_path
     log_path = args.log_path
-    if (args.debug):
+    if args.debug:
         log_level = 'DEBUG'
-    elif (args.errors_only):
+    elif args.errors_only:
         log_level = 'ERROR'
-    if (args.disable_gui):
+    if args.disable_gui:
         gui_enabled = '0'
     image_timeout = args.image_timeout
-    if (args.memory_slot_change):
-        memory_slot_change_detection = '1'
+    if args.memory_slot_change:
+        detect_mem_slot = '1'
 
     # Check critical parameters
-    if (not ip_address or not port):
-        logging.error("Server IP address not specified\n" +
-                      "Please specify IP address and port" +
-                      " inline or in the configuration file\n" +
+    if not ip_address or not port:
+        logging.error("%s%s%s%s", "Server IP address not specified\n",
+                      "Please specify IP address and port",
+                      " inline or in the configuration file\n",
                       "Example: waps_ies_app.py -ip localhost -p 12345")
-        quit()
+        sys.exit()
     #
 
     # Logging level definition
     log_level_printout = 'INFO'
-    if (log_level.upper() == 'ERROR'):
+    if log_level.upper() == 'ERROR':
         log_level = logging.WARNING
         log_level_printout = 'ERROR'
-    elif (log_level.upper() == 'DEBUG'):
+    elif log_level.upper() == 'DEBUG':
         log_level = logging.DEBUG
         log_level_printout = 'DEBUG'
     else:
         log_level = logging.INFO
 
     # Check existence of the log path
-    if (not os.path.exists(log_path)):
+    if not os.path.exists(log_path):
         print("Log path does not exist. Making it...")
         os.makedirs(log_path)
     # Check existence of output path
-    if (not os.path.exists(output_path)):
+    if not os.path.exists(output_path):
         print("Output path does not exist. Making it...")
         os.makedirs(output_path)
 
@@ -251,54 +251,53 @@ def run_waps_ies(args):
 
     # Start-up messages
     logging.info(' ##### WAPS Image Extraction Software #####')
-    logging.info(' # Logging path: ' + log_path)
-    logging.info(' # Logging level: ' + log_level_printout)
+    logging.info(' # Logging path: %s',log_path)
+    logging.info(' # Logging level: %s', log_level_printout)
     logging.info(' # Server: %s:%s', ip_address, port)
     logging.info(' # TCP timeout: %s seconds', tcp_timeout)
-    logging.info(' # Output path: '+output_path)
+    logging.info(' # Output path: %s', output_path)
 
     ies.image_timeout = timedelta(minutes=int(image_timeout))
     ies.logging_level = log_level
     ies.log_path = log_path
-    logging.info(" # Image timeout: " + str(int(image_timeout)) + ' minute(s)')
+    logging.info(' # Image timeout: %i minute(s)', int(image_timeout))
 
-    if (int(memory_slot_change_detection)):
-        ies.memory_slot_change_detection = int(memory_slot_change_detection)
+    if int(detect_mem_slot):
+        ies.memory_slot_change_detection = int(detect_mem_slot)
         logging.info(" # Detecting memory slot change from BIOLAB telemetry")
 
-    if (len(ECs_state)):
+    if len(ec_list) > 0:
         ec_addr_pos_printout = "   EC address / position"
-        for ec in ECs_state:
+        for ec_state in ec_list:
             ec_addr_pos_printout = (ec_addr_pos_printout +
-                                    "\n   " + str(ec["ec_address"]) +
-                                    " / " + ec["ec_position"])
+                                    "\n   " + str(ec_state["ec_address"]) +
+                                    " / " + ec_state["ec_position"])
 
-        logging.info(" # Configuration contains EC address/position pairs:\n" +
+        logging.info(" # Config contains EC address/position pairs:\n%s",
                      ec_addr_pos_printout)
 
-        ies.ECs_state = ECs_state
+        ies.ECs_state = ec_list
 
     # Configure interface
-    if (int(gui_enabled)):
+    if int(gui_enabled):
         logging.info(" # Running graphical interface")
         ies_interface = interface.WAPS_interface(ies)
         ies.add_interface(ies_interface)
         interface_startup = datetime.now()
         longer_time_message = False
-        while (not ies.interface.window_open):
+        while not ies.interface.window_open:
             print('#', end='', flush=True)
             time.sleep(0.1)
             if (datetime.now() - interface_startup > timedelta(seconds=10) and
                     not longer_time_message):
                 longer_time_message = True
                 logging.info("--- GUI taking longer than expected to boot")
-            if (datetime.now() - interface_startup > timedelta(seconds=60)):
+            if datetime.now() - interface_startup > timedelta(seconds=60):
                 longer_time_message = True
                 logging.error("---Something precents GUI from starting")
                 break
-        logging.debug(" Interface took " +
-                      str(datetime.now() - interface_startup) +
-                      ' to start')
+        logging.debug(' Interface took %s to start',
+                      str(datetime.now() - interface_startup))
 
     logging.info(" # Starting reception")
     ies.start()
