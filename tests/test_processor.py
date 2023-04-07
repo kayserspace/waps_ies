@@ -40,13 +40,15 @@ class TestProcessor(unittest.TestCase):
         waps_ies.processor.save_images(self.receiver.incomplete_images, 'tests/output/', self.receiver)
         self.assertEqual(len(self.receiver.incomplete_images), 0)
 
+        output_dir = "tests/output/" + datetime.datetime.now().strftime("%Y%m%d") + '/'
+
         # Compare original to the new JPEG files
         original_file_data = None
         new_file_data = None
         with open("tests/test_bed_files/color_20221024_1052.jpeg", 'rb') as file:
             original_file_data = file.read()
             file.close()
-        with open("tests/output/20230406/"+ucam_image_name+"_100.jpg", 'rb') as file:
+        with open(output_dir+ucam_image_name+"_100.jpg", 'rb') as file:
             new_file_data = file.read()
             file.close()
 
@@ -59,7 +61,7 @@ class TestProcessor(unittest.TestCase):
         with open("tests/test_bed_files/ir_20221024_1049_pic.csv", 'rb') as file:
             original_file_data = file.read()
             file.close()
-        with open("tests/output/20230406/"+flir_image_name+"_100_data.csv", 'rb') as file:
+        with open(output_dir+flir_image_name+"_100_data.csv", 'rb') as file:
             new_file_data = file.read()
             file.close()
 
@@ -69,7 +71,7 @@ class TestProcessor(unittest.TestCase):
         with open("tests/test_bed_files/ir_20221024_1049_tm.txt", 'rb') as file:
             original_file_data = file.read()
             file.close()
-        with open("tests/output/20230406/"+flir_image_name+"_100_tm.txt", 'rb') as file:
+        with open(output_dir+flir_image_name+"_100_tm.txt", 'rb') as file:
             new_file_data = file.read()
             file.close()
 
@@ -79,7 +81,7 @@ class TestProcessor(unittest.TestCase):
         with open("tests/test_bed_files/ir_20221024_1049.bmp", 'rb') as file:
             original_file_data = file.read()
             file.close()
-        with open("tests/output/20230406/"+flir_image_name+"_100.bmp", 'rb') as file:
+        with open(output_dir+flir_image_name+"_100.bmp", 'rb') as file:
             new_file_data = file.read()
             file.close()
 
