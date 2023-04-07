@@ -2,6 +2,7 @@ import logging
 import PySimpleGUI as sg
 import threading
 from waps_ies import processor
+from datetime import datetime, timedelta
 
 class WAPS_interface:
     """
@@ -24,6 +25,9 @@ class WAPS_interface:
 
     # Window with list of received images
     list_window = None
+
+    last_CCSDS_count_update = datetime.now()
+    server_active = False
 
     def __init__(self, monitor):
 
@@ -176,18 +180,30 @@ class WAPS_interface:
 
         self.window['server_status'].update(background_color='yellow')
         self.window['server_status'].update("Connected")
+        self.server_active = False
 
     def update_server_active(self):
         """ Update server status as "Active" in the window """
 
-        self.window['server_status'].update(background_color='springgreen4')
-        self.window['server_status'].update("Active")
+        if not self.server_active:
+            self.window['server_status'].update(background_color='springgreen4')
+            self.window['server_status'].update("Active")
+            self.server_active = True
 
     def update_server_disconnected(self):
         """ Update server status as "Disconnected" in the window """
 
         self.window['server_status'].update(background_color='red')
         self.window['server_status'].update("Disconnected")
+        self.server_active = False
+
+    def update_CCSDS_count(self):
+        """ Update CCSDS count in GUI (limited per second) """
+
+        current_time = datetime.now()
+        if (current_time > self.last_CCSDS_count_update + timedelta(milliseconds=100)):
+            self.last_CCSDS_count_update = current_time
+            self.window['CCSDS_pkts'].update(str(self.monitor.total_packets_received))
 
     def update_stats(self):
         """ Update statistics in the window """

@@ -126,8 +126,8 @@ class TCP_Receiver:
 
     def get_status(self):
         """ Get receiver status message """
-        current_time = self.last_packet_CCSDS_time.strftime("%Y/%m/%d, %H:%M:%S")
-        status_message = ("### STATUS CCSDS Time: %s Packets:%d:%d:%d Miss:%d:%d, Images:%d:%d" %
+        current_time = self.last_packet_CCSDS_time.strftime("%Y/%m/%d %H:%M:%S")
+        status_message = ("# CCSDS Time: %s P:%d:%d:%d M:%d:%d, I:%d:%d" %
                                     (current_time,
                                     self.total_packets_received,
                                     self.total_biolab_packets,
@@ -247,7 +247,7 @@ class TCP_Receiver:
                     # Update interfeace status
                     if (self.interface):
                         self.interface.update_server_active()
-                        self.interface.update_stats()
+                        self.interface.update_CCSDS_count()
                     
                     if (len(CCSDS_header) != CCSDSHeadersLength):
                         raise Exception("Header reception failed")
