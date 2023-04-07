@@ -84,7 +84,8 @@ def sort_biolab_packets(packet_list,
                     image.time_tag == new_image.time_tag):
                     logging.warning(' Duplicated image detected')
                     duplicate_image = True
-                elif (image.memory_slot == new_image.memory_slot):
+                elif (image.ec_address == new_image.ec_address and
+                    image.memory_slot == new_image.memory_slot):
                     incomplete_images[index].overwritten = True
                     logging.warning(' Previous image in memory slot ' + str(image.memory_slot) + ' overwritten')
                     check_overwritten_images(incomplete_images, receiver.interface)
