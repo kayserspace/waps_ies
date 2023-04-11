@@ -29,7 +29,7 @@ class WAPS_interface:
     last_CCSDS_count_update = datetime.now()
     server_active = False
 
-    def __init__(self, monitor):
+    def __init__(self, monitor, start_thread=True):
 
         self.window_open = False
         self.monitor = monitor
@@ -132,8 +132,10 @@ class WAPS_interface:
         # Create the Window
         self.window = sg.Window('WAPS Image Extraction Software', layout, resizable=True)
 
-        self.thread = threading.Thread(target=self.run, args=(), daemon=True)
-        self.thread.start()
+        # New thread start
+        if start_thread:
+            self.thread = threading.Thread(target=self.run, args=(), daemon=True)
+            self.thread.start()
 
     def run(self):
         """ Interface main loop """
