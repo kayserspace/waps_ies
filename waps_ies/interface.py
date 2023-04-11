@@ -132,7 +132,7 @@ class WAPS_interface:
         # Create the Window
         self.window = sg.Window('WAPS Image Extraction Software', layout, resizable=True)
 
-        self.thread = threading.Thread(target=self.run, args=())
+        self.thread = threading.Thread(target=self.run, args=(), daemon=True)
         self.thread.start()
 
     def run(self):
