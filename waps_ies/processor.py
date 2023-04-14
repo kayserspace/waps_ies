@@ -150,6 +150,7 @@ def sort_biolab_packets(packet_list,
                 for i in range(len(incomplete_images)):
                     if (incomplete_images[i].image_transmission_active):
                         incomplete_images[i].image_transmission_active = False
+                        incomplete_images[i].update = True
                         receiver.db.update_image_status(incomplete_images[i])
 
                 # Reset transmission status
