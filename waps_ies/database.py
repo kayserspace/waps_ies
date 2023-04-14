@@ -40,9 +40,9 @@ class WAPS_Database:
         db_request = self.db_cursor.execute("SELECT name FROM sqlite_master")
         db_tables = db_request.fetchall()
         
-        if (not ('packet',) in db_tables):
+        if (not ('packets',) in db_tables):
             logging.debug("Adding packet table to db")
-            packet_table_contents = ("CREATE TABLE packet(" +
+            packet_table_contents = ("CREATE TABLE packets(" +
                                     "packet_uuid, " +
                                     "acquisition_time, " +
                                     "CCSDS_time, " +
@@ -64,9 +64,9 @@ class WAPS_Database:
                                     "image_id)")
             self.db_cursor.execute(packet_table_contents)
 
-        if (not ('image',) in db_tables):
+        if (not ('images',) in db_tables):
             logging.debug("Adding image table to db")
-            image_table_contents = ("CREATE TABLE image(" +
+            image_table_contents = ("CREATE TABLE images(" +
                                     "image_uuid, " +
                                     "acquisition_time, " +
                                     "CCSDS_time, " +
@@ -92,7 +92,11 @@ class WAPS_Database:
     def add_packet(self, packet):
         """ Add packet to database, if not present already """
 
-        #TODO check for duplicate
+        # Avoid adding packet several times
+        if self.packet_exists(packet):
+            logging.warning(" Packet %s already present in database",
+                            packet.packet_name)
+            return
 
         packet_data =   [(packet.uuid,
                         packet.acquisition_time,
@@ -115,14 +119,33 @@ class WAPS_Database:
                         packet.image_uuid),
                         ]
         packet_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        self.db_cursor.executemany("INSERT INTO packet VALUES" + packet_param, packet_data)
+        self.db_cursor.executemany("INSERT INTO packets VALUES" + packet_param, packet_data)
         self.database.commit()
 
+    def packet_exists(self, packet):
+        """
+        Check if packet already exists in the database
+        Matching CCSDS_time and packet_name
+        """
+
+        res = self.db_cursor.execute("SELECT packet_uuid FROM packets WHERE " +
+                                         "CCSDS_time=? AND packet_name=?",
+                                         [packet.CCSDS_time,
+                                         packet.packet_name])
+        res = res.fetchall()
+        if len(res) != 0:
+            return True
+
+        return False
 
     def add_image(self, image):
         """ Add image to database, if not present already """
 
-        #TODO check for duplicate
+        # Avoid adding image several times
+        if self.image_exists(image):
+            logging.warning(" image %s already present in database",
+                            image.image_name)
+            return
 
         image_data =    [(image.uuid,
                         image.acquisition_time,
@@ -145,8 +168,24 @@ class WAPS_Database:
                         image.completion_time),
                         ]
         image_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        self.db_cursor.executemany("INSERT INTO image VALUES" + image_param, image_data)
+        self.db_cursor.executemany("INSERT INTO images VALUES" + image_param, image_data)
         self.database.commit()
+
+    def image_exists(self, image):
+        """
+        Check if image already exists in the database
+        Matching CCSDS_time and image_name
+        """
+
+        res = self.db_cursor.execute("SELECT image_uuid FROM images WHERE " +
+                                         "CCSDS_time=? AND image_name=?",
+                                         [image.CCSDS_time,
+                                         image.image_name])
+        res = res.fetchall()
+        if len(res) != 0:
+            return True
+
+        return False
 
     def update_image_status(self, image):
         """ Update an existing image in the database with status"""
@@ -159,7 +198,7 @@ class WAPS_Database:
                         image.completion_time,
                         image.uuid),
 
-        self.db_cursor.executemany("""UPDATE image SET
+        self.db_cursor.executemany("""UPDATE images SET
                                         received_packets=?,
                                         overwritten=?,
                                         outdated=?,
@@ -178,7 +217,7 @@ class WAPS_Database:
                         image.latest_saved_file_tm,
                         image.uuid),
 
-        self.db_cursor.executemany("""UPDATE image SET
+        self.db_cursor.executemany("""UPDATE images SET
                                         latest_image_file=?,
                                         latest_data_file=?,
                                         latest_tm_file=?
