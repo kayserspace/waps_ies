@@ -255,6 +255,10 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
 
         successful_write = False
 
+        # Ignore if there is no update on the image
+        if (not image.update):
+            continue
+
         # Update interface if available
         if (interface):
             interface.update_image_data(image)
@@ -263,10 +267,7 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
         if (not save_incomplete and
             not image.is_complete() and
             image.image_transmission_active):
-            continue
-
-        # Ignore if there is no update on the image
-        if (not image.update):
+            incomplete_images[index].update = False
             continue
         
         # Get image binary data first
