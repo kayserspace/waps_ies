@@ -234,61 +234,79 @@ class WAPS_interface:
         self.window['ec_position_' + str(ec_column)].update(ec_position)
 
     def update_image_data(self, image):
+        """ Update GUI image cell contents """
 
+        # Identify GUI column of the image
+        ec_index = self.monitor.get_ecs_state_index(image.ec_address)
+        ec_column = self.monitor.ECs_state[ec_index]["gui_column"]
+        if ec_column == None:
+            logging.warning(" GUI does not have space for this EC: %i",
+                            image.ec_address)
+            return
+        print(ec_index,ec_column)
 
         # Image packets status
         missing_packets = image.get_missing_packets()
-        self.window['progressbar_0_' + str(image.memory_slot)].update(
-            int(100.0*(image.number_of_packets - len(missing_packets))/image.number_of_packets))
-        self.window['packet_number_0_' + str(image.memory_slot)].update(
+        self.window['progressbar_' + str(ec_column) + '_' +
+                    str(image.memory_slot)].update(
+                    int(100.0*(image.number_of_packets -
+                    len(missing_packets))/image.number_of_packets))
+        self.window['packet_number_' + str(ec_column) + '_' +
+                    str(image.memory_slot)].update(
             str(image.number_of_packets - len(missing_packets)) +
             '/' +
             str(image.number_of_packets))
 
-        
+        curr_tag = 'status_' + str(ec_column) + '_' + str(image.memory_slot)
         if (image.overwritten):
-            self.window['status_0_' + str(image.memory_slot)].update("Overwritten")
-            self.window['status_0_' + str(image.memory_slot)].update(background_color='yellow')
+            self.window[curr_tag].update("Overwritten")
+            self.window[curr_tag].update(background_color='yellow')
         elif (image.outdated):
-            self.window['status_0_' + str(image.memory_slot)].update("Outdated")
-            self.window['status_0_' + str(image.memory_slot)].update(background_color='yellow')
+            self.window[curr_tag].update("Outdated")
+            self.window[curr_tag].update(background_color='yellow')
         elif (image.image_transmission_active):
-            self.window['status_0_' + str(image.memory_slot)].update("In progress")
-            self.window['status_0_' + str(image.memory_slot)].update(background_color='lightblue')
+            self.window[curr_tag].update("In progress")
+            self.window[curr_tag].update(background_color='lightblue')
         elif (len(missing_packets)):
-            self.window['status_0_' + str(image.memory_slot)].update("Incomplete")
-            self.window['status_0_' + str(image.memory_slot)].update(background_color='red')
+            self.window[curr_tag].update("Incomplete")
+            self.window[curr_tag].update(background_color='red')
         else:
-            self.window['status_0_' + str(image.memory_slot)].update("Complete")
-            self.window['status_0_' + str(image.memory_slot)].update(background_color='springgreen1')
+            self.window[curr_tag].update("Complete")
+            self.window[curr_tag].update(background_color='springgreen1')
             # Change colours of all other finished images
             for i in range(8): # 8 memory slots
-                if (self.window['status_0_' + str(i)].get() == 'Complete' and
+                if (self.window['status_' + str(ec_column) +
+                                '_' + str(i)].get() == 'Complete' and
                     i != image.memory_slot):
-                    self.window['status_0_' + str(i)].update(
+                    self.window['status_' + str(ec_column) +
+                                '_' + str(i)].update(
                         background_color='springgreen4')
 
         # Image type
-        self.window['image_type_0_' + str(image.memory_slot)].update(image.camera_type)
+        self.window['image_type_' + str(ec_column) + '_' +
+                    str(image.memory_slot)].update(image.camera_type)
 
         # Missing packets with colour change
         missing_packets_str = image.missing_packets_string()
         packets_sequential = image.packets_are_sequential()
         if (len(missing_packets_str) > 15):
             missing_packets_str = missing_packets_str[:16] + '..'
-        self.window['missing_packets_0_' + str(image.memory_slot)].update(missing_packets_str)
-        if (not len(missing_packets) or image.image_transmission_active and packets_sequential):
-            self.window['missing_packets_0_' + str(image.memory_slot)].update(
+        self.window['missing_packets_' + str(ec_column) + '_'
+                    + str(image.memory_slot)].update(missing_packets_str)
+        if (not len(missing_packets) or
+            image.image_transmission_active and packets_sequential):
+            self.window['missing_packets_' + str(ec_column) +
+                        '_' + str(image.memory_slot)].update(
                 background_color=sg.theme_background_color())
         else:
             if (image.overwritten or image.outdated or image.image_transmission_active):
-                self.window['missing_packets_0_' + str(image.memory_slot)].update(
+                self.window['missing_packets_' + str(ec_column) +
+                            '_' + str(image.memory_slot)].update(
                     background_color='yellow')
             else:
-                self.window['missing_packets_0_' + str(image.memory_slot)].update(
+                self.window['missing_packets_' + str(ec_column) +
+                            '_' + str(image.memory_slot)].update(
                     background_color='red')
-            
-
 
 
     def show_image_list(self, ec_address=None):
