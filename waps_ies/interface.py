@@ -243,7 +243,6 @@ class WAPS_interface:
             logging.warning(" GUI does not have space for this EC: %i",
                             image.ec_address)
             return
-        print(ec_index,ec_column)
 
         # Image packets status
         missing_packets = image.get_missing_packets()
