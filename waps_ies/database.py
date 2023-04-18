@@ -32,7 +32,8 @@ class WAPS_Database:
         # Database initialization
         if (not os.path.exists(database_filename)):
             logging.warning("Database seems to be missing path does not exist. Creating it...")
-        self.database = sqlite3.connect(database_filename)
+        self.database = sqlite3.connect(database_filename,
+                                        check_same_thread=False)
         self.db_cursor = self.database.cursor()
         logging.info(" # Opened database " + database_filename)
 
@@ -210,7 +211,7 @@ class WAPS_Database:
         self.database.commit()
 
     def update_image_filenames(self, image):
-        """ Update an existing image in the database with saved file names"""
+        """ Update an existing image in the database with saved file names """
 
         image_data =    (image.latest_saved_file,
                         image.latest_saved_file_data,
@@ -224,3 +225,29 @@ class WAPS_Database:
                                         WHERE image_uuid=?""", 
                                     image_data)
         self.database.commit()
+
+    def get_image_list(self, ec_address=None):
+        """
+        Get image list to display in GUI
+        If ec_address not provided - all images
+        """
+
+        contents = ("SELECT image_name, " +
+                    "CCSDS_time, " +
+                    "ec_address, " +
+                    "ec_position, " +
+                    "memory_slot, " +
+                    "number_of_packets, " +
+                    "received_packets, " +
+                    "overwritten, " +
+                    "transmission_active, " +
+                    "completion_time " +
+                    "FROM images")
+
+        if ec_address == None:
+            res = self.db_cursor.execute(contents + " ORDER BY CCSDS_time DESC;")
+        else:
+            res = self.db_cursor.execute(contents + " WHERE " + "ec_address=?"
+                                         + " ORDER BY CCSDS_time DESC;",
+                                         [ec_address])
+        return res.fetchall()
