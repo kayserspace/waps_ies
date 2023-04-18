@@ -144,10 +144,18 @@ class WAPS_interface:
             gui_timeout = 100
             # Event Loop to process "events" and get the "values" of the inputs
             while self.monitor.continue_running:
-                event, values = self.window.read(timeout = gui_timeout)
+                if self.list_window == None:
+                    win = self.window
+                    event, values = self.window.read(timeout = gui_timeout)
+                else:
+                    win, event, values = sg.read_all_windows(timeout = gui_timeout)
                 self.window_open = True
                 if event == sg.WIN_CLOSED or event == 'Exit': # if user closes window or clicks cancel
-                    break
+                    if win == self.list_window:
+                        self.list_window.close()
+                        self.list_window = None
+                    else:
+                        break
                 elif (str(event) == 'list_button_0'):
                     self.show_image_list(self.window['ec_address_0'].get())
                 elif (str(event) == 'list_button_1'):
@@ -159,7 +167,7 @@ class WAPS_interface:
                 elif (str(event) == 'list_all_button'):
                     self.show_image_list()
                 elif (str(event) != '__TIMEOUT__'):
-                    logging.info(' Interface event: ' + str(event) + ' ' + str(values))
+                    logging.info(' Interface event: ' + str(event) + ' ' + str(values) + ' ' + str(win))
                 gui_timeout = 10000 # ms
 
         finally:
@@ -309,24 +317,64 @@ class WAPS_interface:
 
 
     def show_image_list(self, ec_address=None):
+        """ Open a new window with the list of received images """
 
-        # TODO request database for this data
-        data = [["EC_171_uCAM_114128_m6_7430564", "Incomplete", "11:41:28", "81% (27/33)", "[4, 10, 14, 20-21, 27]"],
-                ["EC_171_FLIR_105830_m5_6539398", "Complete", "10:58:30", "100% (63/63)", "[]"]]
+        # Only allow one list window at a time
+        if self.list_window != None:
+            self.list_window.close()
 
-        layout = [
+        db_data = self.monitor.db.get_image_list(ec_address)
+
+        # Format the data according to the list window table
+        total_images = len(db_data)
+        data = []
+        for index, image_data in enumerate(db_data):
+            image_row = []
+            image_row.append(len(db_data)-index)
+            image_row.append(db_data[index][0])
+            image_row.append(db_data[index][1][:11])  # Date
+            image_row.append(db_data[index][1][11:19])  # Time
+            image_row.append(db_data[index][2])  # EC address
+            image_row.append(db_data[index][3])  # EC position
+            image_row.append(db_data[index][4])  # Mem
+            image_percentage = int(100.0*db_data[index][6]/db_data[index][5])
+            image_row.append(str(image_percentage) + '% ' +
+                             str(db_data[index][6]) + '/' + 
+                             str(db_data[index][5]))  # Received packets
+            status = "Incomplete"
+            if db_data[index][5] == db_data[index][6]:
+                status = "Complete"
+            elif db_data[index][6] == 1:
+                status = "In progress"
+            image_row.append(status)
+            image_row.append("[]")
+
+            data.append(image_row)
+
+        table_headings = ['#  ',
+                          '       Name       ',
+                          'Date',
+                          'Time',
+                          'Addr',
+                          'Pos',
+                          'Mem',
+                          'Recv',
+                          'Status',
+                          'Miss']
+
+        layout = [[sg.Text("Image list sorted by latest"),
+                     sg.Button('Export', k='export_table')],
                     [sg.Table(data,
-                        ['    Image name    ', 'Status', 'Timestamp','Completion', 'Missing packets'],
+                        table_headings,
                         num_rows=30,
+                        select_mode=sg.TABLE_SELECT_MODE_EXTENDED,
                         alternating_row_color='lightgrey',
                         justification='l',
+                        enable_events=True,
                         expand_x=True, expand_y=True)]]      
 
         # Create a new window
         list_window_title = 'List of received images'
         if (ec_address):
             list_window_title = list_window_title + ' from EC ' + str(ec_address)
-        self.list_window = sg.Window(list_window_title, layout, resizable=True)
-        logging.info(list_window_title)
-
-        event, values = self.list_window.read(timeout = 100)
+        self.list_window = sg.Window(list_window_title, layout, resizable=True, finalize=True)
