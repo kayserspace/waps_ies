@@ -25,9 +25,7 @@ CCSDSHeadersLength = CCSDS1HeaderLength + CCSDS2HeaderLength
 
 BIOLAB_ID_position = 40
 
-#class CCSDS_packet:
-    
-    
+
 class TCP_Receiver:
     """
     TCP Receiver class
@@ -118,7 +116,7 @@ class TCP_Receiver:
         """ Add an interface object to the trackerer """
 
         # Check interface type before adding
-        if (type(ies_interface) is interface.WAPS_interface):
+        if (type(ies_interface) is interface.WapsIesGui):
             logging.debug(' # Interface added linked to IES')
             self.interface = ies_interface
         else:
@@ -247,7 +245,7 @@ class TCP_Receiver:
                     # Update interfeace status
                     if (self.interface):
                         self.interface.update_server_active()
-                        self.interface.update_CCSDS_count()
+                        self.interface.update_ccsds_count()
                     
                     if (len(CCSDS_header) != CCSDSHeadersLength):
                         raise Exception("Header reception failed")

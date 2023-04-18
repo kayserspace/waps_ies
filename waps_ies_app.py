@@ -303,7 +303,7 @@ def run_waps_ies(args):
     # Configure interface
     if int(waps_config["gui_enabled"]):
         logging.info(" # Running graphical interface")
-        ies_interface = waps_ies.interface.WAPS_interface(ies)
+        ies_interface = waps_ies.interface.WapsIesGui(ies)
         ies.add_interface(ies_interface)
         interface_startup = datetime.now()
         longer_time_message = False
