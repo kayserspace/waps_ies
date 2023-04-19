@@ -47,7 +47,7 @@ def read_rt_file(file_path):
                     packet_length = data[biolab_id_position + 1] * 2 + 4
 
                     # Create packet as is
-                    packet =  waps_packet.BIOLAB_Packet(datetime.now(), datetime.now(),
+                    packet =  waps_packet.WapsPacket(datetime.now(), datetime.now(),
                                         data[biolab_id_position : biolab_id_position + packet_length])
 
                     # If packet matches biolab specification add it to list
@@ -99,7 +99,7 @@ def read_test_bed_file(file_path):
                 byte_dataline = bytearray(list(map(int, dataline.split(' ')[:-1])))
 
                 # Create packet as is
-                packet = waps_packet.BIOLAB_Packet(datetime.now(), datetime.now(),
+                packet = waps_packet.WapsPacket(datetime.now(), datetime.now(),
                                                         byte_dataline)
 
                 # If packet matches biolab specification add it to list
