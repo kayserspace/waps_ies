@@ -72,7 +72,7 @@ def sort_biolab_packets(packet_list,
                 logging.warning(packet.packet_name + ' Packet ID is not zero: ' + str(packet.tm_packet_id))
 
             # Create an image with the above data
-            new_image = waps_image.WAPS_Image(packet)
+            new_image = waps_image.WapsImage(packet)
 
             # Check for overwritten memory slot and whether this is a duplicate image
             duplicate_image = False
