@@ -39,11 +39,11 @@ class WAPS_Image:
                         hex(packet.generic_tm_id))
         self.number_of_packets = packet.image_number_of_packets
         self.acquisition_time = packet.acquisition_time
-        self.CCSDS_time = packet.CCSDS_time
+        self.ccsds_time = packet.ccsds_time
         self.time_tag = packet.time_tag
         self.image_name = ("EC_" + str(self.ec_address) + '_' +
                             self.camera_type + '_' +
-                            self.CCSDS_time.strftime('%H%M%S') + '_' +
+                            self.ccsds_time.strftime('%H%M%S') + '_' +
                             'm' + str(self.memory_slot) + '_' +
                             str(self.time_tag))
         
@@ -69,7 +69,7 @@ class WAPS_Image:
                 "\n - Camera type: " + self.camera_type +
                 "\n - Image Memory Slot: " + str(self.memory_slot) +
                 "\n - Acquisition Time: " + self.acquisition_time.strftime('%Y%m%d_%H%M') +
-                "\n - CCSDS Time: " + self.CCSDS_time.strftime('%Y%m%d_%H%M') +
+                "\n - CCSDS Time: " + self.ccsds_time.strftime('%Y%m%d_%H%M') +
                 "\n - Initialization time tag: " + str(self.time_tag) +
                 "\n - Completion: " + str(self.number_of_packets-len(missing_packets)) + r'/' +  str(self.number_of_packets) +
                         ' ' + str(int((self.number_of_packets-len(missing_packets))/self.number_of_packets*100.0)) + '%'

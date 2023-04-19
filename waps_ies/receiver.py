@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Script: TCPReceiver.py
 # Author: Georgi Olentsenko
 # Purpose: Receiving CCSDS packets over TCP and filtering BIOLAB packets
@@ -438,7 +436,7 @@ class TCP_Receiver:
             self.interface.update_stats()
 
         # Create BIOLAB packet as is
-        packet =  waps_packet.BIOLAB_Packet(ccsdsTime, currentTime,
+        packet =  waps_packet.WapsPacket(ccsdsTime, currentTime,
                             CCSDS_packet[BIOLAB_ID_position:BIOLAB_ID_position+BIOLAB_packet_length],
                             self)
 

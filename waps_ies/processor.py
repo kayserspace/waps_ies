@@ -249,7 +249,7 @@ def save_images(incomplete_images, output_path, receiver, save_incomplete = True
     for index, image in enumerate(incomplete_images):
 
         # Make sure folder with today's path exists
-        date_path = output_path + image.CCSDS_time.strftime('%Y%m%d') + '/'
+        date_path = output_path + image.ccsds_time.strftime('%Y%m%d') + '/'
         if (not os.path.exists(date_path) or
             not os.path.isdir(date_path)):
             os.mkdir(date_path)

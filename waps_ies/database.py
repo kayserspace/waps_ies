@@ -101,7 +101,7 @@ class WAPS_Database:
 
         packet_data =   [(packet.uuid,
                         packet.acquisition_time,
-                        packet.CCSDS_time,
+                        packet.ccsds_time,
                         packet.data,
                         packet.time_tag,
                         packet.packet_name,
@@ -131,7 +131,7 @@ class WAPS_Database:
 
         res = self.db_cursor.execute("SELECT packet_uuid FROM packets WHERE " +
                                          "CCSDS_time=? AND packet_name=?",
-                                         [packet.CCSDS_time,
+                                         [packet.ccsds_time,
                                          packet.packet_name])
         res = res.fetchall()
         if len(res) != 0:
@@ -150,7 +150,7 @@ class WAPS_Database:
 
         image_data =    [(image.uuid,
                         image.acquisition_time,
-                        image.CCSDS_time,
+                        image.ccsds_time,
                         image.time_tag,
                         image.image_name,
                         image.camera_type,
@@ -180,7 +180,7 @@ class WAPS_Database:
 
         res = self.db_cursor.execute("SELECT image_uuid FROM images WHERE " +
                                          "CCSDS_time=? AND image_name=?",
-                                         [image.CCSDS_time,
+                                         [image.ccsds_time,
                                          image.image_name])
         res = res.fetchall()
         if len(res) != 0:
