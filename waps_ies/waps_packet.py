@@ -283,6 +283,6 @@ class WapsPacket:
                         val = self.receiver.total_corrupted_packets + 1
                         self.receiver.total_corrupted_packets = val
                     self.packet_corruption_declared = True
-                #return False
+                return False
 
         return True

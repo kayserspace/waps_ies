@@ -361,8 +361,8 @@ def save_images(images, output_path, receiver, save_incomplete=True):
                 else:
                     tm_image_data = tm_image_data + 'C'
                 tm_image_data = (tm_image_data + str(i % 80) + ':' +
-                                 str(unpack('>H', image_data[i*2:i*2+2])[0] +
-                                 '\n'))
+                                 str(unpack('>H', image_data[i*2:i*2+2])[0]) +
+                                 '\n')
 
             successful_write = write_file(tm_image_data,
                                           file_path_tm,
