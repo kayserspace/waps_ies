@@ -251,8 +251,9 @@ class WapsPacket:
                 if not self.packet_corruption_declared:
                     logging.warning('%s - CRC mismatch. %i packet is likely corrupted',
                                     self.packet_name, self.tm_packet_id)
-                    val = self.receiver.total_corrupted_packets + 1
-                    self.receiver.total_corrupted_packets = val
+                    if self.receiver is not None:
+                        val = self.receiver.total_corrupted_packets + 1
+                        self.receiver.total_corrupted_packets = val
                     self.packet_corruption_declared = True
                 return False
 
@@ -278,9 +279,10 @@ class WapsPacket:
                 if not self.packet_corruption_declared:
                     logging.warning('%s - Verify code mismatch. %i packet is likely corrupted',
                                     self.packet_name, self.tm_packet_id)
-                    val = self.receiver.total_corrupted_packets + 1
-                    self.receiver.total_corrupted_packets = val
+                    if self.receiver is not None:
+                        val = self.receiver.total_corrupted_packets + 1
+                        self.receiver.total_corrupted_packets = val
                     self.packet_corruption_declared = True
-                return False
+                #return False
 
         return True

@@ -1,4 +1,4 @@
-# Script: TCPReceiver.py
+# Script: receiver.py
 # Author: Georgi Olentsenko
 # Purpose: Receiving CCSDS packets over TCP and filtering BIOLAB packets
 # Version: 2023-XX-XX xx:xx
@@ -275,7 +275,6 @@ class TCP_Receiver:
                         self.incomplete_images = processor.sort_biolab_packets([waps_packet],
                                                                                self.incomplete_images,
                                                                                self,
-                                                                               self.image_timeout,
                                                                                self.memory_slot_change_detection)
 
                         # Reconstruct and save images, keeping in memory the incomplete ones

@@ -190,6 +190,18 @@ class WapsImage:
 
         return True
 
+    def get_completeness_str(self):
+        """ Get percentage and packet count string """
+
+        missing_packets = self.get_missing_packets()
+        available_packets = self.number_of_packets - len(missing_packets)
+        percentage = int(100.0*(available_packets)/self.number_of_packets)
+        out = (str(percentage) + '% (' +
+               str(self.number_of_packets - len(missing_packets)) +
+               '/' + str(self.number_of_packets) + ')')
+
+        return out
+
     def get_missing_packets(self, exclude_corrupted=False):
         """Get the missing packet list"""
 
