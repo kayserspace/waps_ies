@@ -390,7 +390,7 @@ class WapsIesGui:
         if self.list_window is not None:
             self.list_window.close()
 
-        db_data = self.receiver.db.get_image_list(ec_address)
+        db_data = self.receiver.database.get_image_list(ec_address)
 
         # Format the data according to the list window table
         data = []
