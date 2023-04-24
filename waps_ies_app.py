@@ -42,7 +42,7 @@ def check_config_file():
     log_path = log/
     # Logging level
     log_level = info
-    # Enable Graphical User Interface
+    # Enable Graphical User gui
     gui_enabled = 1
     # Image timeout in minutes. After this period image is considered OUTDATED.
     image_timeout = 600
@@ -57,7 +57,7 @@ def check_config_file():
             "output_path": 'output/',
             "log_path": 'log/',
             "log_level": 'INFO',      # INFO / DEBUG / WARNING / ERROR
-            "gui_enabled": '1',      # Graphical Interface
+            "gui_enabled": '1',      # Graphical gui
             "image_timeout": '600',     # minutes (10h)
             "detect_mem_slot": '1'}  # False
 
@@ -128,7 +128,7 @@ def check_arguments(args, config):
       -er, --errors_only    Show only warnings and errors in the log.
                             Overwritten by debug
       -d, --debug           Debug logging level is enabled
-      -dg, --disable_gui    Disable Graphical User Interface
+      -dg, --disable_gui    Disable Graphical User gui
       -it IMAGE_TIMEOUT, --image_timeout IMAGE_TIMEOUT
                             Image timeout in minutes.
                             After this period image is considered OUTDATED.
@@ -173,7 +173,7 @@ def check_arguments(args, config):
     parser.add_argument("-d", "--debug", action="store_true",
                         help="Debug logging level is enabled")
     parser.add_argument("-dg", "--disable_gui", action="store_true",
-                        help="Disable Graphical User Interface")
+                        help="Disable Graphical User gui")
     parser.add_argument("-it", "--image_timeout", dest="image_timeout",
                         default=config["image_timeout"],
                         help="Image timeout in minutes. After this period" +
@@ -258,10 +258,10 @@ def run_waps_ies(args):
         os.makedirs(waps_config["output_path"])
 
     # Initialize the WAPS IES socket
-    ies = waps_ies.receiver.TCP_Receiver(waps_config["ip_address"],
-                                         waps_config["port"],
-                                         waps_config["output_path"],
-                                         waps_config["tcp_timeout"])
+    ies = waps_ies.receiver.Receiver(waps_config["ip_address"],
+                                     waps_config["port"],
+                                     waps_config["output_path"],
+                                     waps_config["tcp_timeout"])
 
     # Start logging to file
     ies.log_path = waps_config["log_path"]
@@ -300,26 +300,26 @@ def run_waps_ies(args):
 
         ies.ECs_state = ec_list
 
-    # Configure interface
+    # Configure gui
     if int(waps_config["gui_enabled"]):
-        logging.info(" # Running graphical interface")
-        ies_interface = waps_ies.interface.WapsIesGui(ies)
-        ies.add_interface(ies_interface)
-        interface_startup = datetime.now()
+        logging.info(" # Running graphical gui")
+        ies_gui = waps_ies.interface.WapsIesGui(ies)
+        ies.add_gui(ies_gui)
+        gui_startup = datetime.now()
         longer_time_message = False
-        while not ies.interface.window_open:
+        while not ies.gui.window_open:
             print('#', end='', flush=True)
             time.sleep(0.1)
-            if (datetime.now() - interface_startup > timedelta(seconds=10) and
+            if (datetime.now() - gui_startup > timedelta(seconds=10) and
                     not longer_time_message):
                 longer_time_message = True
                 logging.info("--- GUI taking longer than expected to boot")
-            if datetime.now() - interface_startup > timedelta(seconds=60):
+            if datetime.now() - gui_startup > timedelta(seconds=60):
                 longer_time_message = True
                 logging.error("---Something precents GUI from starting")
                 break
-        logging.debug(' Interface took %s to start',
-                      str(datetime.now() - interface_startup))
+        logging.debug(' gui took %s to start',
+                      str(datetime.now() - gui_startup))
 
     logging.info(" # Starting reception")
     ies.start()

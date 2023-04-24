@@ -250,8 +250,7 @@ class WapsIesGui:
         if (current_time > self.last_ccsds_count_update +
                 timedelta(milliseconds=100)):
             self.last_ccsds_count_update = current_time
-            val = str(self.receiver.total_packets_received)
-            self.window['CCSDS_pkts'].update(val)
+            self.window['CCSDS_pkts'].update(self.receiver.total_packets_received)
 
     def update_stats(self):
         """ Update statistics in the window """
@@ -290,8 +289,8 @@ class WapsIesGui:
         """ Update GUI image cell contents """
 
         # Identify GUI column of the image
-        ec_index = self.receiver.get_ecs_state_index(image.ec_address)
-        ec_column = self.receiver.ECs_state[ec_index]["gui_column"]
+        ec_index = self.receiver.get_ec_states_index(image.ec_address)
+        ec_column = self.receiver.ec_states[ec_index]["gui_column"]
         if ec_column is None:
             logging.warning(" GUI does not have space for this EC: %i",
                             image.ec_address)

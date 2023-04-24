@@ -124,15 +124,15 @@ class Receiver:
         """ Get receiver status message """
 
         current_time = self.last_packet_ccsds_time.strftime("%Y/%m/%d %H:%M:%S")
-        status_message = ("# ccsds Time: %s P:%d:%d:%d M:%d:%d, I:%d:%d",
-                          current_time,
+        status_message = ("# ccsds Time: %s P:%d:%d:%d M:%d:%d, I:%d:%d" %
+                          (current_time,
                           self.total_packets_received,
                           self.total_biolab_packets,
                           self.total_waps_image_packets,
                           self.total_lost_packets,
                           self.total_corrupted_packets,
                           self.total_initialized_images,
-                          self.total_completed_images)
+                          self.total_completed_images))
         return status_message
 
     def get_ec_position(self, ec_address):
@@ -198,7 +198,7 @@ class Receiver:
             while self.continue_running:
 
                 # On change of date move on to a new log file
-                if datetime.now() != self.log_start:
+                if datetime.now().strftime('%d') != self.log_start.strftime('%d'):
                     self.start_new_log()
 
                 if not self.connected:
@@ -255,8 +255,7 @@ class Receiver:
                     ccsds1_packet_length = unpack('>H', ccsds_header[4:6])[0]
 
                     # calculate & receive remaining bytes in packet:
-                    packet_data_length = (ccsds1_packet_length +
-                                          1 - CCSDS2_HEADER_LENGTH)
+                    packet_data_length = ccsds1_packet_length + 1 - CCSDS2_HEADER_LENGTH
 
                     biolab_packet = None
                     packet_data = self.socket.recv(packet_data_length)
@@ -308,8 +307,7 @@ class Receiver:
 
                 except TimeoutError:
                     if not self.timeout_notified:
-                        logging.warning("\n%s for more than %i seconds",
-                                        "No ccsds packets received",
+                        logging.warning("\nNo ccsds packets received for more than %s seconds",
                                         self.tcp_timeout)
                         self.timeout_notified = True
                         if self.gui:

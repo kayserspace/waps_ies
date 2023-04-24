@@ -56,9 +56,9 @@ def sort_biolab_packets(packet_list,
                 receiver.ec_states[ec_i]["last_memory_slot"] != last_mem_slot):
             status_message = receiver.get_status()
             logging.info(status_message)
-            logging.info('  Update of active Memory slot %i Previous: %i',
+            logging.info('  Update of active Memory slot %i Previous: %s',
                          last_mem_slot,
-                         receiver.ec_states[ec_i]["last_memory_slot"])
+                         str(receiver.ec_states[ec_i]["last_memory_slot"]))
             for i, image in enumerate(incomplete_images):
                 if image.memory_slot == last_mem_slot:
                     incomplete_images[i].overwritten = True
@@ -245,9 +245,9 @@ def print_images_status(images):
 
     for image in images:
         missing_packets = image.get_missing_packets()
-        completeness_message = ('Image %s is %s complete',
-                                image.image_name,
-                                image.get_completeness_str())
+        completeness_message = ('Image %s is %s complete' %
+                                (image.image_name,
+                                image.get_completeness_str()))
         if len(missing_packets) > 0:
             completeness_message = (completeness_message +
                                     '. Missing packets: ' +
@@ -297,9 +297,9 @@ def save_images(images, output_path, receiver, save_incomplete=True):
         missing_packets = image.get_missing_packets()
         completeness_str = image.get_completeness_str()
         image_percentage = '_' + completeness_str[:completeness_str.find('%')]
-        completeness_message = ('Image %s is %s complete',
-                                image.image_name,
-                                completeness_str)
+        completeness_message = ('Image %s is %s complete' %
+                                (image.image_name,
+                                completeness_str))
         if len(missing_packets) > 0:
             completeness_message = (completeness_message +
                                     '. Missing packets: ' +
