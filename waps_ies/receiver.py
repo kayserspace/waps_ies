@@ -126,13 +126,13 @@ class Receiver:
         current_time = self.last_packet_ccsds_time.strftime("%Y/%m/%d %H:%M:%S")
         status_message = ("# ccsds Time: %s P:%d:%d:%d M:%d:%d, I:%d:%d" %
                           (current_time,
-                          self.total_packets_received,
-                          self.total_biolab_packets,
-                          self.total_waps_image_packets,
-                          self.total_lost_packets,
-                          self.total_corrupted_packets,
-                          self.total_initialized_images,
-                          self.total_completed_images))
+                           self.total_packets_received,
+                           self.total_biolab_packets,
+                           self.total_waps_image_packets,
+                           self.total_lost_packets,
+                           self.total_corrupted_packets,
+                           self.total_initialized_images,
+                           self.total_completed_images))
         return status_message
 
     def get_ec_position(self, ec_address):
@@ -448,8 +448,6 @@ class Receiver:
 
         # Count biolab packets
         self.total_biolab_packets = self.total_biolab_packets + 1
-        if self.gui:
-            self.gui.update_stats()
 
         # Create biolab packet as is
         biolab_tm_data = ccsds_packet[BIOLAB_ID_POSITION:BIOLAB_ID_POSITION +

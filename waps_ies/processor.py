@@ -186,8 +186,8 @@ def sort_biolab_packets(packet_list,
             # Add packet to the database
             receiver.database.add_packet(packet)
 
-    if receiver.gui:
-        receiver.gui.update_stats()
+        if receiver.gui:
+            receiver.gui.update_stats()
 
     return incomplete_images
 

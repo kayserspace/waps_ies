@@ -40,7 +40,17 @@ class WapsIesGui:
     list_window = None
 
     last_ccsds_count_update = datetime.now()
+    last_biolab_tm_count_update = datetime.now()
     server_active = False
+
+    # Mirror of receiver values to check for update
+    prev_total_packets_received = 0
+    prev_total_biolab_packets = 0
+    prev_total_waps_image_packets = 0
+    prev_total_initialized_images = 0
+    prev_total_completed_images = 0
+    prev_total_lost_packets = 0
+    prev_total_corrupted_packets = 0
 
     def __init__(self, receiver, start_thread=True):
 
@@ -248,30 +258,43 @@ class WapsIesGui:
 
         current_time = datetime.now()
         if (current_time > self.last_ccsds_count_update +
-                timedelta(milliseconds=100)):
+                timedelta(milliseconds=50)):                        # 20 Hz
             self.last_ccsds_count_update = current_time
             self.window['CCSDS_pkts'].update(self.receiver.total_packets_received)
 
     def update_stats(self):
         """ Update statistics in the window """
 
+        # To minimaize GUI processing time, for each check if value is identical first
         # Top
-        val = str(self.receiver.total_packets_received)
-        self.window['CCSDS_pkts'].update(val)
-        val = str(self.receiver.total_biolab_packets)
-        self.window['BIOLAB_pkts'].update(val)
-        val = str(self.receiver.total_waps_image_packets)
-        self.window['WAPS_pkts'].update(val)
+        if self.prev_total_packets_received != self.receiver.total_packets_received:
+            self.prev_total_packets_received = self.receiver.total_packets_received
+            self.window['CCSDS_pkts'].update(self.receiver.total_packets_received)
+
+        if self.prev_total_biolab_packets != self.receiver.total_biolab_packets:
+            self.prev_total_biolab_packets = self.receiver.total_biolab_packets
+            self.window['BIOLAB_pkts'].update(self.receiver.total_biolab_packets)
+
+        if self.prev_total_waps_image_packets != self.receiver.total_waps_image_packets:
+            self.prev_total_waps_image_packets = self.receiver.total_waps_image_packets
+            self.window['WAPS_pkts'].update(self.receiver.total_waps_image_packets)
 
         # Bottom
-        val = str(self.receiver.total_initialized_images)
-        self.window['initialized_images'].update(val)
-        val = str(self.receiver.total_completed_images)
-        self.window['completed_images'].update(val)
-        val = str(self.receiver.total_lost_packets)
-        self.window['lost_packets'].update(str(val))
-        val = str(self.receiver.total_corrupted_packets)
-        self.window['corrupted_packets'].update(val)
+        if self.prev_total_initialized_images != self.receiver.total_initialized_images:
+            self.prev_total_initialized_images = self.receiver.total_initialized_images
+            self.window['initialized_images'].update(self.receiver.total_initialized_images)
+
+        if self.prev_total_completed_images != self.receiver.total_completed_images:
+            self.prev_total_completed_images = self.receiver.total_completed_images
+            self.window['completed_images'].update(self.receiver.total_completed_images)
+
+        if self.prev_total_lost_packets != self.receiver.total_lost_packets:
+            self.prev_total_lost_packets = self.receiver.total_lost_packets
+            self.window['lost_packets'].update(self.receiver.total_lost_packets)
+
+        if self.prev_total_corrupted_packets != self.receiver.total_corrupted_packets:
+            self.prev_total_corrupted_packets = self.receiver.total_corrupted_packets
+            self.window['corrupted_packets'].update(self.receiver.total_corrupted_packets)
 
     def update_latets_file(self, latest_file):
         """ Update saved file name in the window """
