@@ -9,7 +9,7 @@ class TestReceiver(unittest.TestCase):
     @classmethod
     def setUpClass(self):
 
-        self.receiver = waps_ies.receiver.TCP_Receiver("192.168.0.1", 12345, "output/")
+        self.receiver = waps_ies.receiver.Receiver("192.168.0.1", 12345, "output/")
 
     def test_gui_column_assignment(self):
         """ A receiver and test GUI column assignment """
@@ -22,29 +22,29 @@ class TestReceiver(unittest.TestCase):
         ec_addr4 = 175
         ec_addr5 = 176
 
-        receiver.get_ecs_state_index(ec_addr1)
-        receiver.get_ecs_state_index(ec_addr2)
+        receiver.get_ec_states_index(ec_addr1)
+        receiver.get_ec_states_index(ec_addr2)
 
         receiver.assign_ec_column(ec_addr1)
-        self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr1)]["gui_column"], 0)
+        self.assertEqual(receiver.ec_states[receiver.get_ec_states_index(ec_addr1)]["gui_column"], 0)
         receiver.assign_ec_column(ec_addr5)
-        self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr5)]["gui_column"], 1)
+        self.assertEqual(receiver.ec_states[receiver.get_ec_states_index(ec_addr5)]["gui_column"], 1)
         receiver.assign_ec_column(ec_addr2)
-        self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr2)]["gui_column"], 2)
+        self.assertEqual(receiver.ec_states[receiver.get_ec_states_index(ec_addr2)]["gui_column"], 2)
         receiver.assign_ec_column(ec_addr3)
-        self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr3)]["gui_column"], 3)
+        self.assertEqual(receiver.ec_states[receiver.get_ec_states_index(ec_addr3)]["gui_column"], 3)
         receiver.assign_ec_column(ec_addr4)
-        self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr4)]["gui_column"], None)
+        self.assertEqual(receiver.ec_states[receiver.get_ec_states_index(ec_addr4)]["gui_column"], None)
         receiver.assign_ec_column(ec_addr1)
-        self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr1)]["gui_column"], 0)
+        self.assertEqual(receiver.ec_states[receiver.get_ec_states_index(ec_addr1)]["gui_column"], 0)
         receiver.assign_ec_column(ec_addr5)
-        self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr5)]["gui_column"], 1)
+        self.assertEqual(receiver.ec_states[receiver.get_ec_states_index(ec_addr5)]["gui_column"], 1)
         receiver.assign_ec_column(ec_addr2)
-        self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr2)]["gui_column"], 2)
+        self.assertEqual(receiver.ec_states[receiver.get_ec_states_index(ec_addr2)]["gui_column"], 2)
         receiver.assign_ec_column(ec_addr3)
-        self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr3)]["gui_column"], 3)
+        self.assertEqual(receiver.ec_states[receiver.get_ec_states_index(ec_addr3)]["gui_column"], 3)
         receiver.assign_ec_column(ec_addr4)
-        self.assertEqual(receiver.ECs_state[receiver.get_ecs_state_index(ec_addr4)]["gui_column"], None)
+        self.assertEqual(receiver.ec_states[receiver.get_ec_states_index(ec_addr4)]["gui_column"], None)
 
 if __name__ == '__main__':
     unittest.main()

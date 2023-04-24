@@ -48,24 +48,24 @@ def sort_biolab_packets(packet_list,
             logging.debug(str(packet))
 
         # Get index of the ECs in
-        ec_i = receiver.get_ecs_state_index(packet.ec_address)
+        ec_i = receiver.get_ec_states_index(packet.ec_address)
 
         # Check the last writting memory slot
         last_mem_slot = packet.biolab_current_image_memory_slot
         if (biolab_memory_slot_change_detection and
-                receiver.ECs_state[ec_i]["last_memory_slot"] != last_mem_slot):
+                receiver.ec_states[ec_i]["last_memory_slot"] != last_mem_slot):
             status_message = receiver.get_status()
             logging.info(status_message)
             logging.info('  Update of active Memory slot %i Previous: %i',
                          last_mem_slot,
-                         receiver.ECs_state[ec_i]["last_memory_slot"])
+                         receiver.ec_states[ec_i]["last_memory_slot"])
             for i, image in enumerate(incomplete_images):
                 if image.memory_slot == last_mem_slot:
                     incomplete_images[i].overwritten = True
                     logging.warning(' Incomplete image %s has been %s',
                                     image.image_name,
                                     "overwritten")
-            receiver.ECs_state[ec_i]["last_memory_slot"] = last_mem_slot
+            receiver.ec_states[ec_i]["last_memory_slot"] = last_mem_slot
 
         # Process the packet according to Generic TM ID (packet.data[84])
         # Only TM IDs of interest processed
@@ -78,7 +78,7 @@ def sort_biolab_packets(packet_list,
             receiver.total_initialized_images = val
 
             # Track whether image is being trasmitted
-            receiver.ECs_state[ec_i]["transmission_active"] = True
+            receiver.ec_states[ec_i]["transmission_active"] = True
 
             if packet.tm_packet_id != 0:
                 logging.warning('%s Packet ID is not zero: %i',
@@ -105,7 +105,7 @@ def sort_biolab_packets(packet_list,
                     logging.warning(' Memory slot %i overwritten',
                                     image.memory_slot)
                     check_overwritten_images(incomplete_images,
-                                             receiver.interface)
+                                             receiver.gui)
             if duplicate_image:
                 break
 
@@ -115,7 +115,7 @@ def sort_biolab_packets(packet_list,
                          new_image.number_of_packets)
 
             # Add image to the database
-            receiver.db.add_image(new_image)
+            receiver.database.add_image(new_image)
             # Update packet's image uuid
             packet.image_uuid = new_image.uuid
 
@@ -123,7 +123,7 @@ def sort_biolab_packets(packet_list,
             incomplete_images.append(new_image)
 
             # On creation of a new image assign a GUI column
-            if receiver.interface:
+            if receiver.gui:
                 receiver.assign_ec_column(new_image.ec_address)
 
         # Image data packet
@@ -133,7 +133,7 @@ def sort_biolab_packets(packet_list,
             # Packet ID is incremented
 
             # Track whether image is being trasmitted
-            receiver.ECs_state[ec_i]["transmission_active"] = True
+            receiver.ec_states[ec_i]["transmission_active"] = True
 
             # Search through incomplete images, matching image_memory_slot
             found_matching_image = False
@@ -148,7 +148,7 @@ def sort_biolab_packets(packet_list,
 
                     # Add packet to the database
                     packet.image_uuid = incomplete_images[i].uuid
-                    receiver.db.update_image_status(incomplete_images[i])
+                    receiver.database.update_image_status(incomplete_images[i])
                     break
 
             if not found_matching_image:
@@ -157,7 +157,7 @@ def sort_biolab_packets(packet_list,
                               packet.image_memory_slot)
 
         else:
-            if receiver.ECs_state[ec_i]["transmission_active"]:
+            if receiver.ec_states[ec_i]["transmission_active"]:
                 # An image is sent in one telemetry sequence
                 # Each single packet request triggers this change as well
                 # Status information after all of the processing
@@ -172,10 +172,10 @@ def sort_biolab_packets(packet_list,
                     if image.image_transmission_active:
                         incomplete_images[i].image_transmission_active = False
                         incomplete_images[i].update = True
-                        receiver.db.update_image_status(incomplete_images[i])
+                        receiver.database.update_image_status(incomplete_images[i])
 
                 # Reset transmission status
-                receiver.ECs_state[ec_i]["transmission_active"] = False
+                receiver.ec_states[ec_i]["transmission_active"] = False
 
         if packet.is_waps_image_packet:
 
@@ -184,15 +184,15 @@ def sort_biolab_packets(packet_list,
             receiver.total_waps_image_packets = val
 
             # Add packet to the database
-            receiver.db.add_packet(packet)
+            receiver.database.add_packet(packet)
 
-    if receiver.interface:
-        receiver.interface.update_stats()
+    if receiver.gui:
+        receiver.gui.update_stats()
 
     return incomplete_images
 
 
-def write_file(image_data, file_path, filetype='wb', interface=None):
+def write_file(image_data, file_path, filetype='wb', gui=None):
     """ Write image to local storage """
 
     readtype = 'rb'
@@ -228,9 +228,9 @@ def write_file(image_data, file_path, filetype='wb', interface=None):
         with open(file_path, filetype) as file:
             file.write(image_data)
             logging.info("Saved file: %s", str(file_path))
-            if interface:
+            if gui:
                 file_name = file_path[file_path.rfind('/')-8:]
-                interface.update_latets_file(file_name)
+                gui.update_latets_file(file_name)
 
     except IOError:
         logging.error('Could not open file for writing: %s', file_path)
@@ -240,7 +240,7 @@ def write_file(image_data, file_path, filetype='wb', interface=None):
     return True
 
 
-def print_incomplete_images_status(images):
+def print_images_status(images):
     """ Log image completeness status """
 
     for image in images:
@@ -263,7 +263,7 @@ def save_images(images, output_path, receiver, save_incomplete=True):
         Parameters:
         Returns:
     """
-    gui = receiver.interface
+    gui = receiver.gui
     finished_images = []
 
     for index, image in enumerate(images):
@@ -280,7 +280,7 @@ def save_images(images, output_path, receiver, save_incomplete=True):
         if not image.update:
             continue
 
-        # Update interface if available
+        # Update gui if available
         if gui:
             gui.update_image_data(image)
 
@@ -467,19 +467,19 @@ def save_images(images, output_path, receiver, save_incomplete=True):
                 image.latest_saved_file_tm = file_path[:-4] + '_tm.txt'
                 image.latest_saved_file_data = file_path[:-4] + '_data.csv'
 
-        # Update interface if available
+        # Update gui if available
         if gui:
             gui.update_image_data(image)
             gui.update_stats()
 
         # Update image in database
-        receiver.db.update_image_status(image)
-        receiver.db.update_image_filenames(image)
+        receiver.database.update_image_status(image)
+        receiver.database.update_image_filenames(image)
 
     # Remove fully complete and written down images from the incomplete list
     if len(finished_images) > 0:
         for index in finished_images[::-1]:
-            receiver.db.update_image_status(images[index])
+            receiver.database.update_image_status(images[index])
             images.pop(index)
 
     return images

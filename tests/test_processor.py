@@ -18,7 +18,7 @@ class TestProcessor(unittest.TestCase):
     @classmethod
     def setUpClass(self):
 
-        self.receiver = waps_ies.receiver.TCP_Receiver("192.168.0.1",
+        self.receiver = waps_ies.receiver.Receiver("192.168.0.1",
                                                        12345,
                                                        "tests/output/")
         if (not os.path.exists("tests/output/") or
