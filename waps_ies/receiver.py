@@ -92,6 +92,7 @@ class Receiver:
         self.total_completed_images = 0
         self.total_lost_packets = 0
         self.total_corrupted_packets = 0
+        self.total_received_bytes = 0
 
         self.database = database.WAPS_Database(database_filename)
 
@@ -246,15 +247,17 @@ class Receiver:
                     self.timeout_notified = False
 
                     # Increase packet count
-                    if len(ccsds_header) > 0:
+                    received_header_length = len(ccsds_header)
+                    if received_header_length > 0:
                         self.total_packets_received = self.total_packets_received + 1
+                        self.total_received_bytes = self.total_received_bytes + received_header_length
 
                     # Update interfeace status
                     if self.gui:
                         self.gui.update_server_active()
                         self.gui.update_ccsds_count()
 
-                    if len(ccsds_header) != CCSDS_HEADERS_LENGTH:
+                    if received_header_length != CCSDS_HEADERS_LENGTH:
                         raise Exception("Header reception failed")
 
                     ccsds1_packet_length = unpack('>H', ccsds_header[4:6])[0]
@@ -265,12 +268,17 @@ class Receiver:
                     biolab_packet = None
                     packet_data = self.socket.recv(packet_data_length)
 
-                    if len(packet_data) != packet_data_length:
+                    received_packet_length = len(packet_data)
+                    self.total_received_bytes = self.total_received_bytes + received_packet_length
+                    if received_packet_length != packet_data_length:
                         logging.debug('Expected data length of %i vs actual %i',
                                       packet_data_length,
-                                      len(packet_data))
-                        packet_data2 = self.socket.recv(packet_data_length - len(packet_data))
-                        if len(packet_data2) != packet_data_length - len(packet_data):
+                                      received_packet_length)
+
+                        packet_data2 = self.socket.recv(packet_data_length - received_packet_length)
+                        received_packet2_length = len(packet_data2)
+                        self.total_received_bytes = self.total_received_bytes + received_packet2_length
+                        if received_packet2_length != packet_data_length - received_packet_length:
                             logging.error("Failed to read complete ccsds Data Block from TCP link")
                         else:
                             logging.debug("Got the rest with a new request")
@@ -361,6 +369,8 @@ class Receiver:
                          self.total_lost_packets)
             logging.info("  Corrupted packets:           %d",
                          self.total_corrupted_packets)
+            logging.info("  Total received bytes:        %d",
+                         self.total_received_bytes)
 
     def process_ccsds_packet(self, ccsds_packet):
         """
