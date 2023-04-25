@@ -47,6 +47,8 @@ class Receiver:
 
     last_packet_ccsds_time = datetime(1980, 1, 6)
 
+    last_status_update = datetime.now()
+
     ec_states = []
 
     def __init__(self,
@@ -316,7 +318,11 @@ class Receiver:
                     if self.log_level == logging.DEBUG:
                         logging.debug(status_message)
                     else:
-                        print(status_message, end='')
+                        current_time = datetime.now()
+                        if (current_time > self.last_status_update +
+                                timedelta(milliseconds=20)):             # 50 Hz max
+                            self.last_status_update = current_time
+                            print(status_message, end='')
 
                 except TimeoutError:
                     if not self.timeout_notified:
