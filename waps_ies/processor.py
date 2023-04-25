@@ -115,7 +115,7 @@ def sort_biolab_packets(packet_list,
                          new_image.number_of_packets)
 
             # Add image to the database
-            receiver.database.add_image(new_image)
+            new_image.uuid = receiver.database.add_image(new_image)
             # Update packet's image uuid
             packet.image_uuid = new_image.uuid
 

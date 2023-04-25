@@ -96,7 +96,7 @@ class Receiver:
         self.total_corrupted_packets = 0
         self.total_received_bytes = 0
 
-        self.database = database.WAPS_Database(database_filename)
+        self.database = database.Database(database_filename)
 
     def start_new_log(self):
         """ Start a new log file """
