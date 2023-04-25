@@ -130,7 +130,7 @@ class WapsIesGui:
                                                   s=(3, 16),
                                                   k='progressbar' + cell_id),
                                    sg.Text('0/0', k='packet_number' + cell_id,
-                                           size=(5, 1))])
+                                           size=(6, 1))])
                 frames[col].append([sg.Text('Type', k='image_type' + cell_id,
                                             background_color='lightgrey'),
                                    sg.Text('Miss:'),
@@ -351,8 +351,8 @@ class WapsIesGui:
         # Missing packets with colour change
         missing_packets_str = image.missing_packets_string()
         packets_sequential = image.packets_are_sequential()
-        if len(missing_packets_str) > 15:
-            missing_packets_str = missing_packets_str[:16] + '..'
+        if len(missing_packets_str) > 18:
+            missing_packets_str = missing_packets_str[:missing_packets_str[:18].rfind(',')] + '...'
         self.window['missing_packets_' + str(ec_column) + '_'
                     + str(image.memory_slot)].update(missing_packets_str)
         if (len(missing_packets) == 0 or
