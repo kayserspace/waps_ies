@@ -49,7 +49,12 @@ class Receiver:
 
     ec_states = []
 
-    def __init__(self, address, port, output_path, tcp_timeout='2.1'):
+    def __init__(self,
+                 address,
+                 port,
+                 output_path,
+                 tcp_timeout='2.1',
+                 database_filename='waps_pd.db'):
         """
         Initialize the TCP connection
 
@@ -88,7 +93,7 @@ class Receiver:
         self.total_lost_packets = 0
         self.total_corrupted_packets = 0
 
-        self.database = database.WAPS_Database()
+        self.database = database.WAPS_Database(database_filename)
 
     def start_new_log(self):
         """ Start a new log file """

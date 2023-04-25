@@ -19,11 +19,13 @@ class TestProcessor(unittest.TestCase):
     def setUpClass(self):
 
         self.receiver = waps_ies.receiver.Receiver("192.168.0.1",
-                                                       12345,
-                                                       "tests/output/")
+                                                   12345,
+                                                   "tests/output/",
+                                                    database_filename='tests/waps_pd.db')
         if (not os.path.exists("tests/output/") or
             not os.path.isdir("tests/output/")):
             os.mkdir("tests/output/")
+        self.receiver.database
 
     def test_different_ec_addresses(self):
         """ Test adding packets with different EC addresses """

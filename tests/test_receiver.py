@@ -9,7 +9,10 @@ class TestReceiver(unittest.TestCase):
     @classmethod
     def setUpClass(self):
 
-        self.receiver = waps_ies.receiver.Receiver("192.168.0.1", 12345, "output/")
+        self.receiver = waps_ies.receiver.Receiver("192.168.0.1",
+                                                   12345,
+                                                   "output/",
+                                                   database_filename='tests/waps_pd.db')
 
     def test_gui_column_assignment(self):
         """ A receiver and test GUI column assignment """
