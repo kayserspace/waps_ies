@@ -211,6 +211,8 @@ class WapsIesGui:
                     self.show_image_list(self.window['ec_address_3'].get())
                 elif str(event) == 'list_all_button':
                     self.show_image_list()
+                elif str(event) == 'refresh_button':
+                    self.refresh_image_list()
                 elif str(event) != '__TIMEOUT__':
                     logging.info(' Interface event: %s %s %s',
                                  str(event),
@@ -383,20 +385,13 @@ class WapsIesGui:
                             '_' + str(image.memory_slot)].update(
                     background_color='red')
 
-    def show_image_list(self, ec_address=None):
-        """ Open a new window with the list of received images """
+    def format_image_list_data(self, db_data):
+        """ Format the data according to the list window table """
 
-        # Only allow one list window at a time
-        if self.list_window is not None:
-            self.list_window.close()
-
-        db_data = self.receiver.database.get_image_list(ec_address)
-
-        # Format the data according to the list window table
         data = []
         for index, image_data in enumerate(db_data):
             image_row = []
-            image_row.append(len(db_data)-index)
+            image_row.append(len(db_data) - index)
             image_row.append(image_data[0])         # Name
             image_row.append(image_data[1][:11])    # Date
             image_row.append(image_data[1][11:19])  # Time
@@ -417,13 +412,31 @@ class WapsIesGui:
 
             data.append(image_row)
 
+        return data
+
+    def show_image_list(self, ec_address=None):
+        """ Open a new window with the list of received images """
+
+        # Only allow one list window at a time
+        if self.list_window is not None:
+            self.list_window.close()
+
+        db_data = self.receiver.database.get_image_list(ec_address)
+        data = self.format_image_list_data(db_data)
+
         table_headings = ['#  ', '       Name       ', 'Date', 'Time',
                           'Addr', 'Pos', 'Mem', 'Recv', 'Status', 'Miss']
 
-        layout = [[sg.Text("Image list sorted by latest"),
+        layout = [[sg.Button('Refresh', k='refresh_button'),
+                   sg.Text("Total of"),
+                   sg.Text(len(db_data),
+                           k='image_list_count',
+                           background_color='white'),
+                   sg.Text("images starting with the latest"),
                    sg.Button('Export', k='export_table')],
                   [sg.Table(data,
                             table_headings,
+                            k="image_table",
                             num_rows=30,
                             select_mode=sg.TABLE_SELECT_MODE_EXTENDED,
                             alternating_row_color='lightgrey',
@@ -432,7 +445,7 @@ class WapsIesGui:
                             expand_x=True, expand_y=True)]]
 
         # Create a new window
-        list_window_title = 'List of received images'
+        list_window_title = 'WAPS list of received images'
         if ec_address is not None:
             list_window_title = (list_window_title +
                                  ' from EC ' + str(ec_address))
@@ -441,3 +454,11 @@ class WapsIesGui:
                                      layout,
                                      resizable=True,
                                      finalize=True)
+
+    def refresh_image_list(self):
+        """ Refresh the image list table """
+
+        db_data = self.receiver.database.get_image_list()
+        data = self.format_image_list_data(db_data)
+        self.list_window["image_table"].update(data)
+        self.list_window['image_list_count'].update(len(data))
