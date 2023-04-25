@@ -213,6 +213,8 @@ class WapsIesGui:
                     self.show_image_list()
                 elif str(event) == 'refresh_button':
                     self.refresh_image_list()
+                elif str(event) == 'save_button':
+                    self.save_image_list()
                 elif str(event) != '__TIMEOUT__':
                     logging.info(' Interface event: %s %s %s',
                                  str(event),
@@ -433,7 +435,8 @@ class WapsIesGui:
                            k='image_list_count',
                            background_color='white'),
                    sg.Text("images starting with the latest"),
-                   sg.Button('Export', k='export_table')],
+                   sg.Button('Save', k='save_button'),
+                   sg.Text("", k='save_result')],
                   [sg.Table(data,
                             table_headings,
                             k="image_table",
@@ -462,3 +465,30 @@ class WapsIesGui:
         data = self.format_image_list_data(db_data)
         self.list_window["image_table"].update(data)
         self.list_window['image_list_count'].update(len(data))
+        self.list_window['save_result'].update('', background_color=sg.theme_background_color())
+
+    def save_image_list(self):
+        """ save image list table to excel """
+
+        # Get the current table contents
+        data = self.list_window["image_table"].get()
+
+        csv_data = ""
+        for row in data:
+            for item in row:
+                csv_data = csv_data + str(item) + ', '
+            csv_data = csv_data + '\n'
+
+        # Write the file
+        filename = "waps_image_list_" + datetime.now().strftime('%Y%m%d_%H%M%S') + ".csv"
+        file_path = self.receiver.output_path + '/' + filename
+        try:
+            with open(file_path, 'w') as file:
+                file.write(csv_data)
+                logging.info("Saved image list: %s", str(file_path))
+
+        except IOError:
+            logging.error('Could not open file for writing: %s', file_path)
+
+        self.list_window['save_result'].update("Table saved to output directory as " + filename,
+                                               background_color='white')
