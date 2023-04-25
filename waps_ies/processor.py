@@ -247,7 +247,7 @@ def print_images_status(images):
         missing_packets = image.get_missing_packets()
         completeness_message = ('Image %s is %s complete' %
                                 (image.image_name,
-                                image.get_completeness_str()))
+                                 image.get_completeness_str()))
         if len(missing_packets) > 0:
             completeness_message = (completeness_message +
                                     '. Missing packets: ' +
@@ -299,7 +299,7 @@ def save_images(images, output_path, receiver, save_incomplete=True):
         image_percentage = '_' + completeness_str[:completeness_str.find('%')]
         completeness_message = ('Image %s is %s complete' %
                                 (image.image_name,
-                                completeness_str))
+                                 completeness_str))
         if len(missing_packets) > 0:
             completeness_message = (completeness_message +
                                     '. Missing packets: ' +

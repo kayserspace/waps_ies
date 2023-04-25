@@ -29,8 +29,6 @@ class WapsImage:
         Checks if the file image is complete.
     """
 
-    completion_time = -1
-
     def __init__(self, packet):
         """Image initialization with metadata"""
 
@@ -62,6 +60,7 @@ class WapsImage:
         self.overwritten = False
         self.image_transmission_active = True
         self.update = True
+        self.last_update = self.ccsds_time
         self.latest_saved_file = None
         self.latest_saved_file_tm = None
         self.latest_saved_file_data = None
@@ -138,12 +137,14 @@ class WapsImage:
 
         number_list = self.get_missing_packets(exclude_corrupted)
 
-        if len(number_list) < 2:
-            return str(number_list)
+        if len(number_list) == 0:
+            return ""
+        if len(number_list) == 1:
+            return str(number_list[0])
 
         previous_number = number_list[0]
         last_number = number_list[0]
-        out = '[' + str(previous_number)
+        out = str(previous_number)
         dash_added = False
         for num in number_list[1:]:
             if (num == previous_number + 1 and not dash_added):
@@ -158,7 +159,6 @@ class WapsImage:
             previous_number = num
         if last_number != previous_number:
             out = out + str(previous_number)
-        out = out + ']'
 
         return out
 
@@ -169,6 +169,10 @@ class WapsImage:
         if not packet.in_spec:
             return
         self.packets.append(packet)
+
+        # Last update of image packets
+        if self.last_update < packet.ccsds_time:
+            self.last_update = packet.ccsds_time
 
     def is_complete(self):
         """ Check completeness of the image """

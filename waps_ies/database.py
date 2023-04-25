@@ -78,7 +78,7 @@ class Database:
                                     "ec_position, " +
                                     "memory_slot, " +
                                     "number_of_packets, " +
-                                    "received_packets, " +
+                                    "good_packets, " +
                                     "overwritten, " +
                                     "outdated, " +
                                     "transmission_active, " +
@@ -86,7 +86,8 @@ class Database:
                                     "latest_image_file, " +
                                     "latest_data_file, " +
                                     "latest_tm_file, " +
-                                    "completion_time)")
+                                    "last_update, " +
+                                    "missing_packets)")
             self.db_cursor.execute(image_table_contents)
 
     def add_packet(self, packet):
@@ -157,7 +158,7 @@ class Database:
                        image.ec_position,
                        image.memory_slot,
                        image.number_of_packets,
-                       len(image.packets),
+                       0,  # Image is supposed to be added without packets
                        image.overwritten,
                        image.outdated,
                        image.image_transmission_active,
@@ -165,8 +166,9 @@ class Database:
                        image.latest_saved_file,
                        image.latest_saved_file_data,
                        image.latest_saved_file_tm,
-                       image.completion_time),]
-        image_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                       image.last_update,
+                       image.missing_packets_string()),]
+        image_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         self.db_cursor.executemany("INSERT INTO images VALUES" + image_param, image_data)
         self.database.commit()
         return image.uuid
@@ -191,21 +193,24 @@ class Database:
     def update_image_status(self, image):
         """ Update an existing image in the database with status """
 
-        image_data = (len(image.packets),
+        missing_packets = image.get_missing_packets()
+        good_packets = image.number_of_packets - len(missing_packets)
+
+        image_data = (good_packets,
                       image.overwritten,
                       image.outdated,
                       image.image_transmission_active,
-                      image.update,
-                      image.completion_time,
+                      image.last_update,
+                      image.missing_packets_string(),
                       image.uuid),
 
         self.db_cursor.executemany("""UPDATE images SET
-                                   received_packets=?,
+                                   good_packets=?,
                                    overwritten=?,
                                    outdated=?,
                                    transmission_active=?,
-                                   image_update=?,
-                                   completion_time=?
+                                   last_update=?,
+                                   missing_packets=?
                                    WHERE image_uuid=?""",
                                    image_data)
         self.database.commit()
@@ -232,16 +237,16 @@ class Database:
         If ec_address not provided - all images
         """
 
-        contents = ("SELECT image_name, " +
-                    "CCSDS_time, " +
-                    "ec_address, " +
+        contents = ("SELECT ec_address, " +
                     "ec_position, " +
                     "memory_slot, " +
+                    "camera_type, " +
+                    "CCSDS_time, " +
+                    "last_update, " +
                     "number_of_packets, " +
-                    "received_packets, " +
-                    "overwritten, " +
+                    "good_packets, " +
                     "transmission_active, " +
-                    "completion_time " +
+                    "missing_packets " +
                     "FROM images")
 
         if ec_address is None:

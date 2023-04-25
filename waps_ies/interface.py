@@ -109,23 +109,15 @@ class WapsIesGui:
             frames.append([])
             columns[col].append([sg.HSep()])
             columns[col].append([sg.Text("EC addr"),
-                                sg.Text("?", k='ec_address_' + str(col),
+                                sg.Text("", k='ec_address_' + str(col),
                                         background_color='lightgrey',
                                         size=(3, 1),
                                         justification='c'),
                                 sg.Text("pos"),
-                                sg.Text("?", k='ec_position_' + str(col),
+                                sg.Text("", k='ec_position_' + str(col),
                                         background_color='white',
                                         size=(6, 1),
                                         justification='c')])
-
-            columns[col].append([sg.Text("Image count:"),
-                                sg.Text("0", k='image_count_' + str(col),
-                                        background_color='white',
-                                        size=(3, 1),
-                                        justification='c'),
-                                sg.Button('Show list',
-                                          k='list_button_' + str(col))])
             for i in range(slot_number):
                 cell_id = '_' + str(col) + '_' + str(i)
                 frames[col].append([sg.Text(str(i),
@@ -201,14 +193,6 @@ class WapsIesGui:
                         self.list_window = None
                     else:
                         break
-                elif str(event) == 'list_button_0':
-                    self.show_image_list(self.window['ec_address_0'].get())
-                elif str(event) == 'list_button_1':
-                    self.show_image_list(self.window['ec_address_1'].get())
-                elif str(event) == 'list_button_2':
-                    self.show_image_list(self.window['ec_address_2'].get())
-                elif str(event) == 'list_button_3':
-                    self.show_image_list(self.window['ec_address_3'].get())
                 elif str(event) == 'list_all_button':
                     self.show_image_list()
                 elif str(event) == 'refresh_button':
@@ -394,23 +378,25 @@ class WapsIesGui:
         for index, image_data in enumerate(db_data):
             image_row = []
             image_row.append(len(db_data) - index)
-            image_row.append(image_data[0])         # Name
-            image_row.append(image_data[1][:11])    # Date
-            image_row.append(image_data[1][11:19])  # Time
-            image_row.append(image_data[2])         # EC address
-            image_row.append(image_data[3])         # EC position
-            image_row.append(image_data[4])         # Memory slot
-            image_percentage = int(100.0*image_data[6]/image_data[5])
-            image_row.append(str(image_percentage) + '% ' +
-                             str(image_data[6]) + '/' +
-                             str(image_data[5]))  # Received packets
+            image_row.append(image_data[0])         # EC address
+            image_row.append(image_data[1])         # EC Position
+            image_row.append(image_data[2])         # Memory slot
+            image_row.append(image_data[3])         # Camera type
+            image_row.append(image_data[4][:19])    # Creation time
+            image_row.append(image_data[5][:19])    # Last update time
+
+            image_row.append(str(image_data[7]) +   # Received / Expected packets
+                             '/' + str(image_data[6]))
+            perc = int(100.0*image_data[7]/image_data[6])
+            image_row.append(str(perc) + '%')       # Image percentage received
+
             status = "Incomplete"
-            if image_data[5] == image_data[6]:
-                status = "Complete"
-            elif image_data[6] == 1:
+            if image_data[6] == image_data[7]:
+                status = "Done"
+            elif image_data[8] == 1:
                 status = "In progress"
             image_row.append(status)                # Image status
-            image_row.append("[]")                  # Missing packets
+            image_row.append(image_data[9])         # Missing packets
 
             data.append(image_row)
 
@@ -426,8 +412,9 @@ class WapsIesGui:
         db_data = self.receiver.database.get_image_list(ec_address)
         data = self.format_image_list_data(db_data)
 
-        table_headings = ['#  ', '       Name       ', 'Date', 'Time',
-                          'Addr', 'Pos', 'Mem', 'Recv', 'Status', 'Miss']
+        table_headings = ['#  ', 'Addr', 'Pos', 'M', 'Type',
+                          'Created', 'Last update',
+                          'Recv', 'Perc', 'Status', 'Missing packets']
 
         layout = [[sg.Button('Refresh', k='refresh_button'),
                    sg.Text("Total of"),
@@ -445,7 +432,9 @@ class WapsIesGui:
                             alternating_row_color='lightgrey',
                             justification='l',
                             enable_events=True,
-                            expand_x=True, expand_y=True)]]
+                            auto_size_columns=False,
+                            col_widths=[3, 4, 6, 2, 5, 15, 15, 7, 5, 10, 15],
+                            expand_x=True, expand_y=True),]]
 
         # Create a new window
         list_window_title = 'WAPS list of received images'
