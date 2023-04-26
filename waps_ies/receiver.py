@@ -218,6 +218,7 @@ class Receiver:
                         # Initialize socket
                         self.socket = socket.socket(socket.AF_INET,
                                                     socket.SOCK_STREAM)
+
                         # BIOLAB TM expected at 1Hz per EC
                         # Allowing more than double the time: 2.1 seconds
                         self.socket.settimeout(float(self.tcp_timeout))
@@ -225,6 +226,19 @@ class Receiver:
                         self.connected = True
                         if self.gui:
                             self.gui.update_server_connected()
+
+                        # Set TCP keepalive on an open socket
+                        if hasattr(socket, "SO_KEEPALIVE"):
+                            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                        # Activate after 1 second of idleness
+                        if hasattr(socket, "TCP_KEEPIDLE"):
+                            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1)
+                        # Send a keepalive ping once every 3 seconds
+                        if hasattr(socket, "TCP_KEEPINTVL"):
+                            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
+                        # Close the connection after 5 failed pings, or 15 seconds in this case
+                        if hasattr(socket, "TCP_KEEPCNT"):
+                            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
 
                         logging.info(" # TCP connection to %s:%s established",
                                      self.server_address[0],
@@ -252,8 +266,12 @@ class Receiver:
                     ccsds_header = self.socket.recv(CCSDS_HEADERS_LENGTH)
                     self.timeout_notified = False
 
-                    # Increase packet count
                     received_header_length = len(ccsds_header)
+                    if received_header_length != CCSDS_HEADERS_LENGTH:
+                        logging.error("Unexpected length of CCSDS header: %i bytes", received_header_length)
+                        continue  #Try again
+
+                    # Increase packet count
                     if received_header_length > 0:
                         self.total_packets_received = self.total_packets_received + 1
                         self.total_received_bytes = self.total_received_bytes + received_header_length
@@ -262,9 +280,6 @@ class Receiver:
                     if self.gui:
                         self.gui.update_server_active()
                         self.gui.update_ccsds_count()
-
-                    if received_header_length != CCSDS_HEADERS_LENGTH:
-                        raise Exception("Header reception failed")
 
                     ccsds1_packet_length = unpack('>H', ccsds_header[4:6])[0]
 
@@ -348,7 +363,6 @@ class Receiver:
                     self.socket.close()
                     if self.gui:
                         self.gui.update_server_disconnected()
-                    time.sleep(1)
 
         except KeyboardInterrupt:
             logging.info(' # Keyboard interrupt, closing')
