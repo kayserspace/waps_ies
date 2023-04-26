@@ -268,8 +268,7 @@ class Receiver:
 
                     received_header_length = len(ccsds_header)
                     if received_header_length != CCSDS_HEADERS_LENGTH:
-                        logging.error("Unexpected length of CCSDS header: %i bytes", received_header_length)
-                        continue  #Try again
+                        raise Exception("Unexpected length of CCSDS header: %i bytes", received_header_length)
 
                     # Increase packet count
                     if received_header_length > 0:
