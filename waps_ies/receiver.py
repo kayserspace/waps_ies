@@ -315,7 +315,7 @@ class Receiver:
 
                     # Check overwritten images
                     self.images = processor.check_overwritten_images(self.images,
-                                                                     self.gui)
+                                                                     self)
 
                     # Status information after all of the processing
                     status_message = self.get_status() + '\r'
@@ -337,7 +337,7 @@ class Receiver:
                             self.gui.update_server_connected()
 
                     # Check if any image times out
-                    self.images = processor.check_overwritten_images(self.images, self.gui)
+                    self.images = processor.check_overwritten_images(self.images, self)
 
                 except KeyboardInterrupt:
                     raise KeyboardInterrupt
