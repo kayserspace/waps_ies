@@ -38,6 +38,8 @@ def check_config_file():
     tcp_timeout = 2.1
     # Output path. Images are saved here
     output_path = output/
+    # Command stack path
+    comm_path = comm/
     # Logging path
     log_path = log/
     # Logging level
@@ -55,6 +57,7 @@ def check_config_file():
             "port": None,
             "tcp_timeout": '2.1',       # seconds
             "output_path": 'output/',
+            "comm_path": 'comm/',
             "log_path": 'log/',
             "log_level": 'INFO',      # INFO / DEBUG / WARNING / ERROR
             "gui_enabled": '1',      # Graphical gui
@@ -81,6 +84,8 @@ def check_config_file():
                                          fallback=waps["tcp_timeout"])
         waps["output_path"] = config.get('WAPS_IES', 'output_path',
                                          fallback=waps["output_path"])
+        waps["comm_path"] = config.get('WAPS_IES', 'comm_path',
+                                       fallback=waps["comm_path"])
         waps["log_path"] = config.get('WAPS_IES', 'log_path',
                                       fallback=waps["log_path"])
         waps["log_level"] = config.get('WAPS_IES', 'log_level',
@@ -118,7 +123,7 @@ def check_arguments(args, config):
       -tt TCP_TIMEOUT, --tcp_timeout TCP_TIMEOUT
                             TCP timeout in seconds.
                             After this period user is notified that
-                            no CCSDS packets are received. Default: 2.1
+                            CCSDS packets are not being received. Default: 2.1
       -o OUTPUT_PATH, --output_path OUTPUT_PATH
                             Output path where extracted images are saved.
                             Default: output/
@@ -128,7 +133,7 @@ def check_arguments(args, config):
       -er, --errors_only    Show only warnings and errors in the log.
                             Overwritten by debug
       -d, --debug           Debug logging level is enabled
-      -dg, --disable_gui    Disable Graphical User gui
+      -dg, --disable_gui    Disable Graphical User Interface (gui)
       -it IMAGE_TIMEOUT, --image_timeout IMAGE_TIMEOUT
                             Image timeout in minutes.
                             After this period image is considered OUTDATED.
@@ -157,12 +162,16 @@ def check_arguments(args, config):
     parser.add_argument("-tt", "--tcp_timeout", dest="tcp_timeout",
                         default=config["tcp_timeout"],
                         help="TCP timeout in seconds. After this period" +
-                        " user is notified that not CCSDS packets" +
-                        " are received. Default: 2.1")
+                        " user is notified that CCSDS packets" +
+                        " are not being received. Default: 2.1")
     parser.add_argument("-o", "--output_path", dest="output_path",
                         default=config["output_path"],
                         help="Output path where extracted images are saved." +
                         " Default: output/")
+    parser.add_argument("-c", "--comm_path", dest="comm_path",
+                        default=config["comm_path"],
+                        help="Command stack path where missing packet lists are created." +
+                        " Default: comm/")
     parser.add_argument("-l", "--log_path", dest="log_path",
                         default=config["log_path"],
                         help="Log path where the IES process log is saved." +
@@ -173,7 +182,7 @@ def check_arguments(args, config):
     parser.add_argument("-d", "--debug", action="store_true",
                         help="Debug logging level is enabled")
     parser.add_argument("-dg", "--disable_gui", action="store_true",
-                        help="Disable Graphical User gui")
+                        help="Disable Graphical User Interface (gui)")
     parser.add_argument("-it", "--image_timeout", dest="image_timeout",
                         default=config["image_timeout"],
                         help="Image timeout in minutes. After this period" +
@@ -188,6 +197,7 @@ def check_arguments(args, config):
     config["port"] = args.port
     config["tcp_timeout"] = args.tcp_timeout
     config["output_path"] = args.output_path
+    config["comm_path"] = args.comm_path
     config["log_path"] = args.log_path
     if args.debug:
         config["log_level"] = 'DEBUG'
@@ -250,18 +260,27 @@ def run_waps_ies(args):
 
     # Check existence of the log path
     if not os.path.exists(waps_config["log_path"]):
-        print("Log path does not exist. Making it...")
+        print("Log path does not exist. Creating it...\n...")
         os.makedirs(waps_config["log_path"])
+
     # Check existence of output path
     if not os.path.exists(waps_config["output_path"]):
-        print("Output path does not exist. Making it...")
+        print("Output path does not exist. Creating it...\n...")
         os.makedirs(waps_config["output_path"])
+
+    # Check existence of output path
+    if not os.path.exists(waps_config["comm_path"]):
+        print("Command stack path does not exist. Creating it...\n...")
+        os.makedirs(waps_config["comm_path"])
 
     # Initialize the WAPS IES socket
     ies = waps_ies.receiver.Receiver(waps_config["ip_address"],
                                      waps_config["port"],
                                      waps_config["output_path"],
                                      waps_config["tcp_timeout"])
+
+    # Add command stack path
+    ies.comm_path = waps_config["comm_path"]
 
     # Start logging to file
     ies.log_path = waps_config["log_path"]
@@ -277,6 +296,7 @@ def run_waps_ies(args):
                  waps_config["port"])
     logging.info(' # TCP timeout: %s seconds', waps_config["tcp_timeout"])
     logging.info(' # Output path: %s', waps_config["output_path"])
+    logging.info(' # Command stack path: %s', waps_config["comm_path"])
 
     ies.image_timeout = timedelta(minutes=int(waps_config["image_timeout"]))
     ies.logging_level = waps_config["log_level"]

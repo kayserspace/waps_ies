@@ -40,7 +40,10 @@ class Receiver:
 
     failed_connection_count = 0
 
-    log_path = 'log/'
+    output_path = '/'
+    comm_path = '/'
+
+    log_path = '/'
     log_level = logging.INFO
     log_file = None
     log_start = 0
@@ -68,7 +71,7 @@ class Receiver:
 
         """
 
-        self.socket = None
+        self.socket = None  # TCP client
         self.server_address = (address, int(port))
         self.tcp_timeout = tcp_timeout
         self.connected = False
@@ -87,6 +90,7 @@ class Receiver:
         # Status parameters
         self.timeout_notified = False
 
+        # Restart every session
         self.total_packets_received = 0
         self.total_biolab_packets = 0
         self.total_waps_image_packets = 0
@@ -132,7 +136,7 @@ class Receiver:
         """ Get receiver status message """
 
         current_time = self.last_packet_ccsds_time.strftime("%Y/%m/%d %H:%M:%S")
-        status_message = ("# ccsds Time: %s P:%d:%d:%d M:%d:%d, I:%d:%d" %
+        status_message = ("# CCSDS Time: %s Pkts:%d:%d:%d Miss:%d:%d, Imgs:%d:%d" %
                           (current_time,
                            self.total_packets_received,
                            self.total_biolab_packets,
