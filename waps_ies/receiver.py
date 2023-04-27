@@ -384,11 +384,23 @@ class Receiver:
 
                 except TimeoutError:
                     if not self.timeout_notified:
-                        logging.warning("\nNo ccsds packets received for more than %s seconds",
-                                        self.tcp_timeout)
                         self.timeout_notified = True
                         if self.gui:
                             self.gui.update_server_connected()
+                            self.gui.update_stats()
+
+                            # Status information after all of the processing
+                            status_message = self.get_status() + '\r'
+                            if self.log_level == logging.DEBUG:
+                                logging.debug(status_message)
+                            else:
+                                current_time = datetime.now()
+                                if (current_time > self.last_status_update +
+                                        timedelta(milliseconds=20)):             # 50 Hz max
+                                    self.last_status_update = current_time
+                                    print(status_message, end='')
+                        logging.warning("\nNo CCSDS packets received for more than %s seconds",
+                                        self.tcp_timeout)
 
                 except KeyboardInterrupt:
                     raise KeyboardInterrupt
