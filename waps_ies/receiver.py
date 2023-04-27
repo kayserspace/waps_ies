@@ -39,6 +39,7 @@ class Receiver:
     """
 
     failed_connection_count = 0
+    tcp_rerequest_count = 0
 
     output_path = '/'
     comm_path = '/'
@@ -233,13 +234,15 @@ class Receiver:
         self.images.pop(index)
 
     def connect_to_server(self):
+        """ Connect to TCP server and configure keepalive """
+
         try:
             # Initialize socket
             self.socket = socket.socket(socket.AF_INET,
                                         socket.SOCK_STREAM)
 
             # BIOLAB TM expected at 1Hz per EC
-            # Allowing more than double the time: 2.1 seconds
+            # Allowing more than double the time by default: 2.1 seconds
             self.socket.settimeout(float(self.tcp_timeout))
             self.socket.connect(self.server_address)
             self.connected = True
@@ -283,6 +286,37 @@ class Receiver:
 
         return False
 
+    def receive_from_server(self, expected_length):
+        """
+        Receive data as a TCP client
+        In case of failure to receive the correct amount retry set amount of times
+        """
+
+        # In most cases one reception should be enough
+        data = self.socket.recv(expected_length)
+        data_length = len(data)
+        if data_length == expected_length:
+            return data
+
+        # Try again
+        # Number of attempts to receive the expected data
+        allowed_attempts = 3
+        attempt = 1  # One already done
+
+        while attempt <= allowed_attempts:
+            attempt = attempt + 1
+            self.tcp_rerequest_count = self.tcp_rerequest_count + 1
+            logging.debug('Expected data length of %i vs actual %i. Retry attempts: %i',
+                            expected_length, data_length, attempt)
+            recv_length = expected_length - data_length
+            data = data + self.socket.recv(recv_length)
+
+            data_length = len(data)
+            if data_length == expected_length:
+                return data
+
+        raise ValueError("Unexpected reception length: %i bytes", data_length)
+
     def start(self):
         """ Main receiver loop """
 
@@ -306,17 +340,19 @@ class Receiver:
 
                 try:
                     # Get the next packet
-                    ccsds_header = self.socket.recv(CCSDS_HEADERS_LENGTH)
+                    ccsds_header = self.receive_from_server(CCSDS_HEADERS_LENGTH)
                     self.timeout_notified = False
 
                     received_header_length = len(ccsds_header)
                     if received_header_length != CCSDS_HEADERS_LENGTH:
-                        raise Exception("Unexpected length of CCSDS header: %i bytes", received_header_length)
+                        raise Exception("Unexpected length of CCSDS header: %i bytes",
+                                        received_header_length)
 
                     # Increase packet count
                     if received_header_length > 0:
                         self.total_packets_received = self.total_packets_received + 1
-                        self.total_received_bytes = self.total_received_bytes + received_header_length
+                        self.total_received_bytes = (self.total_received_bytes +
+                                                     received_header_length)
 
                     # Update interfeace status
                     if self.gui:
@@ -329,28 +365,8 @@ class Receiver:
                     packet_data_length = ccsds1_packet_length + 1 - CCSDS2_HEADER_LENGTH
 
                     biolab_packet = None
-                    packet_data = self.socket.recv(packet_data_length)
-
-                    received_packet_length = len(packet_data)
-                    self.total_received_bytes = self.total_received_bytes + received_packet_length
-                    if received_packet_length != packet_data_length:
-                        logging.debug('Expected data length of %i vs actual %i',
-                                      packet_data_length,
-                                      received_packet_length)
-
-                        packet_data2 = self.socket.recv(packet_data_length - received_packet_length)
-                        received_packet2_length = len(packet_data2)
-                        self.total_received_bytes = self.total_received_bytes + received_packet2_length
-                        if received_packet2_length != packet_data_length - received_packet_length:
-                            logging.error("Failed to read complete ccsds Data Block from TCP link")
-                        else:
-                            logging.debug("Got the rest with a new request")
-                            biolab_packet = self.process_ccsds_packet(ccsds_header +
-                                                                      packet_data +
-                                                                      packet_data2)
-                    else:
-                        biolab_packet = self.process_ccsds_packet(ccsds_header +
-                                                                  packet_data)
+                    packet_data = self.receive_from_server(packet_data_length)
+                    biolab_packet = self.process_ccsds_packet(ccsds_header + packet_data)
 
                     if biolab_packet is not None:
                         # Sort packets into images
@@ -363,7 +379,7 @@ class Receiver:
                         self.images = processor.save_images(self.images,
                                                             self.output_path,
                                                             self,
-                                                            False)  # Do not save incomplete images
+                                                            False)  # Not incomplete
 
                         # Show current state of incomplete images
                         # if a WAPS image packet has been received
@@ -443,6 +459,8 @@ class Receiver:
                          self.total_corrupted_packets)
             logging.info("  Total received bytes:        %d",
                          self.total_received_bytes)
+            logging.info("  TCP re-request needed:       %d",
+                         self.tcp_rerequest_count)
 
     def process_ccsds_packet(self, ccsds_packet):
         """
