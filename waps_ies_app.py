@@ -318,7 +318,7 @@ def run_waps_ies(args):
         logging.info(" # Config contains EC address/position pairs:\n%s",
                      ec_addr_pos_printout)
 
-        ies.ECs_state = ec_list
+        ies.ec_states = ec_list
 
     # Configure gui
     if int(waps_config["gui_enabled"]):

@@ -307,7 +307,7 @@ class Receiver:
             attempt = attempt + 1
             self.tcp_rerequest_count = self.tcp_rerequest_count + 1
             logging.debug('Expected data length of %i vs actual %i. Retry attempts: %i',
-                            expected_length, data_length, attempt)
+                          expected_length, data_length, attempt)
             recv_length = expected_length - data_length
             data = data + self.socket.recv(recv_length)
 
@@ -385,7 +385,6 @@ class Receiver:
                         # if a WAPS image packet has been received
                         if biolab_packet.is_waps_image_packet:
                             processor.print_images_status(self.images)
-
 
                     # Status information after all of the processing
                     status_message = self.get_status() + '\r'

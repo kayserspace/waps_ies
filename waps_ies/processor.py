@@ -266,7 +266,6 @@ def create_command_stack(image, receiver):
     missing_packets = image.get_missing_packets()
     missing_packets_excluding_corrupted = image.get_missing_packets(True)
 
-
     data = ("Command stack for missing packet list re-request by\n" +
             "\tWAPS Image Extraction Software for WAPS payload\n" +
             f"Image initialization timestamp: {image.ccsds_time.strftime('%Y-%m-%d %H:%M:%S')}\n" +
