@@ -13,7 +13,7 @@ Change Log:
 from struct import unpack, pack
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from waps_ies import waps_image
 
 
@@ -61,11 +61,10 @@ def sort_biolab_packets(packet_list,
                          last_mem_slot,
                          str(receiver.ec_states[ec_i]["last_memory_slot"]))
             for i, image in enumerate(incomplete_images):
-                if image.memory_slot == last_mem_slot:
+                if image.memory_slot == last_mem_slot and image.ec_address == packet.ec_address:
                     incomplete_images[i].overwritten = True
-                    logging.warning(' Incomplete image %s has been %s',
-                                    image.image_name,
-                                    "overwritten")
+                    logging.warning(' Incomplete image %s has been overwritten', image.image_name)
+                    receiver.remove_overwritten_image(i)
             receiver.ec_states[ec_i]["last_memory_slot"] = last_mem_slot
 
         # Process the packet according to Generic TM ID (packet.data[84])
@@ -105,8 +104,8 @@ def sort_biolab_packets(packet_list,
                     incomplete_images[index].overwritten = True
                     logging.warning(' Memory slot %i of EC %i has been overwritten',
                                     image.memory_slot, packet.ec_address)
-                    check_overwritten_images(incomplete_images,
-                                             receiver)
+                    receiver.remove_overwritten_image(index)
+
             if duplicate_image:
                 break
 
@@ -524,40 +523,6 @@ def save_images(images, output_path, receiver, save_incomplete=True):
     if len(finished_images) > 0:
         for index in finished_images[::-1]:
             receiver.database.update_image_status(images[index])
-            images.pop(index)
-
-    return images
-
-
-def check_overwritten_images(images, receiver):
-    """
-    Removes overwritten images from active images list
-    """
-
-    overwritten_images = []
-
-    for index, image in enumerate(images):
-        # If image is overwritten, remove it from active memory in the next section
-        if image.overwritten:
-            overwritten_images.append(index)
-
-        # Check if image status is outdated based on received packet CCSDS time
-        if (receiver.image_timeout != timedelta(0) and
-                receiver.last_packet_ccsds_time > image.last_update + receiver.image_timeout):
-            images[index].outdated = True
-            if receiver.gui:
-                receiver.gui.update_image_data(images[index])
-
-    # Remove the overwritten images from images list
-    if len(overwritten_images) > 0:
-        for index in overwritten_images[::-1]:
-            logging.warning(' %s is incomplete (%i/%i) and OVERWRITTEN',
-                            images[index].image_name,
-                            len(images[index].packets) -
-                            len(images[index].get_missing_packets()),
-                            images[index].number_of_packets)
-            if receiver.gui:
-                receiver.gui.update_image_data(images[index])
             images.pop(index)
 
     return images

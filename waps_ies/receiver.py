@@ -51,6 +51,7 @@ class Receiver:
     last_packet_ccsds_time = datetime(1980, 1, 6)
 
     last_status_update = datetime.now()
+    last_outdated_images_check = datetime.now()
 
     ec_states = []
 
@@ -203,6 +204,34 @@ class Receiver:
                                                   self.ec_states[index]["ec_address"],
                                                   self.ec_states[index]["ec_position"])
 
+    def check_outdated_images(self):
+        """
+        Check if any image is outdatedbased on CCSDS packet time once a minute.
+        This is purely cosmetic fo the GUI
+        """
+
+        current_time = datetime.now()
+        if (self.last_outdated_images_check > current_time + timedelta(minutes=1) and
+                self.image_timeout != timedelta(0)):
+            self.last_outdated_images_check = current_time
+            for index, image in enumerate(self.images):
+                if self.last_packet_ccsds_time > image.last_update + self.image_timeout:
+                    self.images[index].outdated = True
+                    if self.gui:
+                        self.gui.update_image_data(self.images[index])
+
+    def remove_overwritten_image(self, index):
+        """ Remove and overwritten image from active image list """
+
+        logging.warning(' %s is incomplete (%i/%i) and OVERWRITTEN',
+                        self.images[index].image_name,
+                        len(self.images[index].packets) -
+                        len(self.images[index].get_missing_packets()),
+                        self.images[index].number_of_packets)
+        if self.gui:
+            self.gui.update_image_data(self.images[index])
+        self.images.pop(index)
+
     def start(self):
         """ Main receiver loop """
 
@@ -212,6 +241,9 @@ class Receiver:
                 # On change of date move on to a new log file
                 if datetime.now().strftime('%d') != self.log_start.strftime('%d'):
                     self.start_new_log()
+
+                # Check if any image is outdated
+                self.check_outdated_images()
 
                 if not self.connected:
                     try:
@@ -327,9 +359,6 @@ class Receiver:
                         if biolab_packet.is_waps_image_packet:
                             processor.print_images_status(self.images)
 
-                    # Check overwritten images
-                    self.images = processor.check_overwritten_images(self.images,
-                                                                     self)
 
                     # Status information after all of the processing
                     status_message = self.get_status() + '\r'
@@ -349,9 +378,6 @@ class Receiver:
                         self.timeout_notified = True
                         if self.gui:
                             self.gui.update_server_connected()
-
-                    # Check if any image times out
-                    self.images = processor.check_overwritten_images(self.images, self)
 
                 except KeyboardInterrupt:
                     raise KeyboardInterrupt
