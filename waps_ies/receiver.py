@@ -56,6 +56,8 @@ class Receiver:
 
     ec_states = []
 
+    skip_crc = False
+
     def __init__(self,
                  address,
                  port,

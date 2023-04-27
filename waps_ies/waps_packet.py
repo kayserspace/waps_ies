@@ -283,6 +283,9 @@ class WapsPacket:
                         val = self.receiver.total_corrupted_packets + 1
                         self.receiver.total_corrupted_packets = val
                     self.packet_corruption_declared = True
-                return False
+
+                if self.receiver is not None:
+                    if not self.receiver.skip_crc:
+                        return False
 
         return True

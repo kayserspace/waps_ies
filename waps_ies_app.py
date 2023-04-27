@@ -47,22 +47,26 @@ def check_config_file():
     # Enable Graphical User gui
     gui_enabled = 1
     # Image timeout in minutes. After this period image is considered OUTDATED.
+    # 0 means disable this feature
     image_timeout = 600
     # Enable memory slot change detection from general BIOLAB telemetry
     memory_slot_change_detection = 1
+    # Skip checking colour image CRC
+    skip_crc = 0
     """
 
     # Default WAPS IES configuration
     waps = {"ip_address": None,
             "port": None,
-            "tcp_timeout": '2.1',       # seconds
-            "output_path": 'output/',
-            "comm_path": 'comm/',
-            "log_path": 'log/',
+            "tcp_timeout": '2.1',     # seconds
+            "output_path": 'output/', # directory
+            "comm_path": 'comm/',     # directory
+            "log_path": 'log/',       # directory
             "log_level": 'INFO',      # INFO / DEBUG / WARNING / ERROR
-            "gui_enabled": '1',      # Graphical gui
-            "image_timeout": '600',     # minutes (10h)
-            "detect_mem_slot": '1'}  # False
+            "gui_enabled": '1',       # Graphical User Interface
+            "image_timeout": '600',   # minutes (10h by default)
+            "detect_mem_slot": '1',   # False
+            "skip_crc": '0'}          # Check clour image CRC
 
     # EC list contains
     # - EC address
@@ -94,9 +98,10 @@ def check_config_file():
                                          fallback=waps["gui_enabled"])
         waps["image_timeout"] = config.get('WAPS_IES', 'image_timeout',
                                            fallback=waps["image_timeout"])
-        waps["detect_mem_slot"] = config.get('WAPS_IES',
-                                             'memory_slot_change_detection',
+        waps["detect_mem_slot"] = config.get('WAPS_IES', 'memory_slot_change_detection',
                                              fallback=waps["detect_mem_slot"])
+        waps["skip_crc"] = config.get('WAPS_IES', 'skip_crc',
+                                      fallback=waps["skip_crc"])
     if 'EC_POSITIONS' in config.sections():
         for ec_addr_pos in config.items('EC_POSITIONS'):
             ec_list.append({"ec_address": int(ec_addr_pos[0]),
@@ -299,8 +304,7 @@ def run_waps_ies(args):
     logging.info(' # Command stack path: %s', waps_config["comm_path"])
 
     ies.image_timeout = timedelta(minutes=int(waps_config["image_timeout"]))
-    ies.logging_level = waps_config["log_level"]
-    ies.log_path = waps_config["log_path"]
+    ies.skip_crc = waps_config["skip_crc"] == '1'
     logging.info(' # Image timeout: %i minute(s)',
                  int(waps_config["image_timeout"]))
 
