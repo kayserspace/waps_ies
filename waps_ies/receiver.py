@@ -232,6 +232,57 @@ class Receiver:
             self.gui.update_image_data(self.images[index])
         self.images.pop(index)
 
+    def connect_to_server(self):
+        try:
+            # Initialize socket
+            self.socket = socket.socket(socket.AF_INET,
+                                        socket.SOCK_STREAM)
+
+            # BIOLAB TM expected at 1Hz per EC
+            # Allowing more than double the time: 2.1 seconds
+            self.socket.settimeout(float(self.tcp_timeout))
+            self.socket.connect(self.server_address)
+            self.connected = True
+            if self.gui:
+                self.gui.update_server_connected()
+
+            # Set TCP keepalive on an open socket
+            if hasattr(socket, "SO_KEEPALIVE"):
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            # Activate after 1 second of idleness
+            if hasattr(socket, "TCP_KEEPIDLE"):
+                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1)
+            # Send a keepalive ping once every 3 seconds
+            if hasattr(socket, "TCP_KEEPINTVL"):
+                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
+            # Close the connection after 5 failed pings, or 15 seconds in this case
+            if hasattr(socket, "TCP_KEEPCNT"):
+                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
+
+            logging.info(" # TCP connection to %s:%s established",
+                         self.server_address[0],
+                         str(self.server_address[1]))
+            self.failed_connection_count = 0
+
+            return True
+
+        except Exception as err:
+            self.failed_connection_count = self.failed_connection_count + 1
+            if self.failed_connection_count < 5:
+                logging.error(" Could not connect to socket.%s%s",
+                              " Error: ",
+                              str(err))
+            else:
+                if not self.failed_connection_count % 100:
+                    logging.error(" Connection failed %i times. Error: %s",
+                                  self.failed_connection_count,
+                                  str(err))
+                print(" Connection failed " + str(self.failed_connection_count)
+                      + " times\r", end='')
+            return False
+
+        return False
+
     def start(self):
         """ Main receiver loop """
 
@@ -246,51 +297,11 @@ class Receiver:
                 self.check_outdated_images()
 
                 if not self.connected:
-                    try:
-                        # Initialize socket
-                        self.socket = socket.socket(socket.AF_INET,
-                                                    socket.SOCK_STREAM)
+                    self.connected = self.connect_to_server()
 
-                        # BIOLAB TM expected at 1Hz per EC
-                        # Allowing more than double the time: 2.1 seconds
-                        self.socket.settimeout(float(self.tcp_timeout))
-                        self.socket.connect(self.server_address)
-                        self.connected = True
-                        if self.gui:
-                            self.gui.update_server_connected()
-
-                        # Set TCP keepalive on an open socket
-                        if hasattr(socket, "SO_KEEPALIVE"):
-                            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-                        # Activate after 1 second of idleness
-                        if hasattr(socket, "TCP_KEEPIDLE"):
-                            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1)
-                        # Send a keepalive ping once every 3 seconds
-                        if hasattr(socket, "TCP_KEEPINTVL"):
-                            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
-                        # Close the connection after 5 failed pings, or 15 seconds in this case
-                        if hasattr(socket, "TCP_KEEPCNT"):
-                            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
-
-                        logging.info(" # TCP connection to %s:%s established",
-                                     self.server_address[0],
-                                     str(self.server_address[1]))
-                        self.failed_connection_count = 0
-
-                    except Exception as err:
-                        self.failed_connection_count = self.failed_connection_count + 1
-                        if self.failed_connection_count < 10:
-                            logging.error(" Could not connect to socket.%s%s",
-                                          " Error: ",
-                                          str(err))
-                        else:
-                            if not self.failed_connection_count % 60:
-                                logging.error(" Connection failed %i times. Error: %s",
-                                              self.failed_connection_count,
-                                              str(err))
-                            print(" Connection failed " + str(self.failed_connection_count)
-                                  + " times\r", end='')
-                        time.sleep(1)
+                    # If still not connected
+                    if not self.connected:
+                        time.sleep(1)  # Delay before trying to connect again
                         continue
 
                 try:
