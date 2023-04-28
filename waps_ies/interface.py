@@ -449,12 +449,14 @@ class WapsIesGui:
 
         layout = [[sg.Button('Refresh', k='refresh_button'),
                    sg.Text("Total of"),
-                   sg.Text(len(db_data),
-                           k='image_list_count',
+                   sg.Text(len(db_data), k='image_list_count',
                            background_color='white'),
                    sg.Text("images starting with the latest"),
                    sg.Button('Save', k='save_button'),
-                   sg.Text("", k='save_result')],
+                   sg.Text("", k='save_result', size=(6, 1),
+                           justification='c'),
+                   sg.Button('Filter', k='filter_button'),
+                   sg.Input('', k='filter_input')],
                   [sg.Table(data,
                             table_headings,
                             k="image_table",
@@ -488,7 +490,11 @@ class WapsIesGui:
         self.list_window['save_result'].update('', background_color=sg.theme_background_color())
 
     def save_image_list(self):
-        """ save image list table to excel """
+        """ Save image list table to excel """
+
+        res = sg.popup_yes_no('Save table to output directory?', title='Save table?')
+        if res != 'Yes':
+            return
 
         # Get the current table contents
         data = self.list_window["image_table"].get()
@@ -510,5 +516,5 @@ class WapsIesGui:
         except IOError:
             logging.error('Could not open file for writing: %s', file_path)
 
-        self.list_window['save_result'].update("Table saved to output directory as " + filename,
-                                               background_color='white')
+        self.list_window['save_result'].update("Saved!",
+                                               background_color='springgreen1')
