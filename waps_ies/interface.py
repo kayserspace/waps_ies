@@ -111,31 +111,25 @@ class WapsIesGui:
             columns[col].append([sg.Text("EC addr"),
                                 sg.Text("", k='ec_address_' + str(col),
                                         background_color='lightgrey',
-                                        size=(3, 1),
-                                        justification='c'),
+                                        size=(3, 1), justification='c'),
                                 sg.Text("pos"),
                                 sg.Text("", k='ec_position_' + str(col),
                                         background_color='white',
-                                        size=(6, 1),
-                                        justification='c')])
+                                        size=(6, 1), justification='c'),
+                                sg.Button('clr', k='clr_' + str(col))])
             for i in range(slot_number):
                 cell_id = '_' + str(col) + '_' + str(i)
                 frames[col].append([sg.Text(str(i),
                                             background_color='lightgrey'),
-                                   sg.Text('Unknown',
-                                           k='status' + cell_id,
-                                           size=(9, 1),
-                                           justification='c'),
-                                   sg.ProgressBar(100, orientation='h',
-                                                  s=(3, 16),
+                                   sg.Text('Unknown', k='status' + cell_id,
+                                           size=(9, 1), justification='c'),
+                                   sg.ProgressBar(100, orientation='h', s=(3, 16),
                                                   k='progressbar' + cell_id),
                                    sg.Text('0/0', k='packet_number' + cell_id,
                                            size=(6, 1))])
-                frames[col].append([sg.Text('Type', k='image_type' + cell_id,
-                                            background_color='lightgrey'),
-                                   sg.Text('Miss:'),
-                                   sg.Text('',
-                                           k='missing_packets' + cell_id)])
+                frames[col].append([sg.Text('', k='image_type' + cell_id),
+                                   sg.Text('', k="miss" + cell_id),
+                                   sg.Text('', k='missing_packets' + cell_id)])
                 if i < slot_number - 1:
                     frames[col].append([sg.HSep()])
             columns[col].append([sg.Frame('Memory slots', frames[col])])
@@ -195,6 +189,12 @@ class WapsIesGui:
                         break
                 elif str(event) == 'list_all_button':
                     self.show_image_list()
+                elif str(event) in ('clr_0', 'clr_1', 'clr_2', 'clr_3'):
+                    column = str(event)[4]
+                    res = sg.popup_yes_no('Clear column ' + column + '?' +
+                                          '\nDatabase is unaffected')
+                    if res == 'Yes':
+                        self.clear_column(column)
                 elif str(event) == 'refresh_button':
                     self.refresh_image_list()
                 elif str(event) == 'save_button':
@@ -296,6 +296,28 @@ class WapsIesGui:
         self.window['ec_address_' + str(ec_column)].update(str(ec_address))
         self.window['ec_position_' + str(ec_column)].update(ec_position)
 
+    def clear_column(self, ec_column):
+        """ Update GUI EC column occupation """
+
+        self.receiver.clear_gui_column(ec_column)
+
+        # Update column top
+        self.window['ec_address_' + ec_column].update('')
+        self.window['ec_position_' + ec_column].update('')
+
+        # Update cells
+        for i in range(8):
+            cell_id = '_' + ec_column + '_' + str(i)
+            self.window['status' +
+                        cell_id].update('Unknown', background_color=sg.theme_background_color())
+            self.window['progressbar' + cell_id].update(0)
+            self.window['packet_number' + cell_id].update('0/0')
+            self.window['image_type' +
+                        cell_id].update('', background_color=sg.theme_background_color())
+            self.window['miss' + cell_id].update('')
+            self.window['missing_packets' +
+                        cell_id].update('', background_color=sg.theme_background_color())
+
     def update_image_data(self, image):
         """ Update GUI image cell contents """
 
@@ -303,9 +325,12 @@ class WapsIesGui:
         ec_index = self.receiver.get_ec_states_index(image.ec_address)
         ec_column = self.receiver.ec_states[ec_index]["gui_column"]
         if ec_column is None:
-            logging.warning(" GUI does not have space for this EC: %i",
-                            image.ec_address)
-            return
+            self.receiver.assign_ec_column(image.ec_address)
+            ec_column = self.receiver.ec_states[ec_index]["gui_column"]
+            if ec_column is None:
+                logging.warning(" GUI does not have space for this EC: %i",
+                                image.ec_address)
+                return
 
         # Image packets status
         missing_packets = image.get_missing_packets()
@@ -346,7 +371,8 @@ class WapsIesGui:
 
         # Image type
         self.window['image_type_' + str(ec_column) + '_' +
-                    str(image.memory_slot)].update(image.camera_type)
+                    str(image.memory_slot)].update(image.camera_type,
+                                                   background_color='lightgrey')
 
         # Missing packets with colour change
         missing_packets_str = image.missing_packets_string()
@@ -355,12 +381,17 @@ class WapsIesGui:
             missing_packets_str = missing_packets_str[:missing_packets_str[:18].rfind(',')] + '...'
         self.window['missing_packets_' + str(ec_column) + '_'
                     + str(image.memory_slot)].update(missing_packets_str)
+        if len(missing_packets) == 0:
+            self.window['miss_' + str(ec_column) + '_' + str(image.memory_slot)].update("")
         if (len(missing_packets) == 0 or
                 image.image_transmission_active and packets_sequential):
             self.window['missing_packets_' + str(ec_column) +
                         '_' + str(image.memory_slot)].update(
                 background_color=sg.theme_background_color())
         else:
+            self.window['miss_' + str(ec_column) + '_' + str(image.memory_slot)].update("Miss:")
+            sg.Text('', k="miss" + str(ec_column) +
+                            '_' + str(image.memory_slot))
             if (image.overwritten or image.outdated or
                     image.image_transmission_active):
                 self.window['missing_packets_' + str(ec_column) +

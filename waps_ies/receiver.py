@@ -207,6 +207,14 @@ class Receiver:
                                                   self.ec_states[index]["ec_address"],
                                                   self.ec_states[index]["ec_position"])
 
+    def clear_gui_column(self, column):
+        """ Clear GUI column assignment """
+
+        # Get current column occupation
+        for i, ec_state in enumerate(self.ec_states):
+            if ec_state["gui_column"] == int(column):
+                self.ec_states[i]["gui_column"] = None
+
     def check_outdated_images(self):
         """
         Check if any image is outdatedbased on CCSDS packet time once a minute.
