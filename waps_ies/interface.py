@@ -38,6 +38,9 @@ class WapsIesGui:
 
     # Window with list of received images
     list_window = None
+    db_data = []
+    db_fresh = False
+    db_shown = []
 
     last_ccsds_count_update = datetime.now()
     last_biolab_tm_count_update = datetime.now()
@@ -185,6 +188,7 @@ class WapsIesGui:
                     if win == self.list_window:
                         self.list_window.close()
                         self.list_window = None
+                        self.db_data = []
                     else:
                         break
                 elif str(event) == 'list_all_button':
@@ -196,6 +200,8 @@ class WapsIesGui:
                     self.receiver.refresh_gui_list_window = True
                 elif str(event) == 'save_button':
                     self.save_image_list()
+                elif str(event) == 'filter_button':
+                    self.filter_image_list(self.list_window['filter_input'].get())
                 elif str(event) != '__TIMEOUT__':
                     logging.info(' Interface event: %s %s %s',
                                  str(event),
@@ -413,25 +419,25 @@ class WapsIesGui:
         for index, image_data in enumerate(db_data):
             image_row = []
             image_row.append(len(db_data) - index)
-            image_row.append(image_data[0])         # EC address
-            image_row.append(image_data[1])         # EC Position
-            image_row.append(image_data[2])         # Memory slot
-            image_row.append(image_data[3])         # Camera type
-            image_row.append(image_data[4][:19])    # Creation time
-            image_row.append(image_data[5][:19])    # Last update time
+            image_row.append(image_data[6])         # EC address
+            image_row.append(image_data[7])         # EC Position
+            image_row.append(image_data[8])         # Memory slot
+            image_row.append(image_data[5])         # Camera type
+            image_row.append(image_data[2][:19])    # Creation time
+            image_row.append(image_data[18][:19])    # Last update time
 
-            image_row.append(str(image_data[7]) +   # Received / Expected packets
-                             '/' + str(image_data[6]))
-            perc = int(100.0*image_data[7]/image_data[6])
+            image_row.append(str(image_data[10]) +   # Received / Expected packets
+                             '/' + str(image_data[9]))
+            perc = int(100.0*image_data[10]/image_data[9])
             image_row.append(str(perc) + '%')       # Image percentage received
 
             status = "Incomplete"
-            if image_data[6] == image_data[7]:
+            if image_data[9] == image_data[10]:
                 status = "Done"
-            elif image_data[8] == 1:
+            elif image_data[13] == 1:
                 status = "In progress"
             image_row.append(status)                # Image status
-            image_row.append(image_data[9])         # Missing packets
+            image_row.append(image_data[19])         # Missing packets
 
             data.append(image_row)
 
@@ -444,8 +450,9 @@ class WapsIesGui:
         if self.list_window is not None:
             self.list_window.close()
 
-        db_data = self.receiver.database.get_image_list(ec_address)
-        data = self.format_image_list_data(db_data)
+        self.db_data = self.receiver.database.get_image_list(ec_address)
+        self.db_fresh = True
+        data = self.format_image_list_data(self.db_data)
 
         table_headings = ['#  ', 'Addr', 'Pos', 'M', 'Type',
                           'Created', 'Last update',
@@ -453,7 +460,7 @@ class WapsIesGui:
 
         layout = [[sg.Button('Refresh', k='refresh_button'),
                    sg.Text("Total of"),
-                   sg.Text(len(db_data), k='image_list_count',
+                   sg.Text(len(self.db_data), k='image_list_count',
                            background_color='white'),
                    sg.Text("images starting with the latest"),
                    sg.Button('Save', k='save_button'),
@@ -489,12 +496,44 @@ class WapsIesGui:
     def refresh_image_list(self):
         """ Refresh the image list table """
 
-        db_data = self.receiver.database.get_image_list()
-        data = self.format_image_list_data(db_data)
+        self.db_data = self.receiver.database.get_image_list()
+        self.db_fresh = True
+        data = self.format_image_list_data(self.db_data)
         self.list_window["image_table"].update(data)
         self.list_window['image_list_count'].update(len(data))
         self.list_window['save_result'].update('', background_color=sg.theme_background_color())
         logging.info("Image list table refreshed")
+
+    def filter_image_list(self, val):
+        """ Filter image list table by given value """
+
+        db_data_length = len(self.db_data)
+
+        # Create new filtered list is the database is fresh
+        if self.db_fresh:
+            self.db_fresh = False
+            self.db_shown = []
+            for i in range(db_data_length):
+                self.db_shown.append(True)
+
+        data = self.format_image_list_data(self.db_data)
+
+        filtered_data = []
+        for index, row in enumerate(data):
+            if not self.db_shown[index]:
+                continue
+            match_found = False
+            for col_val in row:
+                if val in str(col_val):
+                    filtered_data.append(data[index])
+                    match_found = True
+                    break
+            if not match_found:
+                self.db_shown[index] = False
+
+        self.list_window["image_table"].update(filtered_data)
+        self.list_window['save_result'].update('', background_color=sg.theme_background_color())
+        logging.info("Image list filtered by '%s'", val)
 
     def save_image_list(self):
         """ Save image list table to excel """
@@ -509,7 +548,7 @@ class WapsIesGui:
         csv_data = ""
         for row in data:
             for item in row:
-                csv_data = csv_data + str(item) + ', '
+                csv_data = csv_data + str(item).replace(',',';') + ', '
             csv_data = csv_data + '\n'
 
         # Write the file

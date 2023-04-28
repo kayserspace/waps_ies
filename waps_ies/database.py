@@ -237,20 +237,8 @@ class Database:
         If ec_address not provided - all images
         """
 
-        contents = ("SELECT ec_address, " +
-                    "ec_position, " +
-                    "memory_slot, " +
-                    "camera_type, " +
-                    "CCSDS_time, " +
-                    "last_update, " +
-                    "number_of_packets, " +
-                    "good_packets, " +
-                    "transmission_active, " +
-                    "missing_packets " +
-                    "FROM images")
-
         if ec_address is None:
-            res = self.db_cursor.execute(contents + " ORDER BY CCSDS_time DESC;")
+            res = self.db_cursor.execute("SELECT * from images ORDER BY CCSDS_time DESC;")
         else:
             res = self.db_cursor.execute(contents + " WHERE " + "ec_address=?"
                                          + " ORDER BY CCSDS_time DESC;",

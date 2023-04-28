@@ -10,7 +10,9 @@ Change Log:
  - initial version
 """
 
-import logging, os, sys
+import logging
+import os
+import sys
 from datetime import datetime, timedelta
 import socket
 import time
@@ -145,9 +147,8 @@ class Receiver:
             logging.info(" # Detecting memory slot change from BIOLAB telemetry")
 
         if waps_config["skip_crc"] == '1':
-            skip_crc = True
-            if skip_crc:
-                logging.info(" # IES shall not report failed CRC checks")
+            self.skip_crc = True
+            logging.info(" # IES shall not consider failed CRC as lost packet")
 
         # Configure gui
         self.gui = None
