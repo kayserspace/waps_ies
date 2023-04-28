@@ -9,10 +9,20 @@ class TestReceiver(unittest.TestCase):
     @classmethod
     def setUpClass(self):
 
-        self.receiver = waps_ies.receiver.Receiver("192.168.0.1",
-                                                   12345,
-                                                   "output/",
-                                                   database_filename='tests/waps_pd.db')
+        waps = {"ip_address": "192.168.1.1",
+                "port": "12345",
+                "tcp_timeout": '2.1',           # seconds
+                "output_path": 'output/',       # directory
+                "database_file": 'tests/waps_pd.db',  # directory
+                "comm_path": 'comm/',           # directory
+                "log_path": 'log/',             # directory
+                "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR
+                "gui_enabled": '0',             # Graphical User Interface
+                "image_timeout": '0',         # minutes (10h by default)
+                "detect_mem_slot": '1',         # False
+                "skip_crc": '1'}                # Check clour image CRC
+
+        self.receiver = waps_ies.receiver.Receiver(waps)
 
     def test_gui_column_assignment(self):
         """ A receiver and test GUI column assignment """
