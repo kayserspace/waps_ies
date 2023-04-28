@@ -19,8 +19,6 @@ import sys
 import configparser
 from argparse import ArgumentParser
 import os
-from datetime import datetime, timedelta
-import time
 import logging
 import waps_ies.receiver
 
@@ -38,6 +36,8 @@ def check_config_file():
     tcp_timeout = 2.1
     # Output path. Images are saved here
     output_path = output/
+    # Database file to use
+    database_file = waps_pd.db
     # Command stack path
     comm_path = comm/
     # Logging path
@@ -58,15 +58,16 @@ def check_config_file():
     # Default WAPS IES configuration
     waps = {"ip_address": None,
             "port": None,
-            "tcp_timeout": '2.1',     # seconds
-            "output_path": 'output/', # directory
-            "comm_path": 'comm/',     # directory
-            "log_path": 'log/',       # directory
-            "log_level": 'INFO',      # INFO / DEBUG / WARNING / ERROR
-            "gui_enabled": '1',       # Graphical User Interface
-            "image_timeout": '600',   # minutes (10h by default)
-            "detect_mem_slot": '1',   # False
-            "skip_crc": '0'}          # Check clour image CRC
+            "tcp_timeout": '2.1',           # seconds
+            "output_path": 'output/',       # directory
+            "database_file": 'waps_pd.db',  # directory
+            "comm_path": 'comm/',           # directory
+            "log_path": 'log/',             # directory
+            "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR
+            "gui_enabled": '1',             # Graphical User Interface
+            "image_timeout": '600',         # minutes (10h by default)
+            "detect_mem_slot": '1',         # False
+            "skip_crc": '0'}                # Check clour image CRC
 
     # EC list contains
     # - EC address
@@ -88,6 +89,8 @@ def check_config_file():
                                          fallback=waps["tcp_timeout"])
         waps["output_path"] = config.get('WAPS_IES', 'output_path',
                                          fallback=waps["output_path"])
+        waps["database_file"] = config.get('WAPS_IES', 'database_file',
+                                           fallback=waps["database_file"])
         waps["comm_path"] = config.get('WAPS_IES', 'comm_path',
                                        fallback=waps["comm_path"])
         waps["log_path"] = config.get('WAPS_IES', 'log_path',
@@ -173,6 +176,9 @@ def check_arguments(args, config):
                         default=config["output_path"],
                         help="Output path where extracted images are saved." +
                         " Default: output/")
+    parser.add_argument("-db", "--database_file", dest="database_file",
+                        default=config["database_file"],
+                        help="Databse file to use. Default: output/")
     parser.add_argument("-c", "--comm_path", dest="comm_path",
                         default=config["comm_path"],
                         help="Command stack path where missing packet lists are created." +
@@ -204,6 +210,7 @@ def check_arguments(args, config):
     config["output_path"] = args.output_path
     config["comm_path"] = args.comm_path
     config["log_path"] = args.log_path
+    config["database_file"] = args.database_file
     if args.debug:
         config["log_level"] = 'DEBUG'
     elif args.errors_only:
@@ -252,17 +259,6 @@ def run_waps_ies(args):
                       "Example: waps_ies_app.py -ip localhost -p 12345")
         sys.exit()
 
-    # Logging level definition
-    log_level_printout = 'INFO'
-    if waps_config["log_level"].upper() == 'ERROR':
-        waps_config["log_level"] = logging.WARNING
-        log_level_printout = 'ERROR'
-    elif waps_config["log_level"].upper() == 'DEBUG':
-        waps_config["log_level"] = logging.DEBUG
-        log_level_printout = 'DEBUG'
-    else:
-        waps_config["log_level"] = logging.INFO
-
     # Check existence of the log path
     if not os.path.exists(waps_config["log_path"]):
         print("Log path does not exist. Creating it...\n...")
@@ -278,72 +274,20 @@ def run_waps_ies(args):
         print("Command stack path does not exist. Creating it...\n...")
         os.makedirs(waps_config["comm_path"])
 
-    # Initialize the WAPS IES socket
-    ies = waps_ies.receiver.Receiver(waps_config["ip_address"],
-                                     waps_config["port"],
-                                     waps_config["output_path"],
-                                     waps_config["tcp_timeout"])
-
-    # Add command stack path
-    ies.comm_path = waps_config["comm_path"]
-
-    # Start logging to file
-    ies.log_path = waps_config["log_path"]
-    ies.log_level = waps_config["log_level"]
-    ies.start_new_log()
-
-    # Start-up messages
-    logging.info(' ##### WAPS Image Extraction Software #####')
-    logging.info(' # Logging path: %s', waps_config["log_path"])
-    logging.info(' # Logging level: %s', log_level_printout)
-    logging.info(' # Server: %s:%s',
-                 waps_config["ip_address"],
-                 waps_config["port"])
-    logging.info(' # TCP timeout: %s seconds', waps_config["tcp_timeout"])
-    logging.info(' # Output path: %s', waps_config["output_path"])
-    logging.info(' # Command stack path: %s', waps_config["comm_path"])
-
-    ies.image_timeout = timedelta(minutes=int(waps_config["image_timeout"]))
-    ies.skip_crc = waps_config["skip_crc"] == '1'
-    logging.info(' # Image timeout: %i minute(s)',
-                 int(waps_config["image_timeout"]))
-
-    if int(waps_config["detect_mem_slot"]):
-        ies.memory_slot_change_detection = int(waps_config["detect_mem_slot"])
-        logging.info(" # Detecting memory slot change from BIOLAB telemetry")
+    # Initialize the WAPS IES
+    ies = waps_ies.receiver.Receiver(waps_config)
 
     if len(ec_list) > 0:
-        ec_addr_pos_printout = "   EC address / position"
+        ec_addr_pos_printout = "   EC addr / pos"
         for ec_state in ec_list:
             ec_addr_pos_printout = (ec_addr_pos_printout +
-                                    "\n   " + str(ec_state["ec_address"]) +
+                                    "\n       " + str(ec_state["ec_address"]) +
                                     " / " + ec_state["ec_position"])
 
         logging.info(" # Config contains EC address/position pairs:\n%s",
                      ec_addr_pos_printout)
 
         ies.ec_states = ec_list
-
-    # Configure gui
-    if int(waps_config["gui_enabled"]):
-        logging.info(" # Running graphical gui")
-        ies_gui = waps_ies.interface.WapsIesGui(ies)
-        ies.add_gui(ies_gui)
-        gui_startup = datetime.now()
-        longer_time_message = False
-        while not ies.gui.window_open:
-            print('#', end='', flush=True)
-            time.sleep(0.1)
-            if (datetime.now() - gui_startup > timedelta(seconds=10) and
-                    not longer_time_message):
-                longer_time_message = True
-                logging.info("--- GUI taking longer than expected to boot")
-            if datetime.now() - gui_startup > timedelta(seconds=60):
-                longer_time_message = True
-                logging.error("---Something precents GUI from starting")
-                break
-        logging.debug(' gui took %s to start',
-                      str(datetime.now() - gui_startup))
 
     logging.info(" # Starting reception")
     ies.start()

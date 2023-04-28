@@ -41,10 +41,8 @@ class Receiver:
     failed_connection_count = 0
     tcp_rerequest_count = 0
 
-    output_path = '/'
     comm_path = '/'
 
-    log_path = '/'
     log_level = logging.INFO
     log_file = None
     log_start = 0
@@ -57,14 +55,14 @@ class Receiver:
     ec_states = []
 
     refresh_gui_list_window = False
+
+    memory_slot_change_detection = False
     skip_crc = False
 
-    def __init__(self,
-                 address,
-                 port,
-                 output_path,
-                 tcp_timeout='2.1',
-                 database_filename='waps_pd.db'):
+    # Main loop enabled
+    continue_running = True
+
+    def __init__(self, waps_config):
         """
         Initialize the TCP connection
 
@@ -76,21 +74,81 @@ class Receiver:
 
         """
 
-        self.socket = None  # TCP client
-        self.server_address = (address, int(port))
-        self.tcp_timeout = tcp_timeout
+        # Logging level definition
+        log_level_printout = 'INFO'
+        if waps_config["log_level"].upper() == 'ERROR':
+            waps_config["log_level"] = logging.WARNING
+            log_level_printout = 'ERROR'
+        elif waps_config["log_level"].upper() == 'DEBUG':
+            waps_config["log_level"] = logging.DEBUG
+            log_level_printout = 'DEBUG'
+        else:
+            waps_config["log_level"] = logging.INFO
+
+        # Enable logging
+        self.log_path = waps_config["log_path"]
+        self.log_level = waps_config["log_level"]
+        self.start_new_log()
+
+        # Start-up message
+        logging.info(' ##### WAPS Image Extraction Software #####')
+        logging.info(' # Logging path: %s', waps_config["log_path"])
+        logging.info(' # Logging level: %s', log_level_printout)
+
+        # TCP client
+        self.socket = None
+        self.server_address = (waps_config["ip_address"], int(waps_config["port"]))
+        logging.info(' # Server: %s:%s',
+                     waps_config["ip_address"],
+                     waps_config["port"])
+        self.tcp_timeout = float(waps_config["tcp_timeout"])
+        logging.info(' # TCP timeout: %s seconds', waps_config["tcp_timeout"])
         self.connected = False
 
-        self.output_path = output_path
+        self.output_path = waps_config["output_path"]
+        logging.info(' # Output path: %s', waps_config["output_path"])
+        self.comm_path = waps_config["comm_path"]
+        logging.info(' # Command stack path: %s', waps_config["comm_path"])
+        self.database_file = waps_config["database_file"]
+        logging.info(' # Database file: %s', waps_config["database_file"])
 
-        self.images = []
+        self.image_timeout = timedelta(0)
+        if int(waps_config["image_timeout"]) != 0:
+            self.image_timeout = timedelta(minutes=int(waps_config["image_timeout"]))
+            logging.info(' # Image timeout: %i minute(s)', int(waps_config["image_timeout"]))
 
-        self.continue_running = True
+        if waps_config["detect_mem_slot"] == '1':
+            self.memory_slot_change_detection = True
+            logging.info(" # Detecting memory slot change from BIOLAB telemetry")
+
+        if waps_config["skip_crc"] == '1':
+            skip_crc = True
+            if skip_crc:
+                logging.info(" # IES shall not report failed CRC checks")
+
+        # Configure gui
         self.gui = None
+        if waps_config["gui_enabled"] == '1':
+            logging.info(" # Running Graphical User Interface")
+            self.gui = interface.WapsIesGui(self)
+            gui_startup = datetime.now()
+            longer_time_message = False
+            while not self.gui.window_open:
+                print('#', end='', flush=True)
+                time.sleep(0.1)
+                if (datetime.now() - gui_startup > timedelta(seconds=10) and
+                        not longer_time_message):
+                    longer_time_message = True
+                    logging.info("--- GUI taking longer than expected to boot")
+                if datetime.now() - gui_startup > timedelta(seconds=60):
+                    longer_time_message = True
+                    logging.error("--- Something precents GUI from starting")
+                    break
+            logging.info("# GUI opened")
+            logging.debug(' GUI took %s to start', str(datetime.now() - gui_startup))
 
-        self.image_timeout = timedelta(minutes=60)
-
-        self.memory_slot_change_detection = False
+        # Active image storage
+        self.images = []
 
         # Status parameters
         self.timeout_notified = False
@@ -105,7 +163,7 @@ class Receiver:
         self.total_corrupted_packets = 0
         self.total_received_bytes = 0
 
-        self.database = database.Database(database_filename)
+        self.database = database.Database(self.database_file)
 
     def start_new_log(self):
         """ Start a new log file """
@@ -126,16 +184,6 @@ class Receiver:
 
         self.log_start = datetime.now()
         self.log_file = new_log_filename
-
-    def add_gui(self, ies_gui):
-        """ Add an gui object to the trackerer """
-
-        # Check gui type before adding
-        if isinstance(ies_gui, interface.WapsIesGui):
-            logging.debug(' # gui added linked to IES')
-            self.gui = ies_gui
-        else:
-            logging.warning(' gui has wrong object type')
 
     def get_status(self):
         """ Get receiver status message """
