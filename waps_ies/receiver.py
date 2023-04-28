@@ -56,6 +56,7 @@ class Receiver:
 
     ec_states = []
 
+    refresh_gui_list_window = False
     skip_crc = False
 
     def __init__(self,
@@ -339,6 +340,10 @@ class Receiver:
 
                 # Check if any image is outdated
                 self.check_outdated_images()
+
+                if self.refresh_gui_list_window:
+                    self.refresh_gui_list_window = False
+                    self.gui.refresh_image_list()
 
                 if not self.connected:
                     self.connected = self.connect_to_server()

@@ -192,7 +192,8 @@ class WapsIesGui:
                 elif str(event) in ('clr_0', 'clr_1', 'clr_2', 'clr_3'):
                     self.clear_column(str(event)[4])
                 elif str(event) == 'refresh_button':
-                    self.refresh_image_list()
+                    # Make the refresh in the main loop to avoid recursive database calls
+                    self.receiver.refresh_gui_list_window = True
                 elif str(event) == 'save_button':
                     self.save_image_list()
                 elif str(event) != '__TIMEOUT__':
