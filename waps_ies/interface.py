@@ -203,6 +203,8 @@ class WapsIesGui:
                     self.save_image_list()
                 elif str(event) == 'filter_button':
                     self.filter_image_list(self.list_window['filter_input'].get())
+                elif str(event) == 'image_table':
+                    self.show_selected_image_file_path(values['image_table'])
                 elif str(event) != '__TIMEOUT__':
                     logging.info(' Interface event: %s %s %s',
                                  str(event),
@@ -481,7 +483,9 @@ class WapsIesGui:
                             enable_events=True,
                             auto_size_columns=False,
                             col_widths=[3, 4, 6, 2, 5, 15, 15, 7, 5, 10, 15],
-                            expand_x=True, expand_y=True),]]
+                            expand_x=True, expand_y=True),],
+                  [sg.Text("Selected image file path:"),
+                   sg.Input("None", k='selected_image_file_path', size=(100, 1))]]
 
         # Create a new window
         list_window_title = 'WAPS list of received images'
@@ -581,3 +585,15 @@ class WapsIesGui:
 
         self.list_window['save_result'].update("Saved!",
                                                background_color='springgreen1')
+
+    def show_selected_image_file_path(self, rows):
+        """ Show selected image file path in the list window """
+
+        if len(rows) != 0:
+            # Get only the first value
+            row_data = self.list_window["image_table"].get()[rows[0]]
+            db_data_length = len(self.db_data)
+            table_index = db_data_length - row_data[0]  # minus selected number
+
+            image_data = self.db_data[table_index]
+            self.list_window['selected_image_file_path'].update(image_data[15])
