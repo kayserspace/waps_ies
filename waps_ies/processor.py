@@ -87,6 +87,7 @@ def sort_biolab_packets(packet_list,
 
             # Create an image with the above data
             new_image = waps_image.WapsImage(packet)
+            new_image.ec_position = receiver.get_ec_position(new_image.ec_address)
 
             # Check for a duplicate image
             duplicate_image = False
