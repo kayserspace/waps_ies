@@ -190,11 +190,7 @@ class WapsIesGui:
                 elif str(event) == 'list_all_button':
                     self.show_image_list()
                 elif str(event) in ('clr_0', 'clr_1', 'clr_2', 'clr_3'):
-                    column = str(event)[4]
-                    res = sg.popup_yes_no('Clear column ' + column + '?' +
-                                          '\nDatabase is unaffected')
-                    if res == 'Yes':
-                        self.clear_column(column)
+                    self.clear_column(str(event)[4])
                 elif str(event) == 'refresh_button':
                     self.refresh_image_list()
                 elif str(event) == 'save_button':
@@ -299,6 +295,11 @@ class WapsIesGui:
     def clear_column(self, ec_column):
         """ Update GUI EC column occupation """
 
+        res = sg.popup_yes_no('Clear column ' + ec_column + '?' +
+                              '\nDatabase is unaffected')
+        if res != 'Yes':
+            return
+
         self.receiver.clear_gui_column(ec_column)
 
         # Update column top
@@ -317,6 +318,8 @@ class WapsIesGui:
             self.window['miss' + cell_id].update('')
             self.window['missing_packets' +
                         cell_id].update('', background_color=sg.theme_background_color())
+
+        logging.info("Cleared GUI column " + ec_column)
 
     def update_image_data(self, image):
         """ Update GUI image cell contents """
@@ -480,6 +483,8 @@ class WapsIesGui:
                                      resizable=True,
                                      finalize=True)
 
+        logging.info("Opened image list table")
+
     def refresh_image_list(self):
         """ Refresh the image list table """
 
@@ -488,6 +493,7 @@ class WapsIesGui:
         self.list_window["image_table"].update(data)
         self.list_window['image_list_count'].update(len(data))
         self.list_window['save_result'].update('', background_color=sg.theme_background_color())
+        logging.info("Image list table refreshed")
 
     def save_image_list(self):
         """ Save image list table to excel """
@@ -511,7 +517,7 @@ class WapsIesGui:
         try:
             with open(file_path, 'w') as file:
                 file.write(csv_data)
-                logging.info("Saved image list: %s", str(file_path))
+                logging.info("Saved image list as %s", str(file_path))
 
         except IOError:
             logging.error('Could not open file for writing: %s', file_path)
