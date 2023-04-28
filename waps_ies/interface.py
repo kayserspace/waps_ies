@@ -41,6 +41,7 @@ class WapsIesGui:
     db_data = []
     db_fresh = False
     db_shown = []
+    db_filtered_by = ''
 
     last_ccsds_count_update = datetime.now()
     last_biolab_tm_count_update = datetime.now()
@@ -401,7 +402,7 @@ class WapsIesGui:
         else:
             self.window['miss_' + str(ec_column) + '_' + str(image.memory_slot)].update("Miss:")
             sg.Text('', k="miss" + str(ec_column) +
-                            '_' + str(image.memory_slot))
+                    '_' + str(image.memory_slot))
             if (image.overwritten or image.outdated or
                     image.image_transmission_active):
                 self.window['missing_packets_' + str(ec_column) +
@@ -450,8 +451,10 @@ class WapsIesGui:
         if self.list_window is not None:
             self.list_window.close()
 
-        self.db_data = self.receiver.database.get_image_list(ec_address)
-        self.db_fresh = True
+        self.db_data = self.receiver.database.get_image_list()
+        self.db_shown = []
+        for i in range(len(self.db_data)):
+            self.db_shown.append(True)
         data = self.format_image_list_data(self.db_data)
 
         table_headings = ['#  ', 'Addr', 'Pos', 'M', 'Type',
@@ -497,7 +500,9 @@ class WapsIesGui:
         """ Refresh the image list table """
 
         self.db_data = self.receiver.database.get_image_list()
-        self.db_fresh = True
+        self.db_shown = []
+        for i in range(len(self.db_data)):
+            self.db_shown.append(True)
         data = self.format_image_list_data(self.db_data)
         self.list_window["image_table"].update(data)
         self.list_window['image_list_count'].update(len(data))
@@ -506,15 +511,6 @@ class WapsIesGui:
 
     def filter_image_list(self, val):
         """ Filter image list table by given value """
-
-        db_data_length = len(self.db_data)
-
-        # Create new filtered list is the database is fresh
-        if self.db_fresh:
-            self.db_fresh = False
-            self.db_shown = []
-            for i in range(db_data_length):
-                self.db_shown.append(True)
 
         data = self.format_image_list_data(self.db_data)
 
@@ -531,6 +527,8 @@ class WapsIesGui:
             if not match_found:
                 self.db_shown[index] = False
 
+        self.db_filtered_by = val
+
         self.list_window["image_table"].update(filtered_data)
         self.list_window['save_result'].update('', background_color=sg.theme_background_color())
         logging.info("Image list filtered by '%s'", val)
@@ -543,13 +541,32 @@ class WapsIesGui:
             return
 
         # Get the current table contents
-        data = self.list_window["image_table"].get()
+        data = self.format_image_list_data(self.db_data)
 
-        csv_data = ""
-        for row in data:
-            for item in row:
-                csv_data = csv_data + str(item).replace(',',';') + ', '
-            csv_data = csv_data + '\n'
+        csv_data = ('Database image list generated ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S") +
+                    ' by WAPS Image Extraction Software\n')
+        csv_data = csv_data + f"Total number of images: {len(data)}\n"
+        if self.db_filtered_by != '':
+            csv_data = csv_data + f"Image list is filtered by '{self.db_filtered_by}'\n"
+        else:
+            csv_data = csv_data + "No filter\n"
+
+        csv_data = csv_data + ('#  , Addr, Pos, M, Type, Created, Last update,' +
+                               'Recv, Perc, Status, Missing packets, , ,')
+        csv_data = csv_data + self.receiver.database.database_image_table + '\n'
+
+        for index, row in enumerate(data):
+            if self.db_shown[index]:
+                # Save actual image list table data
+                for item in row:
+                    csv_data = csv_data + str(item).replace(',', ';') + ', '
+
+                csv_data = csv_data + ', , '  # a couple of empty columns
+                # Also save all the addition database data of that items
+                for item in self.db_data[index]:
+                    csv_data = csv_data + str(item).replace(',', ';') + ', '
+
+                csv_data = csv_data + '\n'
 
         # Write the file
         filename = "waps_image_list_" + datetime.now().strftime('%Y%m%d_%H%M%S') + ".csv"

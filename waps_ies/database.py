@@ -27,6 +27,27 @@ class Database:
 
     """
 
+    database_image_table = ("image_uuid, " +
+                            "acquisition_time, " +
+                            "CCSDS_time, " +
+                            "time_tag, " +
+                            "image_name, " +
+                            "camera_type, " +
+                            "ec_address, " +
+                            "ec_position, " +
+                            "memory_slot, " +
+                            "number_of_packets, " +
+                            "good_packets, " +
+                            "overwritten, " +
+                            "outdated, " +
+                            "transmission_active, " +
+                            "image_update, " +
+                            "latest_image_file, " +
+                            "latest_data_file, " +
+                            "latest_tm_file, " +
+                            "last_update, " +
+                            "missing_packets")
+
     def __init__(self, database_filename='waps_pd.db'):
 
         # Database initialization
@@ -67,27 +88,7 @@ class Database:
 
         if not ('images',) in db_tables:
             logging.debug("Adding image table to db")
-            image_table_contents = ("CREATE TABLE images(" +
-                                    "image_uuid, " +
-                                    "acquisition_time, " +
-                                    "CCSDS_time, " +
-                                    "time_tag, " +
-                                    "image_name, " +
-                                    "camera_type, " +
-                                    "ec_address, " +
-                                    "ec_position, " +
-                                    "memory_slot, " +
-                                    "number_of_packets, " +
-                                    "good_packets, " +
-                                    "overwritten, " +
-                                    "outdated, " +
-                                    "transmission_active, " +
-                                    "image_update, " +
-                                    "latest_image_file, " +
-                                    "latest_data_file, " +
-                                    "latest_tm_file, " +
-                                    "last_update, " +
-                                    "missing_packets)")
+            image_table_contents = ("CREATE TABLE images(" + self.database_image_table + ")")
             self.db_cursor.execute(image_table_contents)
 
     def add_packet(self, packet):
@@ -231,16 +232,11 @@ class Database:
                                    image_data)
         self.database.commit()
 
-    def get_image_list(self, ec_address=None):
+    def get_image_list(self):
         """
         Get image list to display in GUI
-        If ec_address not provided - all images
         """
 
-        if ec_address is None:
-            res = self.db_cursor.execute("SELECT * from images ORDER BY CCSDS_time DESC;")
-        else:
-            res = self.db_cursor.execute(contents + " WHERE " + "ec_address=?"
-                                         + " ORDER BY CCSDS_time DESC;",
-                                         [ec_address])
+        res = self.db_cursor.execute("SELECT * from images ORDER BY CCSDS_time DESC;")
+
         return res.fetchall()
