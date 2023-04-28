@@ -18,7 +18,6 @@ Change Log:
 import sys
 import configparser
 from argparse import ArgumentParser
-import os
 import logging
 import waps_ies.receiver
 
@@ -250,29 +249,6 @@ def run_waps_ies(args):
     waps_config, ec_list = check_config_file()
     # Command line arguments
     waps_config = check_arguments(args, waps_config)
-
-    # Check critical parameters
-    if not waps_config["ip_address"] or not waps_config["port"]:
-        logging.error("%s%s%s%s", "Server IP address or port not specified\n",
-                      "Please specify IP address and port",
-                      " inline or in the configuration file\n",
-                      "Example: waps_ies_app.py -ip localhost -p 12345")
-        sys.exit()
-
-    # Check existence of the log path
-    if not os.path.exists(waps_config["log_path"]):
-        print("Log path does not exist. Creating it...\n...")
-        os.makedirs(waps_config["log_path"])
-
-    # Check existence of output path
-    if not os.path.exists(waps_config["output_path"]):
-        print("Output path does not exist. Creating it...\n...")
-        os.makedirs(waps_config["output_path"])
-
-    # Check existence of output path
-    if not os.path.exists(waps_config["comm_path"]):
-        print("Command stack path does not exist. Creating it...\n...")
-        os.makedirs(waps_config["comm_path"])
 
     # Initialize the WAPS IES
     ies = waps_ies.receiver.Receiver(waps_config)

@@ -12,10 +12,10 @@ class TestReceiver(unittest.TestCase):
         waps = {"ip_address": "192.168.1.1",
                 "port": "12345",
                 "tcp_timeout": '2.1',           # seconds
-                "output_path": 'output/',       # directory
+                "output_path": 'tests/output/',       # directory
                 "database_file": 'tests/waps_pd.db',  # directory
-                "comm_path": 'comm/',           # directory
-                "log_path": 'log/',             # directory
+                "comm_path": 'tests/comm/',           # directory
+                "log_path": 'tests/log/',             # directory
                 "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR
                 "gui_enabled": '0',             # Graphical User Interface
                 "image_timeout": '0',         # minutes (10h by default)

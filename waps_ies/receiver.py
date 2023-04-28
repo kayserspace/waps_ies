@@ -11,6 +11,7 @@ Change Log:
 """
 
 import logging
+import os
 from datetime import datetime, timedelta
 import socket
 import time
@@ -85,6 +86,11 @@ class Receiver:
         else:
             waps_config["log_level"] = logging.INFO
 
+        # Check existence of the log path
+        if not os.path.exists(waps_config["log_path"]):
+            logging.info("Log path does not exist. Creating it...\n...")
+            os.makedirs(waps_config["log_path"])
+
         # Enable logging
         self.log_path = waps_config["log_path"]
         self.log_level = waps_config["log_level"]
@@ -95,6 +101,14 @@ class Receiver:
         logging.info(' # Logging path: %s', waps_config["log_path"])
         logging.info(' # Logging level: %s', log_level_printout)
 
+        # Check critical parameters
+        if not waps_config["ip_address"] or not waps_config["port"]:
+            logging.error("%s%s%s%s", "Server IP address or port not specified\n",
+                          "Please specify IP address and port",
+                          " inline or in the configuration file\n",
+                          "Example: waps_ies_app.py -ip localhost -p 12345")
+            sys.exit()
+
         # TCP client
         self.socket = None
         self.server_address = (waps_config["ip_address"], int(waps_config["port"]))
@@ -104,6 +118,16 @@ class Receiver:
         self.tcp_timeout = float(waps_config["tcp_timeout"])
         logging.info(' # TCP timeout: %s seconds', waps_config["tcp_timeout"])
         self.connected = False
+
+        # Check existence of output path
+        if not os.path.exists(waps_config["output_path"]):
+            logging.info("Output path does not exist. Creating it...\n...")
+            os.makedirs(waps_config["output_path"])
+
+        # Check existence of output path
+        if not os.path.exists(waps_config["comm_path"]):
+            logging.info("Command stack path does not exist. Creating it...\n...")
+            os.makedirs(waps_config["comm_path"])
 
         self.output_path = waps_config["output_path"]
         logging.info(' # Output path: %s', waps_config["output_path"])
