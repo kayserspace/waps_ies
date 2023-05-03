@@ -13,6 +13,8 @@ Change Log:
 import os
 import logging
 import sqlite3
+from datetime import datetime
+from waps_ies import waps_packet, waps_image
 
 
 class Database:
@@ -190,6 +192,65 @@ class Database:
             logging.debug(" Multiple matching images")
             return res[0][0]
         return None
+
+    def restore_packet_from_db_entry(self, packet_entry):
+        """
+        Restore packet from its database entry
+        """
+
+        acquisition_time = datetime.strptime(packet_entry[1],"%Y-%m-%d %H:%M:%S.%f")
+        ccsds_time = datetime.strptime(packet_entry[2],"%Y-%m-%d %H:%M:%S.%f")
+        packet = waps_packet.WapsPacket(ccsds_time,
+                                        acquisition_time,
+                                        packet_entry[3])
+        packet.uuid = packet_entry[0]
+        packet.image_uuid = packet_entry[18]
+
+        return packet
+
+    def restore_image_from_db_entry(self, image_entry):
+        """
+        Restore image from its database entry
+        """
+
+        # Retrieve all packets belonging to this image
+        res = self.db_cursor.execute("SELECT * FROM packets WHERE image_id=?",
+                                     [image_entry[0][0]])
+        packet_entries = res.fetchall()
+
+        packet_list = []
+        image = None
+        for index, packet_entry in enumerate(packet_entries):
+            packet = self.restore_packet_from_db_entry(packet_entry)
+
+            if packet_entries[index][7] in (0x4100, 0x5100):
+                image = waps_image.WapsImage(packet)
+            else:
+                packet_list.append(packet)
+
+        if image is not None:
+            image.packets = packet_list
+            return image
+
+        return None
+
+    def retrieve_image_from_packet(self, packet):
+        """
+        Retrieve the latest image from database matching packet parameters
+        """
+
+        # Latest image entry
+        res = self.db_cursor.execute("SELECT * FROM images WHERE " +
+                                     "ec_address=? AND memory_slot=? AND CCSDS_time<=? " +
+                                     "ORDER BY CCSDS_time DESC LIMIT 1",
+                                     [packet.ec_address,
+                                      packet.image_memory_slot,
+                                      packet.ccsds_time])
+        image_entry = res.fetchall()
+
+        if len(image_entry) == 0:
+            return None
+        return self.restore_image_from_db_entry(image_entry)
 
     def update_image_status(self, image):
         """ Update an existing image in the database with status """

@@ -144,13 +144,25 @@ def sort_biolab_packets(packet_list,
                         not image.overwritten):
                     found_matching_image = True
 
+                    packet.image_uuid = incomplete_images[i].uuid
                     incomplete_images[i].add_packet(packet)
                     incomplete_images[i].update = True
-
-                    # Add packet to the database
-                    packet.image_uuid = incomplete_images[i].uuid
                     receiver.database.update_image_status(incomplete_images[i])
                     break
+
+            # Check database for a pre-existing image
+            if not found_matching_image:
+                old_image = receiver.database.retrieve_image_from_packet(packet)
+
+                if old_image is not None:
+                    found_matching_image = True
+
+                    packet.image_uuid = old_image.uuid
+                    old_image.add_packet(packet)
+                    old_image.update = True
+                    incomplete_images.append(old_image)
+                    logging.error(" Loaded image %s from dataase to active memory",
+                                 old_image.image_name)
 
             if not found_matching_image:
                 logging.error('%s matching image %i not found',
