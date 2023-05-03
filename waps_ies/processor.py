@@ -74,8 +74,6 @@ def sort_biolab_packets(packet_list,
         if packet.generic_tm_id in (0x4100, 0x5100):
             # Generic TM ID 0x4100, Generic TM Type set
             # with corresponding Picture ID, 0 to 7, and Packet ID to 0x000
-            val = receiver.total_initialized_images + 1
-            receiver.total_initialized_images = val
 
             # Track whether image is being trasmitted
             receiver.ec_states[ec_i]["transmission_active"] = True
@@ -114,19 +112,18 @@ def sort_biolab_packets(packet_list,
             image_added = receiver.database.add_image(new_image)
 
             # If image already exists in database - skip
-            if not image_added:
-                continue
+            if image_added:
+                receiver.total_initialized_images = receiver.total_initialized_images + 1
+                logging.info('  New %s image in Memory slot %i with %i packets',
+                             new_image.image_name,
+                             packet.image_memory_slot,
+                             new_image.number_of_packets)
 
-            logging.info('  New %s image in Memory slot %i with %i packets',
-                         new_image.image_name,
-                         packet.image_memory_slot,
-                         new_image.number_of_packets)
+                # Update packet's image uuid
+                packet.image_uuid = new_image.uuid
 
-            # Update packet's image uuid
-            packet.image_uuid = new_image.uuid
-
-            # Add image to the incomplete list
-            incomplete_images.append(new_image)
+                # Add image to the incomplete list
+                incomplete_images.append(new_image)
 
             # On creation of a new image assign a GUI column
             if receiver.gui:
@@ -367,16 +364,19 @@ def save_images(images, output_path, receiver, save_incomplete=True):
             logging.warning(completeness_message)
 
         if len(missing_packets) == 0:
-            receiver.total_completed_images = receiver.total_completed_images + 1
             image.image_transmission_active = False
 
-        elif not image.latest_saved_file:  # Only after the initial image transmission
+        if image.latest_saved_file is None:  # Only after the initial image transmission
             # Count lost packets
             receiver.total_lost_packets = (receiver.total_lost_packets +
                                            len(image.get_missing_packets(True)))
 
             # Create command stack for missing packets
             create_command_stack(image, receiver)
+
+        elif ((image.latest_saved_file[-7:-4] != '100' or image.latest_saved_file is None)
+              and len(missing_packets) == 0):
+            receiver.total_completed_images = receiver.total_completed_images + 1
 
         # Print detailed image information
         logging.info(image)

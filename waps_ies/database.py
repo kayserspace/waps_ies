@@ -215,7 +215,7 @@ class Database:
 
         # Retrieve all packets belonging to this image
         res = self.db_cursor.execute("SELECT * FROM packets WHERE image_id=?",
-                                     [image_entry[0][0]])
+                                     [image_entry[0]])
         packet_entries = res.fetchall()
 
         packet_list = []
@@ -230,6 +230,11 @@ class Database:
 
         if image is not None:
             image.packets = packet_list
+            image.uuid = image_entry[0]
+            image.latest_saved_file = image_entry[15]
+            image.latest_saved_file_tm = image_entry[16]
+            image.latest_saved_file_data = image_entry[17]
+            image.last_update = datetime.strptime(image_entry[18], "%Y-%m-%d %H:%M:%S.%f")
             return image
 
         return None
@@ -250,7 +255,7 @@ class Database:
 
         if len(image_entry) == 0:
             return None
-        return self.restore_image_from_db_entry(image_entry)
+        return self.restore_image_from_db_entry(image_entry[0])
 
     def update_image_status(self, image):
         """ Update an existing image in the database with status """
