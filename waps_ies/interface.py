@@ -364,13 +364,7 @@ class WapsIesGui:
         elif image.outdated:
             self.window[curr_tag].update("Outdated")
             self.window[curr_tag].update(background_color='yellow')
-        elif image.image_transmission_active:
-            self.window[curr_tag].update("In progress")
-            self.window[curr_tag].update(background_color='lightblue')
-        elif len(missing_packets) > 0:
-            self.window[curr_tag].update("Incomplete")
-            self.window[curr_tag].update(background_color='red')
-        else:
+        elif len(missing_packets) == 0:
             self.window[curr_tag].update("Complete")
             self.window[curr_tag].update(background_color='springgreen1')
             # Change colours of all other finished images
@@ -381,6 +375,12 @@ class WapsIesGui:
                     self.window['status_' + str(ec_column) +
                                 '_' + str(i)].update(
                         background_color='springgreen4')
+        elif image.image_transmission_active:
+            self.window[curr_tag].update("In progress")
+            self.window[curr_tag].update(background_color='lightblue')
+        else:
+            self.window[curr_tag].update("Incomplete")
+            self.window[curr_tag].update(background_color='red')
 
         # Image type
         self.window['image_type_' + str(ec_column) + '_' +
