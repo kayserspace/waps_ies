@@ -398,7 +398,7 @@ class Receiver:
             if data_length == expected_length:
                 return data
 
-        raise ValueError("Unexpected reception length: %i bytes", data_length)
+        raise ValueError(f"Unexpected reception length: {data_length} bytes")
 
     def start(self):
         """ Main receiver loop """
