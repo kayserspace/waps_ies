@@ -98,8 +98,8 @@ class Database:
 
         # Avoid adding packet several times
         if self.packet_exists(packet):
-            logging.warning(" Packet %s already present in database",
-                            packet.packet_name)
+            logging.info(" Packet %s already present in database",
+                         packet.packet_name)
             return
 
         packet_data = [(packet.uuid,
@@ -147,9 +147,9 @@ class Database:
         # Avoid adding image several times
         uuid = self.image_exists(image)
         if uuid is not None:
-            logging.warning(" image %s already present in database",
-                            image.image_name)
-            return uuid
+            logging.info(" Image %s already present in database",
+                         image.image_name)
+            return False
 
         image_data = [(image.uuid,
                        image.acquisition_time,
@@ -174,7 +174,7 @@ class Database:
         image_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         self.db_cursor.executemany("INSERT INTO images VALUES" + image_param, image_data)
         self.database.commit()
-        return image.uuid
+        return True
 
     def image_exists(self, image):
         """
@@ -198,8 +198,8 @@ class Database:
         Restore packet from its database entry
         """
 
-        acquisition_time = datetime.strptime(packet_entry[1],"%Y-%m-%d %H:%M:%S.%f")
-        ccsds_time = datetime.strptime(packet_entry[2],"%Y-%m-%d %H:%M:%S.%f")
+        acquisition_time = datetime.strptime(packet_entry[1], "%Y-%m-%d %H:%M:%S.%f")
+        ccsds_time = datetime.strptime(packet_entry[2], "%Y-%m-%d %H:%M:%S.%f")
         packet = waps_packet.WapsPacket(ccsds_time,
                                         acquisition_time,
                                         packet_entry[3])

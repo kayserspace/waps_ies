@@ -108,15 +108,20 @@ def sort_biolab_packets(packet_list,
                     receiver.remove_overwritten_image(index)
 
             if duplicate_image:
-                break
+                continue
+
+            # Add image to the database
+            image_added = receiver.database.add_image(new_image)
+
+            # If image already exists in database - skip
+            if not image_added:
+                continue
 
             logging.info('  New %s image in Memory slot %i with %i packets',
                          new_image.image_name,
                          packet.image_memory_slot,
                          new_image.number_of_packets)
 
-            # Add image to the database
-            new_image.uuid = receiver.database.add_image(new_image)
             # Update packet's image uuid
             packet.image_uuid = new_image.uuid
 
@@ -161,7 +166,7 @@ def sort_biolab_packets(packet_list,
                     old_image.add_packet(packet)
                     old_image.update = True
                     incomplete_images.append(old_image)
-                    logging.error(" Loaded image %s from dataase to active memory",
+                    logging.info(" Loaded image %s from database to active memory",
                                  old_image.image_name)
 
             if not found_matching_image:
