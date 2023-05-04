@@ -120,7 +120,7 @@ class WapsIesGui:
                                 sg.Text("", k='ec_position_' + str(col),
                                         background_color='white',
                                         size=(6, 1), justification='c'),
-                                sg.Button('clr', k='clr_' + str(col))])
+                                sg.Button('clr', k='clr_' + str(col), visible=False)])
             for i in range(slot_number):
                 cell_id = '_' + str(col) + '_' + str(i)
                 frames[col].append([sg.Text(str(i),
@@ -301,6 +301,7 @@ class WapsIesGui:
         # EC address / position update
         self.window['ec_address_' + str(ec_column)].update(str(ec_address))
         self.window['ec_position_' + str(ec_column)].update(ec_position)
+        self.window['clr_' + str(ec_column)].update(visible=True)
 
     def clear_column(self, ec_column):
         """ Update GUI EC column occupation """
@@ -315,6 +316,7 @@ class WapsIesGui:
         # Update column top
         self.window['ec_address_' + ec_column].update('')
         self.window['ec_position_' + ec_column].update('')
+        self.window['clr_' + ec_column].update(visible=False)
 
         # Update cells
         for i in range(8):
