@@ -50,7 +50,31 @@ class Database:
                             "last_update, " +
                             "missing_packets")
 
-    def __init__(self, database_filename='waps_pd.db'):
+    database_packet_table = ("packet_uuid, " +
+                             "acquisition_time, " +
+                             "CCSDS_time, " +
+                             "data, " +
+                             "time_tag, " +
+                             "packet_name, " +
+                             "ec_address, " +
+                             "generic_tm_id, " +
+                             "generic_tm_type, " +
+                             "generic_tm_length, " +
+                             "image_memory_slot, " +
+                             "tm_packet_id, " +
+                             "image_number_of_packets, " +
+                             "data_packet_id, " +
+                             "data_packet_crc, " +
+                             "data_packet_size, " +
+                             "data_packet_verify_code, " +
+                             "good_packet, " +
+                             "image_id")
+
+    receiver = None
+
+    def __init__(self, database_filename='waps_pd.db', receiver=None):
+
+        self.receiver = receiver
 
         # Database initialization
         if not os.path.exists(database_filename):
@@ -66,26 +90,7 @@ class Database:
 
         if not ('packets',) in db_tables:
             logging.debug("Adding packet table to db")
-            packet_table_contents = ("CREATE TABLE packets(" +
-                                     "packet_uuid, " +
-                                     "acquisition_time, " +
-                                     "CCSDS_time, " +
-                                     "data, " +
-                                     "time_tag, " +
-                                     "packet_name, " +
-                                     "ec_address, " +
-                                     "generic_tm_id, " +
-                                     "generic_tm_type, " +
-                                     "generic_tm_length, " +
-                                     "image_memory_slot, " +
-                                     "tm_packet_id, " +
-                                     "image_number_of_packets, " +
-                                     "data_packet_id, " +
-                                     "data_packet_crc, " +
-                                     "data_packet_size, " +
-                                     "data_packet_verify_code, " +
-                                     "good_packet, " +
-                                     "image_id)")
+            packet_table_contents = ("CREATE TABLE packets(" + self.database_packet_table + ")")
             self.db_cursor.execute(packet_table_contents)
 
         if not ('images',) in db_tables:
@@ -119,7 +124,7 @@ class Database:
                         packet.data_packet_crc,
                         packet.data_packet_size,
                         packet.data_packet_verify_code,
-                        packet.is_good_waps_image_packet(),
+                        packet.is_good_waps_image_packet(count_corruption=True),
                         packet.image_uuid),]
 
         packet_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"

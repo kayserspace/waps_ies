@@ -193,7 +193,7 @@ class WapsPacket:
 
         return True
 
-    def is_good_waps_image_packet(self):
+    def is_good_waps_image_packet(self, count_corruption=False):
         """ Check packet for corruption"""
 
         if len(self.data) != 254:  # BIOLAB packet data length fixed at 254
@@ -251,10 +251,11 @@ class WapsPacket:
                 if not self.packet_corruption_declared:
                     logging.warning('%s - CRC mismatch. %i packet is likely corrupted',
                                     self.packet_name, self.tm_packet_id)
-                    if self.receiver is not None:
-                        val = self.receiver.total_corrupted_packets + 1
-                        self.receiver.total_corrupted_packets = val
                     self.packet_corruption_declared = True
+
+                if self.receiver is not None and count_corruption:
+                    self.receiver.total_corrupted_packets = self.receiver.total_corrupted_packets + 1
+
                 return False
 
         if self.generic_tm_id == 0x5200:
@@ -279,12 +280,12 @@ class WapsPacket:
                 if not self.packet_corruption_declared:
                     logging.warning('%s - Verify code mismatch. %i packet is likely corrupted',
                                     self.packet_name, self.tm_packet_id)
-                    if self.receiver is not None:
-                        val = self.receiver.total_corrupted_packets + 1
-                        self.receiver.total_corrupted_packets = val
                     self.packet_corruption_declared = True
 
                 if self.receiver is not None:
+                    if count_corruption:
+                        self.receiver.total_corrupted_packets = self.receiver.total_corrupted_packets + 1
+
                     if not self.receiver.skip_crc:
                         return False
 
