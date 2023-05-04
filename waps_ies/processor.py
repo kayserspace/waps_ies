@@ -365,7 +365,6 @@ def save_images(images, output_path, receiver, save_incomplete=True):
 
         if len(missing_packets) == 0:
             image.image_transmission_active = False
-            logging.info("Image_complete")
             if image.latest_saved_file is None or image.latest_saved_file[-7:-4] != '100':
                 receiver.total_completed_images = receiver.total_completed_images + 1
 
@@ -505,7 +504,7 @@ def save_images(images, output_path, receiver, save_incomplete=True):
             # Since the file write was successful,
             # remove previous versions of the files
             try:
-                if image.latest_saved_file:
+                if image.latest_saved_file is not None and image.latest_saved_file != file_path:
                     filename = image.latest_saved_file
                     if os.path.exists(filename):
                         os.remove(filename)

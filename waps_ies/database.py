@@ -210,6 +210,7 @@ class Database:
                                         packet_entry[3])
         packet.uuid = packet_entry[0]
         packet.image_uuid = packet_entry[18]
+        packet.receiver = self.receiver
 
         return packet
 

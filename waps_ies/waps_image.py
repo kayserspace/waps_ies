@@ -271,7 +271,12 @@ class WapsImage:
                     logging.error(" DUPLICATE packets, data not identical:")
                     logging.debug(' DUPLICATE #1 %s', str(self.packets[i]))
                     logging.debug(' DUPLICATE #2 %s', str(self.packets[i+1]))
-                self.packets.pop(i)
+                if (self.packets[i].ccsds_time <= self.packets[i+1].ccsds_time or
+                        (self.packets[i+1].is_good_waps_image_packet() and
+                         not self.packets[i].is_good_waps_image_packet())):
+                    self.packets.pop(i)
+                else:
+                    self.packets.pop(i+1)
             else:
                 i = i + 1
 
