@@ -131,6 +131,18 @@ class Database:
         self.db_cursor.executemany("INSERT INTO packets VALUES" + packet_param, packet_data)
         self.database.commit()
 
+    def update_image_uuid_of_a_packet(self, packet):
+        """ Update packet with the new image uuid """
+
+        packet_data = (packet.image_uuid,
+                       packet.uuid),
+
+        self.db_cursor.executemany("""UPDATE packets SET
+                                   image_id=?
+                                   WHERE packet_uuid=?""",
+                                   packet_data)
+        self.database.commit()
+
     def packet_exists(self, packet):
         """
         Check if packet already exists in the database
@@ -262,6 +274,31 @@ class Database:
         if len(image_entry) == 0:
             return None
         return self.restore_image_from_db_entry(image_entry[0])
+
+    def retrieve_packets_after(self, packet):
+        """
+        Retrieve packets
+        """
+
+        # Retrieve all packets belonging to this image
+        res = self.db_cursor.execute("""SELECT * FROM packets WHERE
+                                     ec_address=? AND
+                                     image_memory_slot=? AND
+                                     CCSDS_time>=?
+                                     ORDER BY CCSDS_time ASC""",
+                                     [packet.ec_address,
+                                      packet.image_memory_slot,
+                                      packet.ccsds_time])
+        packet_entries = res.fetchall()
+
+        packet_list = []
+        for packet_entry in packet_entries:
+            packet = self.restore_packet_from_db_entry(packet_entry)
+            if packet.generic_tm_id in (0x4100, 0x5100):  # New image starts here
+                break
+            packet_list.append(packet)
+
+        return packet_list
 
     def update_image_status(self, image):
         """ Update an existing image in the database with status """

@@ -122,6 +122,17 @@ def sort_biolab_packets(packet_list,
                 # Update packet's image uuid
                 packet.image_uuid = new_image.uuid
 
+                # Check database for existing packets
+                existing_packet_list = receiver.database.retrieve_packets_after(packet)
+                if len(existing_packet_list) != 0:
+                    # Update all packets with this image uuid
+                    for index, existing_packet in enumerate(existing_packet_list):
+                        existing_packet_list[index].image_uuid = new_image.uuid
+                        receiver.database.update_image_uuid_of_a_packet(existing_packet)
+                    new_image.packets = existing_packet_list
+
+                receiver.database.update_image_status(new_image)
+
                 # Add image to the incomplete list
                 incomplete_images.append(new_image)
 
