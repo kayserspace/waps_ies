@@ -187,7 +187,7 @@ class Receiver:
         self.total_corrupted_packets = 0
         self.total_received_bytes = 0
 
-        self.database = database.Database(self.database_file)
+        self.database = database.Database(self.database_file, self)
 
     def start_new_log(self):
         """ Start a new log file """

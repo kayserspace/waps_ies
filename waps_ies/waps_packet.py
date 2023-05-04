@@ -282,9 +282,11 @@ class WapsPacket:
                                     self.packet_name, self.tm_packet_id)
                     self.packet_corruption_declared = True
 
-                if self.receiver is not None and not self.receiver.skip_verify_code:
-                    if count_corruption:
+                if self.receiver is not None:
+                    if count_corruption and not self.receiver.skip_verify_code:
                         self.receiver.total_corrupted_packets = self.receiver.total_corrupted_packets + 1
-                    return False
+                    if self.receiver.skip_verify_code:
+                        return True
+                return False
 
         return True
