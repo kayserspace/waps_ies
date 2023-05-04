@@ -103,7 +103,7 @@ def check_config_file():
         waps["detect_mem_slot"] = config.get('WAPS_IES', 'memory_slot_change_detection',
                                              fallback=waps["detect_mem_slot"])
         waps["skip_verify_code"] = config.get('WAPS_IES', 'skip_verify_code',
-                                      fallback=waps["skip_verify_code"])
+                                              fallback=waps["skip_verify_code"])
     if 'EC_POSITIONS' in config.sections():
         for ec_addr_pos in config.items('EC_POSITIONS'):
             ec_list.append({"ec_address": int(ec_addr_pos[0]),
