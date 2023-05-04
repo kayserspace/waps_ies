@@ -157,7 +157,8 @@ class WapsIesGui:
                               background_color='white'),
                       sg.Text('Corrupted packets:'),
                       sg.Text('0', k='corrupted_packets', size=(4, 1),
-                              background_color='white')]
+                              background_color='white'),
+                      sg.Text('Not counting duplicates')]
         layout.append(status_bar)
 
         # Create the Window
@@ -204,7 +205,9 @@ class WapsIesGui:
                 elif str(event) == 'filter_button':
                     self.filter_image_list(self.list_window['filter_input'].get())
                 elif str(event) == 'image_table':
-                    self.show_selected_image_file_path(values['image_table'])
+                    self.show_selected_image(values['image_table'])
+                elif str(event) == 'image_details':
+                    self.show_selected_image_details(values['image_table'])
                 elif str(event) != '__TIMEOUT__':
                     logging.info(' Interface event: %s %s %s',
                                  str(event),
@@ -213,8 +216,8 @@ class WapsIesGui:
                 timeout = 10000  # ms
 
         finally:
-            self.window.close()
             self.window_open = False
+            self.window.close(); del self.window
             logging.info(' # Closed interface')
             self.receiver.continue_running = False
 
@@ -426,7 +429,7 @@ class WapsIesGui:
             image_row.append(len(db_data) - index)
             image_row.append(image_data[6])         # EC address
             image_row.append(image_data[7])         # EC Position
-            image_row.append(image_data[8])         # Memory slot
+            image_row.append('m'+str(image_data[8]))# Memory slot
             image_row.append(image_data[5])         # Camera type
             image_row.append(image_data[2][:19])    # Creation time
             image_row.append(image_data[18][:19])    # Last update time
@@ -461,7 +464,7 @@ class WapsIesGui:
             self.db_shown.append(True)
         data = self.format_image_list_data(self.db_data)
 
-        table_headings = ['#  ', 'Addr', 'Pos', 'M', 'Type',
+        table_headings = ['#  ', 'Addr', 'Pos', 'Mem', 'Type',
                           'Created', 'Last update',
                           'Recv', 'Perc', 'Status', 'Missing packets']
 
@@ -470,7 +473,7 @@ class WapsIesGui:
                    sg.Text(len(self.db_data), k='image_list_count',
                            background_color='white'),
                    sg.Text("images starting with the latest"),
-                   sg.Button('Save', k='save_button'),
+                   sg.Button('Save table', k='save_button'),
                    sg.Text("", k='save_result', size=(6, 1),
                            justification='c'),
                    sg.Button('Filter', k='filter_button'),
@@ -484,10 +487,12 @@ class WapsIesGui:
                             justification='l',
                             enable_events=True,
                             auto_size_columns=False,
-                            col_widths=[3, 4, 6, 2, 5, 15, 15, 7, 5, 10, 15],
+                            col_widths=[3, 4, 6, 4, 5, 15, 15, 7, 5, 10, 15],
                             expand_x=True, expand_y=True),],
-                  [sg.Text("Selected image file path:"),
-                   sg.Input("None", k='selected_image_file_path', size=(100, 1))]]
+                  [sg.Text("Selected image:"),
+                   sg.Input("None", k='selected_image_file_path', size=(45, 1)),
+                   sg.Button('Details', k='image_details', visible=False),
+                   sg.Button('Extract image', k='image_extract', visible=False)]]
 
         # Create a new window
         list_window_title = 'WAPS list of received images'
@@ -557,7 +562,7 @@ class WapsIesGui:
         else:
             csv_data = csv_data + "No filter\n"
 
-        csv_data = csv_data + ('#  , Addr, Pos, M, Type, Created, Last update,' +
+        csv_data = csv_data + ('#  , Addr, Pos, Mem, Type, Created, Last update,' +
                                'Recv, Perc, Status, Missing packets, , ,')
         csv_data = csv_data + self.receiver.database.database_image_table + '\n'
 
@@ -588,8 +593,8 @@ class WapsIesGui:
         self.list_window['save_result'].update("Saved!",
                                                background_color='springgreen1')
 
-    def show_selected_image_file_path(self, rows):
-        """ Show selected image file path in the list window """
+    def show_selected_image(self, rows):
+        """ Show selected image name in the list window """
 
         if len(rows) != 0:
             # Get only the first value
@@ -598,4 +603,33 @@ class WapsIesGui:
             table_index = db_data_length - row_data[0]  # minus selected number
 
             image_data = self.db_data[table_index]
-            self.list_window['selected_image_file_path'].update(image_data[15])
+            self.list_window['selected_image_file_path'].update(image_data[4])
+            self.list_window['image_details'].update(visible=True)
+            self.list_window['image_extract'].update(visible=True)
+        else:
+            self.list_window['selected_image_file_path'].update('None')
+            self.list_window['image_details'].update(visible=False)
+            self.list_window['image_extract'].update(visible=False)
+
+    def show_selected_image_details(self, rows):
+        """ Show selected image details in a popup window """
+
+        if len(rows) != 0:
+
+            # Get only the first value
+            row_data = self.list_window["image_table"].get()[rows[0]]
+            db_data_length = len(self.db_data)
+            table_index = db_data_length - row_data[0]  # minus selected number
+
+            image_data = self.db_data[table_index]
+
+            popup_str = ('Image name:\t' + image_data[4] + '\n' +
+                         'Image UUID:\t' + image_data[0] + '\n' +
+                         'Acquisition time:\t\t' + image_data[1] + '\n' +
+                         'Initialization CCSDS time:\t' + image_data[2] + '\n' +
+                         'Last update CCSDS time:\t\t' + image_data[18] + '\n' +
+                         'Missing packets: ' + image_data[19] + '\n')
+
+            self.popup_window = sg.popup_no_buttons(popup_str, font=("Courier New", 10))
+
+            logging.info("Image %s details are shown", image_data[4])
