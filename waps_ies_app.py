@@ -50,8 +50,8 @@ def check_config_file():
     image_timeout = 600
     # Enable memory slot change detection from general BIOLAB telemetry
     memory_slot_change_detection = 1
-    # Skip checking colour image CRC
-    skip_crc = 0
+    # Skip checking verify code of the colour image
+    skip_verify_code = 0
     """
 
     # Default WAPS IES configuration
@@ -66,7 +66,7 @@ def check_config_file():
             "gui_enabled": '1',             # Graphical User Interface
             "image_timeout": '600',         # minutes (10h by default)
             "detect_mem_slot": '1',         # False
-            "skip_crc": '0'}                # Check clour image CRC
+            "skip_verify_code": '0'}                # Check clour image CRC
 
     # EC list contains
     # - EC address
@@ -102,8 +102,8 @@ def check_config_file():
                                            fallback=waps["image_timeout"])
         waps["detect_mem_slot"] = config.get('WAPS_IES', 'memory_slot_change_detection',
                                              fallback=waps["detect_mem_slot"])
-        waps["skip_crc"] = config.get('WAPS_IES', 'skip_crc',
-                                      fallback=waps["skip_crc"])
+        waps["skip_verify_code"] = config.get('WAPS_IES', 'skip_verify_code',
+                                      fallback=waps["skip_verify_code"])
     if 'EC_POSITIONS' in config.sections():
         for ec_addr_pos in config.items('EC_POSITIONS'):
             ec_list.append({"ec_address": int(ec_addr_pos[0]),

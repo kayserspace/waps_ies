@@ -59,7 +59,7 @@ class Receiver:
     refresh_gui_list_window = False
 
     memory_slot_change_detection = False
-    skip_crc = False
+    skip_verify_code = False
 
     # Main loop enabled
     continue_running = True
@@ -146,8 +146,8 @@ class Receiver:
             self.memory_slot_change_detection = True
             logging.info(" # Detecting memory slot change from BIOLAB telemetry")
 
-        if waps_config["skip_crc"] == '1':
-            self.skip_crc = True
+        if waps_config["skip_verify_code"] == '1':
+            self.skip_verify_code = True
             logging.info(" # IES shall not consider failed CRC as lost packet")
 
         # Configure gui
