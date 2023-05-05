@@ -656,7 +656,7 @@ class WapsIesGui:
                              f'Last saved telemetry file:\t{image_data[17]}')
 
             self.popup_window = sg.popup_no_buttons(popup_str, font=("Courier New", 10),
-                                                    title="Image "+str(image_data[15])+" details")
+                                                    title=f"Image {image_data[4]} details")
 
             logging.info("Image %s details are shown in a popup window", image_data[4])
 
