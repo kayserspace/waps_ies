@@ -275,6 +275,20 @@ class Database:
             return None
         return self.restore_image_from_db_entry(image_entry[0])
 
+    def retrieve_image_by_uuid(self, image_uuid):
+        """
+        Retrieve and image from databse using its uuid
+        """
+
+        # Latest image entry
+        res = self.db_cursor.execute("SELECT * FROM images WHERE image_uuid=?",
+                                     [image_uuid])
+        image_entry = res.fetchall()
+
+        if len(image_entry) == 0:
+            return None
+        return self.restore_image_from_db_entry(image_entry[0])
+
     def retrieve_packets_after(self, packet):
         """
         Retrieve packets

@@ -423,7 +423,14 @@ class Receiver:
                 # If some images have been assigned to be recovered
                 while len(self.recover_image_uuids) != 0:
                     image_uuid = self.recover_image_uuids.pop(0)
-                    print(image_uuid)
+                    image = self.database.retrieve_image_by_uuid(image_uuid)
+                    if image is not None:
+                        image.image_transmission_active = False
+                        image.update = True
+                        self.images = processor.save_images([image],
+                                                            self.output_path,
+                                                            self,
+                                                            True)  # Not incomplete
 
                 if not self.connected:
                     self.connected = self.connect_to_server()
