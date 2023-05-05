@@ -374,6 +374,9 @@ def save_images(images, output_path, receiver, save_incomplete=True):
         else:
             logging.warning(completeness_message)
 
+            # Create command stack for missing packets
+            create_command_stack(image, receiver)
+
         if len(missing_packets) == 0:
             image.image_transmission_active = False
             if image.latest_saved_file is None or image.latest_saved_file[-7:-4] != '100':
@@ -384,9 +387,6 @@ def save_images(images, output_path, receiver, save_incomplete=True):
 
             receiver.total_lost_packets = (receiver.total_lost_packets +
                                            len(image.get_missing_packets(True)))
-
-            # Create command stack for missing packets
-            create_command_stack(image, receiver)
 
         # Print detailed image information
         logging.info(image)
