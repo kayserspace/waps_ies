@@ -217,7 +217,8 @@ class WapsIesGui:
 
         finally:
             self.window_open = False
-            self.window.close(); del self.window
+            self.window.close()
+            del self.window
             logging.info(' # Closed interface')
             self.receiver.continue_running = False
 
@@ -622,14 +623,37 @@ class WapsIesGui:
             table_index = db_data_length - row_data[0]  # minus selected number
 
             image_data = self.db_data[table_index]
+            completion = 100.0*int(image_data[10])/int(image_data[9])
 
-            popup_str = ('Image name:\t' + image_data[4] + '\n' +
-                         'Image UUID:\t' + image_data[0] + '\n' +
-                         'Acquisition time:\t\t' + image_data[1] + '\n' +
-                         'Initialization CCSDS time:\t' + image_data[2] + '\n' +
-                         'Last update CCSDS time:\t\t' + image_data[18] + '\n' +
-                         'Missing packets: ' + image_data[19] + '\n')
+            popup_str = (f'Image name:\t{image_data[4]}\n' +
+                         f'Image UUID:\t{image_data[0]}\n' +
+                         f'Acquisition time:\t\t{image_data[1]}\n' +
+                         f'Initialization CCSDS time:\t{image_data[2]}\n' +
+                         f'Last update CCSDS time:\t\t{image_data[18]}\n' +
+                         f'EC address:\t{image_data[6]}' + 
+                         f'\tEC position:\t{image_data[7]}\n' +
+                         f'Camera type:\t{image_data[5]}' +
+                         f'\tMemory slot:\t{image_data[8]}\n' +
+                         f'Time tag:\t{image_data[3]}\n' +
+                         f'Image transmission is in progress:\t{image_data[13] == 1}\n' +
+                         f'Overwritten:\t{image_data[11] == 1}' +
+                         f'\tOutdated:\t{image_data[12] == 1}\n\n' +
+                         f'Expected pkts:\t{image_data[9]}' +
+                         f'\tReceived pkts:\t{image_data[10]}\n' +
+                         f'Completion:\t{completion:.1f}%\n')
+            if image_data[19] != '':
+                popup_str = (popup_str +
+                             f'Missing packets numbers:\t{image_data[19]}\n')
 
-            self.popup_window = sg.popup_no_buttons(popup_str, font=("Courier New", 10))
+            popup_str = (popup_str + '\n' +
+                         f'Last saved image file:\t\t{str(image_data[15])}')
 
-            logging.info("Image %s details are shown", image_data[4])
+            if image_data[5] == 'FLIR':
+                popup_str = (popup_str + '\n' +
+                             f'Last saved data file:\t\t{image_data[16]}\n' +
+                             f'Last saved telemetry file:\t{image_data[17]}') 
+
+            self.popup_window = sg.popup_no_buttons(popup_str, font=("Courier New", 10),
+                                                    title="Image "+str(image_data[15])+" details")
+            
+            logging.info("Image %s details are shown in a popup window", image_data[4])
