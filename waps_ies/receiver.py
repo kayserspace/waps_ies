@@ -174,6 +174,9 @@ class Receiver:
         # Active image storage
         self.images = []
 
+        # Image to recover
+        self.recover_image_uuids = []
+
         # Status parameters
         self.timeout_notified = False
 
@@ -416,6 +419,11 @@ class Receiver:
                 if self.refresh_gui_list_window:
                     self.refresh_gui_list_window = False
                     self.gui.refresh_image_list()
+
+                # If some images have been assigned to be recovered
+                while len(self.recover_image_uuids) != 0:
+                    image_uuid = self.recover_image_uuids.pop(0)
+                    print(image_uuid)
 
                 if not self.connected:
                     self.connected = self.connect_to_server()

@@ -208,6 +208,8 @@ class WapsIesGui:
                     self.show_selected_image(values['image_table'])
                 elif str(event) == 'image_details':
                     self.show_selected_image_details(values['image_table'])
+                elif str(event) == 'image_extract':
+                    self.recover_images(values['image_table'])
                 elif str(event) != '__TIMEOUT__':
                     logging.info(' Interface event: %s %s %s',
                                  str(event),
@@ -428,25 +430,25 @@ class WapsIesGui:
         for index, image_data in enumerate(db_data):
             image_row = []
             image_row.append(len(db_data) - index)
-            image_row.append(image_data[6])         # EC address
-            image_row.append(image_data[7])         # EC Position
-            image_row.append('m'+str(image_data[8]))# Memory slot
-            image_row.append(image_data[5])         # Camera type
-            image_row.append(image_data[2][:19])    # Creation time
-            image_row.append(image_data[18][:19])    # Last update time
+            image_row.append(image_data[6])           # EC address
+            image_row.append(image_data[7])           # EC Position
+            image_row.append('m'+str(image_data[8]))  # Memory slot
+            image_row.append(image_data[5])           # Camera type
+            image_row.append(image_data[2][:19])      # Creation time
+            image_row.append(image_data[18][:19])     # Last update time
 
-            image_row.append(str(image_data[10]) +   # Received / Expected packets
+            image_row.append(str(image_data[10]) +    # Received / Expected packets
                              '/' + str(image_data[9]))
             perc = int(100.0*image_data[10]/image_data[9])
-            image_row.append(str(perc) + '%')       # Image percentage received
+            image_row.append(str(perc) + '%')         # Image percentage received
 
             status = "Incomplete"
             if image_data[9] == image_data[10]:
                 status = "Done"
             elif image_data[13] == 1:
                 status = "In progress"
-            image_row.append(status)                # Image status
-            image_row.append(image_data[19])         # Missing packets
+            image_row.append(status)                  # Image status
+            image_row.append(image_data[19])          # Missing packets
 
             data.append(image_row)
 
@@ -493,7 +495,7 @@ class WapsIesGui:
                   [sg.Text("Selected image:"),
                    sg.Input("None", k='selected_image_file_path', size=(45, 1)),
                    sg.Button('Details', k='image_details', visible=False),
-                   sg.Button('Extract image', k='image_extract', visible=False)]]
+                   sg.Button('Extract and save selected', k='image_extract', visible=False)]]
 
         # Create a new window
         list_window_title = 'WAPS list of received images'
@@ -630,7 +632,7 @@ class WapsIesGui:
                          f'Acquisition time:\t\t{image_data[1]}\n' +
                          f'Initialization CCSDS time:\t{image_data[2]}\n' +
                          f'Last update CCSDS time:\t\t{image_data[18]}\n' +
-                         f'EC address:\t{image_data[6]}' + 
+                         f'EC address:\t{image_data[6]}' +
                          f'\tEC position:\t{image_data[7]}\n' +
                          f'Camera type:\t{image_data[5]}' +
                          f'\tMemory slot:\t{image_data[8]}\n' +
@@ -651,9 +653,24 @@ class WapsIesGui:
             if image_data[5] == 'FLIR':
                 popup_str = (popup_str + '\n' +
                              f'Last saved data file:\t\t{image_data[16]}\n' +
-                             f'Last saved telemetry file:\t{image_data[17]}') 
+                             f'Last saved telemetry file:\t{image_data[17]}')
 
             self.popup_window = sg.popup_no_buttons(popup_str, font=("Courier New", 10),
                                                     title="Image "+str(image_data[15])+" details")
-            
+
             logging.info("Image %s details are shown in a popup window", image_data[4])
+
+    def recover_images(self, rows):
+        """ Recover images from database and saved them to harddrive """
+
+        for index, row in enumerate(rows):
+            # Get only the first value
+            row_data = self.list_window["image_table"].get()[rows[index]]
+            db_data_length = len(self.db_data)
+            table_index = db_data_length - row_data[0]  # minus selected number
+
+            image_uuid = self.db_data[table_index][0]
+            image_name = self.db_data[table_index][4]
+
+            logging.info(f'Extract and save {image_name}')
+            self.receiver.recover_image_uuids.append(image_uuid)
