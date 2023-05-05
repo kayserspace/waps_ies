@@ -5,40 +5,45 @@
 # Purpose: Unit test for waps_ies.processor module
 # Version: 2023-04-05 17:00, version 0.1
 
+import datetime
+import time
+import os
+import shutil
 import unittest
 import waps_ies.receiver
 import waps_ies.file_reader
 import waps_ies.processor
 import waps_ies.waps_packet
-import datetime
-import os
+
 
 class TestProcessor(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
 
-        if os.path.exists("tests/waps_pd.db"):
-            os.remove("tests/waps_pd.db")
+        if os.path.exists("tests/output/"):
+            shutil.rmtree('tests/output/')
+        os.mkdir("tests/output/")
 
         waps = {"ip_address": "192.168.1.1",
                 "port": "12345",
                 "tcp_timeout": '2.1',           # seconds
                 "output_path": 'tests/output/',       # directory
-                "database_file": 'tests/waps_pd.db',  # directory
-                "comm_path": 'tests/comm/',           # directory
-                "log_path": 'tests/log/',             # directory
+                "database_file": 'tests/output/waps_pd.db',  # directory
+                "comm_path": 'tests/output/comms/',           # directory
+                "log_path": 'tests/output/log1/',             # directory
                 "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR
                 "gui_enabled": '0',             # Graphical User Interface
                 "image_timeout": '0',         # minutes (10h by default)
                 "detect_mem_slot": '1',         # False
-                "skip_verify_code": '1'}                # Check clour image CRC
+                "skip_verify_code": '0'}                # Check clour image CRC
 
         self.receiver = waps_ies.receiver.Receiver(waps)
-        if (not os.path.exists("tests/output/") or
-            not os.path.isdir("tests/output/")):
-            os.mkdir("tests/output/")
-        self.receiver.database
+
+    @classmethod
+    def tearDownClass(self):
+        self.receiver.database.database.close()
+        del self.receiver
 
     def test_different_ec_addresses(self):
         """ Test adding packets with different EC addresses """
@@ -160,6 +165,23 @@ class TestProcessor(unittest.TestCase):
 
         self.assertEqual(new_file_data, original_file_data[:len(new_file_data)])
 
+    def test_bed_data_with_missing_packets(self):
+        """ Get packet list from the test bed output file, remove some packets """
+
+        packet_list = waps_ies.file_reader.read_test_bed_file("tests/test_bed_files/EC RAW Data.txt")
+
+        self.assertEqual(len(packet_list), 309)
+
+        packet_list.pop(17)
+        packet_list.pop(125)
+
+        incomplete_images = []
+        self.receiver.incomplete_images = waps_ies.processor.sort_biolab_packets(packet_list, incomplete_images, self.receiver)
+        self.assertEqual(len(self.receiver.incomplete_images), 2)
+        self.receiver.incomplete_images = waps_ies.processor.save_images(self.receiver.incomplete_images,
+                                                                         'tests/output/',
+                                                                         self.receiver)
+        self.assertEqual(len(self.receiver.incomplete_images), 2)
 
 if __name__ == '__main__':
     unittest.main()

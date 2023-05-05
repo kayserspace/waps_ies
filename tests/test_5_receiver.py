@@ -1,5 +1,6 @@
 
-
+import os
+import shutil
 import unittest
 import waps_ies.receiver
 import time
@@ -13,16 +14,21 @@ class TestReceiver(unittest.TestCase):
                 "port": "12345",
                 "tcp_timeout": '2.1',           # seconds
                 "output_path": 'tests/output/',       # directory
-                "database_file": 'tests/waps_pd.db',  # directory
-                "comm_path": 'tests/comm/',           # directory
-                "log_path": 'tests/log/',             # directory
+                "database_file": 'tests/output/waps_pd.db',  # directory
+                "comm_path": 'tests/output/comms/',           # directory
+                "log_path": 'tests/output/log3/',             # directory
                 "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR
                 "gui_enabled": '0',             # Graphical User Interface
                 "image_timeout": '0',         # minutes (10h by default)
                 "detect_mem_slot": '1',         # False
-                "skip_verify_code": '1'}                # Check clour image CRC
+                "skip_verify_code": '0'}                # Check clour image CRC
 
         self.receiver = waps_ies.receiver.Receiver(waps)
+
+    @classmethod
+    def tearDownClass(self):
+        self.receiver.database.database.close()
+        del self.receiver
 
     def test_gui_column_assignment(self):
         """ A receiver and test GUI column assignment """
