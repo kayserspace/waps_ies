@@ -3,8 +3,13 @@
 """
 Script: waps_ies_app.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
-Purpose: WAPS PD image extraction software for operations at MUSC
-Version: 2023-03-10 14:00, version 0.2
+Purpose: WAPS Image Extraction Software for WAPS Payload to be used for operations at MUSC
+         This script contains the IES configuration and initialization
+Version: 2023-05-25 15:00, version 1.0
+
+WAPS Image Extraction Software. Acquires CCSDS packets from a TCP stream and searches for BIOLAB TM
+packets. Extracts WAPS PD images from BIOLAB telemetry and informs of missing packets. IP address
+and port must be specified either inline or in the configuration file.
 
 Change Log:
 2023-02-17 version 0.1
@@ -13,6 +18,8 @@ Change Log:
  2023-03-10 version 0.2
  - moved from file based packet extraction to TCP stream acquisition
  - prototype stage
+ 2023-05-26 version 1.0
+ - first release
 """
 
 import sys
@@ -21,10 +28,12 @@ from argparse import ArgumentParser
 import logging
 import waps_ies.receiver
 
+VERSION = 1.0
+
 
 def check_config_file():
     """
-    Get WAPS IES configuration from file.
+    Get WAPS IES configuration from file
 
     Configuration file example ("waps_ies_config.ini"):
     [WAPS_IES]
@@ -38,12 +47,12 @@ def check_config_file():
     # Database file to use
     database_file = waps_pd.db
     # Command stack path
-    comm_path = comm/
+    comm_path = comms/
     # Logging path
-    log_path = log/
+    log_path = logs/
     # Logging level
     log_level = info
-    # Enable Graphical User gui
+    # Enable Graphical User Interface
     gui_enabled = 1
     # Image timeout in minutes. After this period image is considered OUTDATED.
     # 0 means disable this feature
@@ -58,15 +67,16 @@ def check_config_file():
     waps = {"ip_address": None,
             "port": None,
             "tcp_timeout": '2.1',           # seconds
-            "output_path": 'output/',       # directory
-            "database_file": 'waps_pd.db',  # directory
-            "comm_path": 'comm/',           # directory
-            "log_path": 'log/',             # directory
+            "output_path": 'output/',       # output directory
+            "database_file": 'waps_pd.db',  # database file
+            "comm_path": 'comms/',          # command stack directory
+            "log_path": 'logs/',            # logging directory
             "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR
             "gui_enabled": '1',             # Graphical User Interface
             "image_timeout": '600',         # minutes (10h by default)
             "detect_mem_slot": '1',         # False
-            "skip_verify_code": '0'}                # Check clour image CRC
+            "skip_verify_code": '0',        # Check clour image CRC
+            'version': VERSION}             # IES version
 
     # EC list contains
     # - EC address
@@ -122,8 +132,8 @@ def check_arguments(args, config):
     Command Lines Arguments:
       -h, --help            show this help message and exit
       -ip IP_ADDRESS        IP address of the TCP server.
-                            Must be specified either inline or
-                            in the configuratiuon file.
+                            Must be specified either inline or in the configuratiuon file.
+                            Otherwise throws error.
       -p PORT               Port of the TCP server.
                             Must be specified either inline or
                             in the configuratiuon file.
@@ -132,18 +142,19 @@ def check_arguments(args, config):
                             After this period user is notified that
                             CCSDS packets are not being received. Default: 2.1
       -o OUTPUT_PATH, --output_path OUTPUT_PATH
-                            Output path where extracted images are saved.
-                            Default: output/
+                            Output path where extracted images are saved. Default: output/
+      -db DATABASE_FILE, --database_file DATABASE_FILE
+                            Databse file to use. Default: output/
+      -c COMM_PATH, --comm_path COMM_PATH
+                            Command stack path where missing packet lists are created. Default: comms/
       -l LOG_PATH, --log_path LOG_PATH
-                            Log path where the IES process log is saved.
-                            Default: log/
+                            Log path where the IES process log is saved. Default: logs/
       -er, --errors_only    Show only warnings and errors in the log.
                             Overwritten by debug
       -d, --debug           Debug logging level is enabled
       -dg, --disable_gui    Disable Graphical User Interface (gui)
       -it IMAGE_TIMEOUT, --image_timeout IMAGE_TIMEOUT
-                            Image timeout in minutes.
-                            After this period image is considered OUTDATED.
+                            Image timeout in minutes. After this period image is considered OUTDATED.
                             Default: 600
       -msc, --memory_slot_change
                             Enable memory slot change detection from
@@ -151,7 +162,7 @@ def check_arguments(args, config):
     """
 
     # Define command line arguments
-    parser = ArgumentParser(description='WAPS Image Extraction Software.' +
+    parser = ArgumentParser(description='WAPS Image Extraction Software. v' + str(VERSION) +
                             ' Acquires CCSDS packets from a TCP stream' +
                             ' and searches for BIOLAB TM packets.' +
                             ' Extracts WAPS PD images from BIOLAB' +
@@ -181,11 +192,11 @@ def check_arguments(args, config):
     parser.add_argument("-c", "--comm_path", dest="comm_path",
                         default=config["comm_path"],
                         help="Command stack path where missing packet lists are created." +
-                        " Default: comm/")
+                        " Default: comms/")
     parser.add_argument("-l", "--log_path", dest="log_path",
                         default=config["log_path"],
                         help="Log path where the IES process log is saved." +
-                        " Default: log/")
+                        " Default: logs/")
     parser.add_argument("-er", "--errors_only", action="store_true",
                         help="Show only warnings and errors in the log." +
                         " Overwritten by debug")
@@ -225,17 +236,15 @@ def check_arguments(args, config):
 
 def run_waps_ies(args):
     """
-    WAPS Image Extraction Software (IES)
-    Acquires CCSDS packets from a TCP stream and searches for TM packets.
-    Extracts WAPS PD images from BIOLAB telemetry and
-        declares and highlights missing packets.
-    IP address and port must be specified either inline or
-        in the configuration file.
+    WAPS Image Extraction Software. Acquires CCSDS packets from a TCP stream and
+    searches for BIOLAB TM packets. Extracts WAPS PD images from BIOLAB telemetry and
+    informs of missing packets. IP address and port must be specified either inline or
+    in the configuration file.
 
     On start-up process the input parameters in priority:
     1. Command Line Arguments
     2. Configuation file
-    3. Defaults
+    3. Defaults (except ip address and port)
 
     After start-up IES has the following sequence:
     If GUI is enabled - GUI is started.

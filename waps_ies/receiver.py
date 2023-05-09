@@ -108,6 +108,7 @@ class Receiver:
                           "Please specify IP address and port",
                           " inline or in the configuration file\n",
                           "Example: waps_ies_app.py -ip localhost -p 12345")
+            input("Press Enter to continue...")
             sys.exit()
 
         # TCP client
