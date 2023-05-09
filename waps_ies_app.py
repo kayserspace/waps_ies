@@ -4,12 +4,17 @@
 Script: waps_ies_app.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
 Purpose: WAPS Image Extraction Software for WAPS Payload to be used for operations at MUSC
-         This script contains the IES configuration and initialization
+         This file contains the IES configuration and initialization
 Version: 2023-05-25 15:00, version 1.0
 
 WAPS Image Extraction Software. Acquires CCSDS packets from a TCP stream and searches for BIOLAB TM
 packets. Extracts WAPS PD images from BIOLAB telemetry and informs of missing packets. IP address
 and port must be specified either inline or in the configuration file.
+
+This file contains functions:
+ * check_config_file - Get WAPS IES configuration from file
+ * check_arguments - Get WAPS IES configuration from command line arguments
+ * run_waps_ies - Start WAPS IES execution
 
 Change Log:
 2023-02-17 version 0.1
@@ -32,8 +37,13 @@ VERSION = 1.0
 
 
 def check_config_file():
-    """
-    Get WAPS IES configuration from file
+    """Get WAPS IES configuration from file
+
+    No args
+
+    Returns as tuple:
+        waps(dictionaty):   IES configuration
+        ec_list(list):      List of EC states
 
     Configuration file example ("waps_ies_config.ini"):
     [WAPS_IES]
@@ -126,8 +136,14 @@ def check_config_file():
 
 
 def check_arguments(args, config):
-    """
-    Check command line arguments for WAPS IES configuration.
+    """Get WAPS IES configuration from command line arguments
+
+    Args:
+        *args:              Command line parameters, described below
+        config(dictionary): IES configuration
+
+    Returns:
+        config(dictionaty): IES configuration
 
     Command Lines Arguments:
       -h, --help            show this help message and exit
@@ -162,8 +178,8 @@ def check_arguments(args, config):
     """
 
     # Define command line arguments
-    parser = ArgumentParser(description='WAPS Image Extraction Software. v' + str(VERSION) +
-                            ' Acquires CCSDS packets from a TCP stream' +
+    parser = ArgumentParser(description='WAPS Image Extraction Software v' + str(VERSION) +
+                            '. Acquires CCSDS packets from a TCP stream' +
                             ' and searches for BIOLAB TM packets.' +
                             ' Extracts WAPS PD images from BIOLAB' +
                             ' telemetry and informs of missing packets.' +
