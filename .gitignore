@@ -3,3 +3,6 @@
 changed_rt_files/
 tests/output/
 tests/log/
+build/
+dist/
+waps_ies_app.spec
