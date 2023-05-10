@@ -586,19 +586,22 @@ def save_images(images, output_path, receiver, save_incomplete=True):
                         image.latest_saved_file is not None and
                         os.path.exists(image.latest_saved_file)):
                     os.remove(image.latest_saved_file)
+                    logging.info('Removed previous version of file %s',
+                                 image.latest_saved_file)
 
                 if (image.latest_saved_file_tm != written_image_tm_file_path and
                         image.latest_saved_file_tm is not None and
                         os.path.exists(image.latest_saved_file_tm)):
                     os.remove(image.latest_saved_file_tm)
+                    logging.info('Removed previous version of file %s',
+                                 image.latest_saved_file_tm)
 
                 if (image.latest_saved_file_data != written_image_data_file_path and
                         image.latest_saved_file_data is not None and
                         os.path.exists(image.latest_saved_file_data)):
                     os.remove(image.latest_saved_file_data)
-
-                logging.info('Removed previous version of image %s',
-                             image.image_name)
+                    logging.info('Removed previous version of file %s',
+                                 image.latest_saved_file_data)
 
             except IOError:
                 logging.info('Could not remove some of the old file versions')

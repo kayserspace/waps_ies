@@ -502,38 +502,39 @@ class Receiver:
         try:
             while self.continue_running:
 
-                # On change of date move on to a new log file
-                if datetime.now().strftime('%d') != self.log_start.strftime('%d'):
-                    self.start_new_log()
-
-                # Check if any image is outdated
-                self.check_outdated_images()
-
-                if self.refresh_gui_list_window:
-                    self.refresh_gui_list_window = False
-                    self.gui.refresh_image_list()
-
-                # If some images have been assigned to be recovered
-                while len(self.recover_image_uuids) != 0:
-                    image_uuid = self.recover_image_uuids.pop(0)
-                    image = self.database.retrieve_image_by_uuid(image_uuid)
-                    if image is not None:
-                        image.image_transmission_active = False
-                        image.update = True
-                        self.images = processor.save_images([image],
-                                                            self.output_path,
-                                                            self,
-                                                            True)  # Not incomplete
-
-                if not self.connected:
-                    self.connected = self.connect_to_server()
-
-                    # If still not connected
-                    if not self.connected:
-                        time.sleep(1)  # Delay before trying to connect again
-                        continue
-
                 try:
+                    
+                    # On change of date move on to a new log file
+                    if datetime.now().strftime('%d') != self.log_start.strftime('%d'):
+                        self.start_new_log()
+
+                    # Check if any image is outdated
+                    self.check_outdated_images()
+
+                    if self.refresh_gui_list_window:
+                        self.refresh_gui_list_window = False
+                        self.gui.refresh_image_list()
+
+                    # If some images have been assigned to be recovered
+                    while len(self.recover_image_uuids) != 0:
+                        image_uuid = self.recover_image_uuids.pop(0)
+                        image = self.database.retrieve_image_by_uuid(image_uuid)
+                        if image is not None:
+                            image.image_transmission_active = False
+                            image.update = True
+                            self.images = processor.save_images([image],
+                                                                self.output_path,
+                                                                self,
+                                                                True)  # Not incomplete
+
+                    if not self.connected:
+                        self.connected = self.connect_to_server()
+
+                        # If still not connected
+                        if not self.connected:
+                            time.sleep(1)  # Delay before trying to connect again
+                            continue
+                
                     # Get the next packet
                     ccsds_header = self.receive_from_server(CCSDS_HEADERS_LENGTH)
                     self.timeout_notified = False
