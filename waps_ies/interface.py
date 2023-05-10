@@ -131,33 +131,40 @@ class WapsIesGui:
         column_number = 4
         slot_number = 8
 
+        output_path_justivfication = 'l'
+        if len(receiver.output_path) > 35:
+            output_path_justivfication = 'r'
+
         layout = [[sg.Text('Server:'),
-                   sg.Text(receiver.server_address[0] + ':' +
+                   sg.Text(receiver.server_address[0] + ' : ' +
                            str(receiver.server_address[1]),
                            background_color='lightgrey',
-                           k='server'),
+                           justification='c', k='server', size=(18, 1),
+                           tooltip="TCP server IP address and port"),
                    sg.Text('Disconnected', k='server_status',
                            size=(11, 1),
                            justification='c',
                            background_color='red'),
                    sg.Text('CCSDS pkts:'),
-                   sg.Text('0', k='CCSDS_pkts', size=(12, 1),
-                           background_color='white'),
+                   sg.Text('0', k='CCSDS_pkts', size=(14, 1),
+                           background_color='white',
+                           tooltip="Number of received CCSDS packets"),
                    sg.Text('BIOLAB TM pkts:'),
-                   sg.Text('0', k='BIOLAB_pkts', size=(8, 1),
-                           background_color='white'),
+                   sg.Text('0', k='BIOLAB_pkts', size=(9, 1),
+                           background_color='white',
+                           tooltip="Number of received BIOLAB telemetry packets"),
                    sg.Text('WAPS image data pkts:'),
-                   sg.Text('0', k='WAPS_pkts', size=(6, 1),
-                           background_color='white')],
+                   sg.Text('0', k='WAPS_pkts', size=(7, 1),
+                           background_color='white',
+                           tooltip="Number of received WAPS image packets")],
                   [sg.Text('Output path:'),
                    sg.Text(receiver.output_path, k='output_path',
-                           size=(42, 1),
-                           justification='r',
+                           size=(38, 1), justification=output_path_justivfication,
                            tooltip="Full path: " + receiver.output_path,
                            background_color='lightgrey'),
-                   sg.Text('Latest image:'),
-                   sg.Text('None', k='latest_file', size=(46, 1),
-                           background_color='white')]]
+                   sg.Text('Latest saved file:'),
+                   sg.Input('None', k='latest_file', size=(60, 1),
+                           background_color='white', readonly=True)]]
 
         column_slot = []
         column_slot.append([sg.Text(' ')])
@@ -177,25 +184,33 @@ class WapsIesGui:
             columns[col].append([sg.Text("EC addr"),
                                 sg.Text("", k='ec_address_' + str(col),
                                         background_color='lightgrey',
-                                        size=(3, 1), justification='c'),
+                                        size=(3, 1), justification='c',
+                                        tooltip="EC address"),
                                 sg.Text("pos"),
                                 sg.Text("", k='ec_position_' + str(col),
                                         background_color='white',
-                                        size=(6, 1), justification='c'),
-                                sg.Button('clr', k='clr_' + str(col), visible=False)])
+                                        size=(6, 1), justification='c',
+                                        tooltip="EC position"),
+                                sg.Button('clr', k='clr_' + str(col),
+                                          visible=False, font='Helvetica 7',
+                                          tooltip="Clear this GUI column")])
             for i in range(slot_number):
                 cell_id = '_' + str(col) + '_' + str(i)
                 frames[col].append([sg.Text(str(i),
-                                            background_color='lightgrey'),
+                                            background_color='lightgrey',
+                                            tooltip="Memory slot number"),
                                    sg.Text('Unknown', k='status' + cell_id,
-                                           size=(9, 1), justification='c'),
+                                           size=(9, 1), justification='c',
+                                           tooltip="Memory slot status"),
                                    sg.ProgressBar(100, orientation='h', s=(3, 16),
                                                   k='progressbar' + cell_id),
                                    sg.Text('', k='packet_number' + cell_id,
-                                           size=(6, 1))])
-                frames[col].append([sg.Text('', k='image_type' + cell_id),
+                                           size=(6, 1), tooltip="Received/Expected packets")])
+                frames[col].append([sg.Text('', k='image_type' + cell_id,
+                                            tooltip="Image type (uCAM or FLIR)"),
                                    sg.Text('', k="miss" + cell_id),
-                                   sg.Text('', k='missing_packets' + cell_id)])
+                                   sg.Text('', k='missing_packets' + cell_id,
+                                           tooltip="Missing packet list")])
                 if i < slot_number - 1:
                     frames[col].append([sg.HSep()])
             columns[col].append([sg.Frame('Memory slots', frames[col])])
@@ -272,7 +287,7 @@ class WapsIesGui:
                     self.show_selected_image(values['image_table'])
                 elif str(event) == 'image_details':
                     self.show_selected_image_details(values['image_table'])
-                elif str(event) == 'image_extract':
+                elif str(event) == 'image_retrieve':
                     self.recover_images(values['image_table'])
                 elif str(event) != '__TIMEOUT__':
                     logging.info(' Interface event: %s %s %s',
@@ -535,15 +550,19 @@ class WapsIesGui:
                           'Created', 'Last update',
                           'Recv', 'Perc', 'Status', 'Missing packets']
 
-        layout = [[sg.Button('Refresh', k='refresh_button'),
+        layout = [[sg.Button('Refresh', k='refresh_button',
+                             tooltip="Read database and get fresh list of images"),
                    sg.Text("Total of"),
                    sg.Text(len(self.db_data), k='image_list_count',
-                           background_color='white'),
+                           background_color='white',
+                           tooltip="Count includes filtered out"),
                    sg.Text("images starting with the latest"),
-                   sg.Button('Save table', k='save_button'),
+                   sg.Button('Save table', k='save_button',
+                             tooltip="Save table contents as a .CSV file to output directory"),
                    sg.Text("", k='save_result', size=(6, 1),
                            justification='c'),
-                   sg.Button('Filter', k='filter_button'),
+                   sg.Button('Filter', k='filter_button',
+                             tooltip="Filter contents by following string"),
                    sg.Input('', k='filter_input')],
                   [sg.Table(data,
                             table_headings,
@@ -559,7 +578,7 @@ class WapsIesGui:
                   [sg.Text("Selected image:"),
                    sg.Input("None", k='selected_image_file_path', size=(45, 1)),
                    sg.Button('Details', k='image_details', visible=False),
-                   sg.Button('Extract and save selected', k='image_extract', visible=False)]]
+                   sg.Button('Retrieve and save selected', k='image_retrieve', visible=False)]]
 
         # Create a new window
         list_window_title = 'WAPS list of received images'
@@ -582,10 +601,11 @@ class WapsIesGui:
         for i in range(len(self.db_data)):
             self.db_shown.append(True)
         data = self.format_image_list_data(self.db_data)
-        self.list_window["image_table"].update(data)
-        self.list_window['image_list_count'].update(len(data))
-        self.list_window['save_result'].update('', background_color=sg.theme_background_color())
-        logging.info("Image list table refreshed")
+        if self.list_window is not None:
+            self.list_window["image_table"].update(data)
+            self.list_window['image_list_count'].update(len(data))
+            self.list_window['save_result'].update('', background_color=sg.theme_background_color())
+            logging.info("Image list table refreshed")
 
     def filter_image_list(self, val):
         """ Filter image list table by given value """
@@ -672,11 +692,11 @@ class WapsIesGui:
             image_data = self.db_data[table_index]
             self.list_window['selected_image_file_path'].update(image_data[4])
             self.list_window['image_details'].update(visible=True)
-            self.list_window['image_extract'].update(visible=True)
+            self.list_window['image_retrieve'].update(visible=True)
         else:
             self.list_window['selected_image_file_path'].update('None')
             self.list_window['image_details'].update(visible=False)
-            self.list_window['image_extract'].update(visible=False)
+            self.list_window['image_retrieve'].update(visible=False)
 
     def show_selected_image_details(self, rows):
         """ Show selected image details in a popup window """
@@ -736,5 +756,5 @@ class WapsIesGui:
             image_uuid = self.db_data[table_index][0]
             image_name = self.db_data[table_index][4]
 
-            logging.info(f'Extract and save {image_name}')
+            logging.info(f'\n### Retrieving and saving {image_name}')
             self.receiver.recover_image_uuids.append(image_uuid)
