@@ -249,7 +249,8 @@ def write_file(image_data, file_path, filetype='wb', gui=None):
         gui (gui type): for latest written file name update
 
     Returns:
-        succesful_write (bool)
+        file_path (str): Actual written file
+                         None if could not write the file
     """
 
     readtype = 'rb'
@@ -268,7 +269,7 @@ def write_file(image_data, file_path, filetype='wb', gui=None):
                                  file_path,
                                  exists,
                                  "No need to overwrite.")
-                    return True
+                    return file_path
                 logging.info('File %s%s but contents is different',
                              file_path,
                              exists)
@@ -291,10 +292,10 @@ def write_file(image_data, file_path, filetype='wb', gui=None):
 
     except IOError:
         logging.error('Could not open file for writing: %s', file_path)
-        return False
+        return None
 
     # Successful write
-    return True
+    return file_path
 
 
 def print_images_status(images):
@@ -449,6 +450,10 @@ def save_images(images, output_path, receiver, save_incomplete=True):
         # Print detailed image information
         logging.info(image)
 
+        written_image_file_path = None
+        written_image_tm_file_path = None
+        written_image_data_file_path = None
+
         # Now save the image to file(s)
         if image.camera_type == 'uCAM':
             # Sanity check the data
@@ -463,7 +468,10 @@ def save_images(images, output_path, receiver, save_incomplete=True):
             file_path = (date_path + image.image_name +
                          image_percentage + '.jpg')
 
-            successful_write = write_file(image_data, file_path, 'wb', gui)
+            written_image_file_path = write_file(image_data, file_path, 'wb', gui)
+
+            if written_image_file_path is not None:
+                successful_write = True
             if image.is_complete() and successful_write:
                 finished_images.append(index)
 
@@ -492,12 +500,10 @@ def save_images(images, output_path, receiver, save_incomplete=True):
                                  str(unpack('>H', image_data[i*2:i*2+2])[0]) +
                                  '\n')
 
-            successful_write = write_file(tm_image_data,
-                                          file_path_tm,
-                                          'w',
-                                          gui)
-            if not successful_write:
-                continue
+            written_image_tm_file_path = write_file(tm_image_data,
+                                                    file_path_tm,
+                                                    'w',
+                                                    gui)
 
             # FLIR Image data is converted to .csv file
             file_path_csv = (date_path + image.image_name +
@@ -515,12 +521,10 @@ def save_images(images, output_path, receiver, save_incomplete=True):
                                   str(unpack('>H', image_data[val:val+2])[0]))
             csv_image_data = csv_image_data + '\n'
 
-            successful_write = write_file(csv_image_data,
-                                          file_path_csv,
-                                          'w',
-                                          gui)
-            if not successful_write:
-                continue
+            written_image_data_file_path = write_file(csv_image_data,
+                                                      file_path_csv,
+                                                      'w',
+                                                      gui)
 
             # FLIR Image data is converted is saved as .bmp file
             file_path = (date_path + image.image_name +
@@ -562,7 +566,12 @@ def save_images(images, output_path, receiver, save_incomplete=True):
                                0, 0))       # unused
             bmp_data = bmp_header + bmp_image_data
 
-            successful_write = write_file(bmp_data, file_path, 'wb', gui)
+            written_image_file_path = write_file(bmp_data, file_path, 'wb', gui)
+
+            if (written_image_file_path is not None and
+                    written_image_tm_file_path is not None and
+                    written_image_data_file_path is not None):
+                successful_write = True
             if image.is_complete() and successful_write:
                 finished_images.append(index)
 
@@ -573,27 +582,33 @@ def save_images(images, output_path, receiver, save_incomplete=True):
             # Since the file write was successful,
             # remove previous versions of the files
             try:
-                if image.latest_saved_file is not None and image.latest_saved_file != file_path:
-                    filename = image.latest_saved_file
-                    if os.path.exists(filename):
-                        os.remove(filename)
-                    filename = image.latest_saved_file[:-4] + '_tm.txt'
-                    if os.path.exists(filename):
-                        os.remove(filename)
-                    filename = image.latest_saved_file[:-4] + '_data.csv'
-                    if os.path.exists(filename):
-                        os.remove(filename)
-                    logging.info('Removed previous version of this file: %s',
-                                 image.latest_saved_file)
+                if (image.latest_saved_file != written_image_file_path and
+                        image.latest_saved_file is not None and
+                        os.path.exists(image.latest_saved_file)):
+                    os.remove(image.latest_saved_file)
+
+                if (image.latest_saved_file_tm != written_image_tm_file_path and
+                        image.latest_saved_file_tm is not None and
+                        os.path.exists(image.latest_saved_file_tm)):
+                    os.remove(image.latest_saved_file_tm)
+
+                if (image.latest_saved_file_data != written_image_data_file_path and
+                        image.latest_saved_file_data is not None and
+                        os.path.exists(image.latest_saved_file_data)):
+                    os.remove(image.latest_saved_file_data)
+
+                logging.info('Removed previous version of image %s',
+                             image.image_name)
 
             except IOError:
+                logging.info('Could not remove some of the old file versions')
                 pass
 
             # And note the latest written down file
-            image.latest_saved_file = file_path
+            image.latest_saved_file = written_image_file_path
             if image.camera_type == "FLIR":
-                image.latest_saved_file_tm = file_path[:-4] + '_tm.txt'
-                image.latest_saved_file_data = file_path[:-4] + '_data.csv'
+                image.latest_saved_file_tm = written_image_tm_file_path
+                image.latest_saved_file_data = written_image_data_file_path
 
         # Update gui if available
         if gui:
