@@ -191,7 +191,7 @@ class WapsIesGui:
                                            size=(9, 1), justification='c'),
                                    sg.ProgressBar(100, orientation='h', s=(3, 16),
                                                   k='progressbar' + cell_id),
-                                   sg.Text('0/0', k='packet_number' + cell_id,
+                                   sg.Text('', k='packet_number' + cell_id,
                                            size=(6, 1))])
                 frames[col].append([sg.Text('', k='image_type' + cell_id),
                                    sg.Text('', k="miss" + cell_id),
@@ -394,7 +394,7 @@ class WapsIesGui:
             self.window['status' +
                         cell_id].update('Unknown', background_color=sg.theme_background_color())
             self.window['progressbar' + cell_id].update(0)
-            self.window['packet_number' + cell_id].update('0/0')
+            self.window['packet_number' + cell_id].update('')
             self.window['image_type' +
                         cell_id].update('', background_color=sg.theme_background_color())
             self.window['miss' + cell_id].update('')
