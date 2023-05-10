@@ -1,14 +1,16 @@
 """
-Script: gui.py
+Script: interface.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
-Purpose: WAPS PD image extraction software for operations at MUSC
+Purpose: WAPS Image Extraction Software
          Graphical User Interface module
-Version: 2023-04-18 14:00, version 0.2
+Version: 2023-05-25 15:00, version 1.0
 
 Change Log:
 2023-04-18 version 0.1
  - initial version, file based
  - prototype stage
+2023-05-25 v 1.0
+ - release
 """
 
 import logging
@@ -18,22 +20,79 @@ import PySimpleGUI as sg
 
 
 class WapsIesGui:
-    """
-    WAPS Graphical User Interface Class
+    """WAPS Graphical User Interface Class
 
     Attributes
     ----------
-    source_file : str
-        Source file path where the packet was extracted from
-    extraction_time : str
-        Time of packet extraction
-    data : list
-        Packet data stored as list of numbers. Each number represents one byte
+    window (window type): GUI main window instance
+    window_open (bool): Main GUI loop condition
+    thread (Threading type): GUI thread instance
+    list_window (window type): GUI image list window instance
+    receiver (Receiver type): current waps_ies.Receiver instance
+
+    db_data (list): full database image table readout
+    db_shown (list): db_data entries list that is show in the image list window (filtered)
+    db_fresh (bool): Whether database table is fresh, for filtering
+    db_filtered_by (str): Latest filter value of teh image list table
+
+    For reducing GUI update rate:
+    last_ccsds_count_update (Tiem type): Time of the last CCSDS count update
+    last_biolab_tm_count_update (Time type): Time of the last TM count update
+    server_active (bool): Whether server status is already set to "Active"
+
+    Following are IES session statistics mirror variables from the Receiver:
+    prev_total_packets_received
+    prev_total_biolab_packets
+    prev_total_waps_image_packets
+    prev_total_initialized_images
+    prev_total_completed_images
+    prev_total_lost_packets
+    prev_total_corrupted_packets
 
     Methods
     -------
-    info(additional=""):
-        Prints the person's name and age.
+    __init__(self, receiver, start_thread=True):
+        GUI initialization with Receiver reference. Start thread a new thread by default
+    run(self):
+        Main GUI loop with events
+    close(self):
+        Trigger a close event for the GUI
+    update_server_connected(self):
+        Change TCP server connection status to "Connected"
+    update_server_active(self):
+        Change TCP server connection status to "Active"
+    update_server_disconnected(self):
+        Change TCP server connection status to "Disconnected"
+
+    update_ccsds_count(self):
+        Update CCSDS packet count
+    update_stats(self):
+        Update all counts in the GUI
+    update_latets_file(self, latest_file):
+        Update latest saved file name
+    update_column_occupation(self, ec_column, ec_address, ec_position):
+        Update EC column with EC heading
+    clear_column(self, ec_column):
+        Clear an occupied column of EC header and data
+    update_image_data(self, image):
+        Update image data of one of the image cells
+
+    format_image_list_data(self, db_data):
+        format database data into the table format of teh image list window
+    show_image_list(self, ec_address=None):
+        Open the image list window
+    refresh_image_list(self):
+        Referesh the image list table in the image list window
+    filter_image_list(self, val):
+        Filter the image list table by a string
+    save_image_list(self):
+        Save the image list table to output directory
+    show_selected_image(self, rows):
+        Show selected image at the bottom of the image list window
+    show_selected_image_details(self, rows):
+        Show selected image details as a popup
+    recover_images(self, rows):
+        Request to recover and save images from database
     """
 
     # Window with list of received images
@@ -57,6 +116,9 @@ class WapsIesGui:
     prev_total_corrupted_packets = 0
 
     def __init__(self, receiver, start_thread=True):
+        """Initialize the GUI referencing the Receiver
+        Starting a new threa by default
+        """
 
         self.window_open = False
         self.receiver = receiver
@@ -174,7 +236,9 @@ class WapsIesGui:
             self.thread.start()
 
     def run(self):
-        """ Interface main loop """
+        """Interface main loop
+        All GUI events are received and processed here
+        """
 
         try:
             timeout = 100

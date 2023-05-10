@@ -1,13 +1,15 @@
 """
-Script: packet.py
+Script: waps_packet.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
-Purpose: WAPS PD image extraction software for operations at MUSC
-         WAPS packet class
-Version: 2023-04-18 14:00, version 0.2
+Purpose: WAPS Image Extraction Software
+         WAPS packet class with BIOLAB telemetry values and functions
+Version: 2023-05-25 15:00, version 1.0
 
 Change Log:
 2023-04-18 version 0.1
  - initial version
+2023-05-25 v 1.0
+ - release
 """
 
 from struct import unpack
@@ -16,23 +18,49 @@ import logging
 
 
 class WapsPacket:
-    """
-    WAPS Image Packet class
+    """WAPS Image Packet class
+    Contains packet variables and methods
 
     Attributes
     ----------
-    source_file : str
-        Source file path where the packet was extracted from
-    extraction_time : str
-        Time of packet extraction
-    data : list
-        Packet data stored as list of numbers.
-        Each number represents one byte
+    uuid (str) : unique id
+    receiver (Receiver type): current waps_ies.Receiver instance
+    acquisition_time (Time type): time of packet creation
+    ccsds_time (Time type): CCSDS time of the TM packet
+    data (bytearray): BIOLAB TM packet data
+
+    packet_name (str): Packet name compiled from other packet parameters
+
+    ec_address (int): EC address of this packet
+    time_tag (int): EC time tag coming with this packet
+    biolab_current_image_memory_slot (int): Currently active memory slot of this EC
+
+    generic_tm_id (int): BIOLAB telemetry ID
+    generic_tm_type (int): COntains memory slot and packet number
+    generic_tm_length (int): length of the WAPS image data packet, constant
+    image_memory_slot (int): Memory slot of this image data packet (between 0 and 7)
+    tm_packet_id (int): Packet number of this image data packet
+
+    is_waps_image_packet (bool): WAPS image packet bool
+
+    image_number_of_packets (int): WAPS init packet value, number of exepected image data packets
+    data_packet_id (int): WAPS data packet value, relates to image data packet number
+    data_packet_size (int): WAPS colour image data packet size
+    data_packet_crc (int): WAPS FLIR image data packet CRC expected value
+    data_packet_cerify_code (int): WAPS colour image data packet verify code value
+
+    image_uuid (str): Assigned image UUID
 
     Methods
     -------
-    info(additional=""):
-        Prints the person's name and age.
+    __init__(self, ccsds_time, acquisition_time, data, receiver=None):
+        Packet initialization based on acquisition time, ccsds time and packet data
+    __str__(self):
+        Create a string from packet variables
+    in_spec(self):
+        Check basic packet specs
+    is_good_waps_image_packet(self, count_corruption=False):
+        Check details packet parameters including CRC or Verify Code
     """
 
     # WAPS image data packet values
@@ -49,7 +77,7 @@ class WapsPacket:
     packet_corruption_declared = False
 
     def __init__(self, ccsds_time, acquisition_time, data, receiver=None):
-        """Packet initialization with metadata"""
+        """ Packet initialization with metadata """
 
         self.uuid = str(uuid.uuid4())  # Random UUID
         self.receiver = receiver
@@ -194,7 +222,15 @@ class WapsPacket:
         return True
 
     def is_good_waps_image_packet(self, count_corruption=False):
-        """ Check packet for corruption"""
+        """Detailed check of packet parameters
+
+        Args:
+            self
+            count_corruption (bool): Whether to count corruption this IES session
+
+        Returns:
+            good_packet (bool): Packet has no issues
+        """
 
         if len(self.data) != 254:  # BIOLAB packet data length fixed at 254
             logging.error('%s - Incorrect data length (254). This packet: %i',

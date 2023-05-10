@@ -1,13 +1,15 @@
 """
 Script: database.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
-Purpose: WAPS PD image extraction software for operations at MUSC
-         Database access class
-Version: 2023-04-18 14:00, version 0.1
+Purpose: WAPS Image Extraction Software
+         Database Class
+Version: 2023-05-25 15:00, version 1.0
 
 Change Log:
 2023-04-18 version 0.1
  - initial version
+2023-05-25 v 1.0
+ - release
 """
 
 import os
@@ -18,15 +20,50 @@ from waps_ies import waps_packet, waps_image
 
 
 class Database:
-    """
-    TCP Receiver class
+    """Database Class
+    This Class manages all database calls for WAPS IES
 
     Attributes
     ----------
+    database_image_table (str): SQL format straig of the database images table
+    database_packet_table (str): SQL format straig of the database packets table
+    receiver (Receiver type): current waps_ies.Receiver instance
+
+    database (sqlite3 type): Database access instance
+    db_cursor (cursor type): Database cursor instance
 
     Methods
     -------
+    __init__(self, database_filename='waps_pd.db', receiver=None):
+        Initialize the database with this filename and reference the receiver
+    add_packet(self, packet):
+        Add packet to database, if not present already
+    update_image_uuid_of_a_packet(self, packet):
+        Update packet with the new image uuid
+    packet_exists(self, packet):
+        Check if packet already exists in the database. Matching CCSDS_time and packet_name
 
+    add_image(self, image):
+        Add image to database, if not present already
+    image_exists(self, image):
+        Check if image already exists in the database. Matching CCSDS_time and image_name
+
+    restore_packet_from_db_entry(self, packet_entry):
+        Restore packet from its database entry
+    restore_image_from_db_entry(self, image_entry):
+        Restore image from its database entry
+    retrieve_image_from_packet(self, packet):
+        Retrieve the latest image from database matching packet parameters
+    retrieve_image_by_uuid(self, image_uuid):
+        Retrieve and image from databse using its uuid
+    retrieve_packets_after(self, packet):
+        Retrieve packets after CCSDS time of this packet
+    update_image_status(self, image):
+        Update an existing image in the database with status
+    update_image_filenames(self, image):
+        Update an existing image in the database with saved file names
+    get_image_list(self):
+        Get image list to display in GUI
     """
 
     database_image_table = ("image_uuid, " +
@@ -73,6 +110,7 @@ class Database:
     receiver = None
 
     def __init__(self, database_filename='waps_pd.db', receiver=None):
+        """Initialize the database with this filename and reference the receiver"""
 
         self.receiver = receiver
 
@@ -99,7 +137,7 @@ class Database:
             self.db_cursor.execute(image_table_contents)
 
     def add_packet(self, packet):
-        """ Add packet to database, if not present already """
+        """Add packet to database, if not present already"""
 
         # Avoid adding packet several times
         if self.packet_exists(packet):
@@ -132,7 +170,7 @@ class Database:
         self.database.commit()
 
     def update_image_uuid_of_a_packet(self, packet):
-        """ Update packet with the new image uuid """
+        """Update packet with the new image uuid"""
 
         packet_data = (packet.image_uuid,
                        packet.uuid),
@@ -159,7 +197,7 @@ class Database:
         return False
 
     def add_image(self, image):
-        """ Add image to database, if not present already """
+        """Add image to database, if not present already"""
 
         # Avoid adding image several times
         uuid = self.image_exists(image)
@@ -211,9 +249,7 @@ class Database:
         return None
 
     def restore_packet_from_db_entry(self, packet_entry):
-        """
-        Restore packet from its database entry
-        """
+        """Restore packet from its database entry"""
 
         acquisition_time = datetime.strptime(packet_entry[1], "%Y-%m-%d %H:%M:%S.%f")
         ccsds_time = datetime.strptime(packet_entry[2], "%Y-%m-%d %H:%M:%S.%f")
@@ -227,9 +263,7 @@ class Database:
         return packet
 
     def restore_image_from_db_entry(self, image_entry):
-        """
-        Restore image from its database entry
-        """
+        """Restore image from its database entry"""
 
         # Retrieve all packets belonging to this image
         res = self.db_cursor.execute("SELECT * FROM packets WHERE image_id=?",
@@ -258,9 +292,7 @@ class Database:
         return None
 
     def retrieve_image_from_packet(self, packet):
-        """
-        Retrieve the latest image from database matching packet parameters
-        """
+        """Retrieve the latest image from database matching packet parameters"""
 
         # Latest image entry
         res = self.db_cursor.execute("SELECT * FROM images WHERE " +
@@ -276,9 +308,7 @@ class Database:
         return self.restore_image_from_db_entry(image_entry[0])
 
     def retrieve_image_by_uuid(self, image_uuid):
-        """
-        Retrieve and image from databse using its uuid
-        """
+        """Retrieve and image from databse using its uuid"""
 
         # Latest image entry
         res = self.db_cursor.execute("SELECT * FROM images WHERE image_uuid=?",
@@ -290,9 +320,7 @@ class Database:
         return self.restore_image_from_db_entry(image_entry[0])
 
     def retrieve_packets_after(self, packet):
-        """
-        Retrieve packets
-        """
+        """Retrieve packets after CCSDS time of this packet"""
 
         # Retrieve all packets belonging to this image
         res = self.db_cursor.execute("""SELECT * FROM packets WHERE
@@ -315,7 +343,7 @@ class Database:
         return packet_list
 
     def update_image_status(self, image):
-        """ Update an existing image in the database with status """
+        """Update an existing image in the database with status"""
 
         missing_packets = image.get_missing_packets()
         good_packets = image.number_of_packets - len(missing_packets)
@@ -340,7 +368,7 @@ class Database:
         self.database.commit()
 
     def update_image_filenames(self, image):
-        """ Update an existing image in the database with saved file names """
+        """Update an existing image in the database with saved file names"""
 
         image_data = (image.latest_saved_file,
                       image.latest_saved_file_data,
@@ -356,9 +384,7 @@ class Database:
         self.database.commit()
 
     def get_image_list(self):
-        """
-        Get image list to display in GUI
-        """
+        """Get image list to display in GUI"""
 
         res = self.db_cursor.execute("SELECT * from images ORDER BY CCSDS_time DESC;")
 

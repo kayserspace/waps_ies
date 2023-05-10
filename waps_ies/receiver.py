@@ -1,13 +1,16 @@
 """
 Script: receiver.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
-Purpose: WAPS PD image extraction software for operations at MUSC
-         Receiver class. Receives and processes CCSDS packets
-Version: 2023-04-18 14:00, version 0.1
+Purpose: WAPS Image Extraction Software
+         Receiver class. Receives and processes CCSDS packets into BIOLAB TM packets.
+         Main loop of the application.
+Version: 2023-05-25 15:00, version 0.1
 
 Change Log:
 2023-04-18 version 0.1
  - initial version
+2023-05-25 v 1.0
+ - release
 """
 
 import logging
@@ -29,25 +32,90 @@ BIOLAB_ID_POSITION = 40
 
 
 class Receiver:
-    """
-    TCP Receiver class
+    """Receiver Class
+    Contains packet variables and methods
 
     Attributes
     ----------
+    failed_connection_count (int) : number of failed connection since a successful one
+    tcp_rerequest_count (int): number of TCP rerequests needed during this IES session
+    socket (Socket type): TCP client socket receiveing bytes
+    server_address (str): TCP server IP address and port tuple
+    tcp_timeout (float): TCP reception timeout
+    timeout_notified (bool): TCP timeout notification limited to one message
+    connected (bool): internal indication of TCP server connection
+
+    output_path (str): output image root path
+    comm_path (str): missing packet command stack path
+    database_file (str): database file path
+
+    log_level (int): Determines what messagesa are added to the log and terminal
+    log_file (str): Currently opened and filled log file
+    log_start (Time type): When the log has been started
+
+    last_packet_ccsds_time (Time type): CCSDS time of the last received packet
+    last_status_update (Time type): Last update of the status message
+    last_outdated_images_check (Time type): Time of the last outdated images check
+    image_timeout (Timedelta type): Time peiod after which an image is outdated
+    memory_slot_change_detection (bool): Whether to check BIOLAB TM for change of active memory slot
+    skip_verify_code (bool): Whether to report and count verify code (2020 interface test exception)
+
+    ec_states (list): List of know ECs wth addresses, positions and statuses
+
+    gui (window type): Graphical Interface Class Instance
+    refresh_gui_list_window (bool): Indication from GUI whether to update the image gui window
+    recover_image_uuids (list): List of iamge uuids to recover from database (action from gui)
+
+    continue_running (bool): Main loop condition
+    images (list): List of active image (Incomplete ones)
+    database (database type): Database class instance that handles database calls
+
+    Following are IES session statistics variables:
+    total_packets_received
+    total_biolab_packets
+    total_waps_image_packets
+    total_initialized_images
+    total_completed_images
+    total_lost_packets
+    total_corrupted_packets
+    total_received_bytes
 
     Methods
     -------
-
+    __init__(self, waps_config):
+        Initialize the Receiver instance based on waps_config dictionary
+    start_new_log(self):
+        Start a new log file.
+        If a log file is running already, smoothly transition.
+    get_status(self):
+        Get status string containing CCSDS time and session statistics
+    get_ec_position(self, ec_address):
+        Get EC position from EC_list according ec_address
+    get_ec_states_index(self, ec_address):
+        Get EC state index according to ec_address
+    assign_ec_column(self, ec_address):
+        Assign a gui column in the ec_states according to ec_address
+    clear_gui_column(self, column):
+        Clear gui column in the ec_states
+    check_outdated_images(self):
+        Check and visually indicate outdated images
+    remove_overwritten_image(self, index):
+        Remove overwritten image from active memory (stays in database)
+    connect_to_server(self):
+        Try connecting to the server with defined IP address and port
+    receive_from_server(self, expected_length):
+        Received the expected number of bytes from the server, allowing 3 rerequests
+    start(self):
+        Main loop with with CCSDS packet reception and following procesing
+    process_ccsds_packet(self, ccsds_packet):
+        Process the CCSDS packet and return BIOLAB packet
     """
 
     failed_connection_count = 0
     tcp_rerequest_count = 0
 
-    comm_path = '/'
-
     log_level = logging.INFO
     log_file = None
-    log_start = 0
 
     last_packet_ccsds_time = datetime(1980, 1, 6)
 
@@ -65,15 +133,15 @@ class Receiver:
     continue_running = True
 
     def __init__(self, waps_config):
-        """
-        Initialize the TCP connection
-
-        Attributes
-        ----------
-
-        Methods
-        -------
-
+        """Initialize the Receiver based on waps_config
+        1. Start logging
+        2. Startup messages
+        3. Check critical start-up paramters (IP address and port)
+        4. Initialize TCP client socket
+        5. Create non-existing directories
+        6. Start the GUI
+        7. Initialize statistics
+        8. Initializa database
         """
 
         # Logging level definition
@@ -194,7 +262,9 @@ class Receiver:
         self.database = database.Database(self.database_file, self)
 
     def start_new_log(self):
-        """ Start a new log file """
+        """Start a new log file
+        If log already running, make a smooth transition
+        """
 
         # Set up logging
         new_log_filename = (self.log_path + 'WAPS_IES_' +
@@ -229,7 +299,7 @@ class Receiver:
         return status_message
 
     def get_ec_position(self, ec_address):
-        """ Get EC position from address """
+        """ Get EC position baased on ec address """
 
         for ec_state in self.ec_states:
             if ec_state["ec_address"] == ec_address:
@@ -238,7 +308,7 @@ class Receiver:
         return '?'
 
     def get_ec_states_index(self, ec_address):
-        """ Get EC index in the ec_states table """
+        """ Get EC index in the ec_states table based on ec address """
 
         # Find existing entry
         for i, ec_state in enumerate(self.ec_states):
@@ -256,7 +326,7 @@ class Receiver:
         return len(self.ec_states) - 1
 
     def assign_ec_column(self, ec_address):
-        """ Assign an EC column in the WAPS GUI """
+        """ Assign an EC column in the WAPS GUI according ec address """
 
         index = self.get_ec_states_index(ec_address)
         if self.ec_states[index]["gui_column"] is None:
@@ -285,7 +355,7 @@ class Receiver:
                                                   self.ec_states[index]["ec_position"])
 
     def clear_gui_column(self, column):
-        """ Clear GUI column assignment """
+        """ Clear GUI column assignment (from ec_states) """
 
         # Get current column occupation
         for i, ec_state in enumerate(self.ec_states):
@@ -321,7 +391,13 @@ class Receiver:
         self.images.pop(index)
 
     def connect_to_server(self):
-        """ Connect to TCP server and configure keepalive """
+        """Connect to TCP server and configure keepalive
+        Keepalive packets are sent after 1 s of idleness,
+        a pakcet every 3 seconds and connection is considred lost after 5 failed attempts
+
+        Returns:
+            successful_connection (bool)
+        """
 
         try:
             # Initialize socket
@@ -374,9 +450,8 @@ class Receiver:
         return False
 
     def receive_from_server(self, expected_length):
-        """
-        Receive data as a TCP client
-        In case of failure to receive the correct amount retry set amount of times
+        """ Receive data from a TCP server
+        In case of failure to receive the correct nubmer of bytes allow 3 retries
         """
 
         # In most cases one reception should be enough
@@ -405,7 +480,24 @@ class Receiver:
         raise ValueError(f"Unexpected reception length: {data_length} bytes")
 
     def start(self):
-        """ Main receiver loop """
+        """Main Receiver loop
+        The following actions are performed in the main loop:
+        1. On date change a new log file is opened
+        2. Outdated images are checked and visually marked
+        3. Image list window is refreshed if requested by the gui
+        4. Images from the database are recovered if requested from the gui
+        5. Connect to the TCP server if not already connected
+        6. Receive CCSDS header
+        6.1 Update gui on CCSDS header reception
+        7. Receive the rest of CCSDS packet
+        8. On any reception error besides timeout disconnect from the TC server
+        9. Process the CCSDS packet and check whether it contains BIOLAB TM
+        10. Update images according to received BIOLAB TM
+        11. Write a status message in the terminal
+        12. On timeout of reception indicate that no packets are being received
+        13. On keyboard interrupt (Ctrl + C) or GUI close shut down the IES
+        14. Complete IES execution with Statistics writeout
+        """
 
         try:
             while self.continue_running:
@@ -565,14 +657,13 @@ class Receiver:
                          self.tcp_rerequest_count)
 
     def process_ccsds_packet(self, ccsds_packet):
-        """
-        Takes a ccsds packet, extracts WAPS image packet if present
+        """Takes a ccsds packet, extracts WAPS image packet if present
 
-            Parameters:
-                file_path (str): Location of the archive data file
+            Arguments:
+                ccsds_packet (bytearray): binary CCSDS packet data
 
             Returns:
-                packet_list (list): list of extracted biolab packets
+                packet (waps_packet type) or None
         """
 
         ccsds_packet_length = len(ccsds_packet)

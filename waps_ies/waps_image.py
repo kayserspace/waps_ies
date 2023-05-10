@@ -1,13 +1,15 @@
 """
 Script: waps_image.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
-Purpose: WAPS PD image extraction software for operations at MUSC
-         WAPS image class
-Version: 2023-04-18 14:00, version 0.1
+Purpose: WAPS Image Extraction Software
+         WAPS image class dedicated values and functions
+Version: 2023-05-25 15:00, version 1.0
 
 Change Log:
 2023-04-18 version 0.1
  - initial version
+2023-05-25 v 1.0
+ - release
 """
 
 import uuid
@@ -15,18 +17,57 @@ import logging
 
 
 class WapsImage:
-    """
-    Image class
+    """WAPS Image Class
+    Contains packet variables and methods
 
     Attributes
     ----------
-    camera_type : str
-        Source file path where the packet was extracted from
+    uuid (str) : unique id
+    ec_address (int): EC address of this packet
+    ec_position (str): EC position inside BIOLAB
+    memory_slot (int): Memory slot of the image in the EC
+    camera_type (str): uCAM (Colour) or FLIR (Infrared camera)
+    number_of_packets (int): Number of expected image data packets
+
+    acquisition_time (Time type): time of init packet creation
+    ccsds_time (Time type): CCSDS time of the TM packet
+    time_tag (int): EC time tag coming with this packet
+    image_name (str): Image name compiled from other image parameters
+
+    packets (list): list of packets assigned to this image
+
+    overwritten (bool): Whether image memory slot has been overwritten
+    image_transmission_active (bool): Whether image transmission is ongoing
+    update (bool): Whether image has been updated (internal)
+    last_update (Time type): CCSDS time of the lat TM packet assigned to this image
+    latest_saved_file (str): Latest save file path (both uCAM and FLIR)
+    latest_saved_file_tm (str): Latest save telemetry file path (only FLIR)
+    latest_saved_file_data (str): Latest save data file path (only FLIR)
+    outdated (bool): Indication of whether image has been not update for a defined period
 
     Methods
     -------
-    info(additional=""):
-        Checks if the file image is complete.
+    __init__(self, packet):
+        Image creation based on the initialization packet
+    __str__(self):
+        Create a string from packet variables
+    missing_packets_string(self,  exclude_corrupted=False):
+        List all missing packets as a string. Possible to exclude corrupted
+    add_packet(self, packet):
+        Add packet to the image packet list with basic check and time update
+    is_complete(self):
+        Return whether the image is complete
+    get_completeness_str(self):
+        Return image completeness string with percentage
+    get_missing_packets(self, exclude_corrupted=False):
+        List all missing packets. Possible to exclude corrupted (for reconstruction)
+    packets_are_sequential(self):
+        Return whether received packet are sequential
+    sort_packets(self):
+        Sort this image packet list
+    reconstruct(self):
+        Return a reconstructed binary image data
+
     """
 
     def __init__(self, packet):
@@ -163,7 +204,9 @@ class WapsImage:
         return out
 
     def add_packet(self, packet):
-        """Append a new packet to an existing list"""
+        """ Append a new packet to an existing list
+        With basic check and time update
+        """
 
         # Check that the packet is according to specification
         if not packet.in_spec:
@@ -195,7 +238,9 @@ class WapsImage:
         return True
 
     def get_completeness_str(self):
-        """ Get percentage and packet count string """
+        """ Get percentage and packet count string
+        Received good packets / Expeced packet and percentage string
+        """
 
         missing_packets = self.get_missing_packets()
         available_packets = self.number_of_packets - len(missing_packets)
@@ -207,7 +252,9 @@ class WapsImage:
         return out
 
     def get_missing_packets(self, exclude_corrupted=False):
-        """Get the missing packet list"""
+        """ Get the missing packet list
+        For reconstruction possible to specify to allow corrupted packets
+        """
 
         missing_packets = []
         try:

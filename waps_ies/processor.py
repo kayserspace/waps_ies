@@ -21,15 +21,35 @@ def sort_biolab_packets(packet_list,
                         incomplete_images,
                         receiver,
                         biolab_memory_slot_change_detection=False):
-    """
-    Takes packet list and incomplete images.
-    Returns list of incomplete images with sorted packets.
+    """Sort given packet list into images
+    For each packet:
+        1. Note received packet depending on the contents
+        2. Get ec_states index for EC status
+        3. Check change of memory slot in the EC throguh BIOLAB telemetry
+        4. WAPS image init packet:
+        4.1. Update EC state
+        4.2. Create new image based on this packet
+        4.3. Check if this is a duplicate
+        4.4. Add image to database
+        4.5. Check for existing packets in database
+        4.6. Add image to active image list
+        4.7. Assign a gui column to the EC is not done so already
+        5. WAPS image data packet
+        5.1. Find a match in the active image list
+        5.2. Find a match in the database if not in active image list
+        5.3. Note non-existing image if no active image list found
+        6. Add pcaket to the database (with assign image UUID)
+        7. Return active image list
 
-        Parameters:
-            file_path (str): Location of the test bench data file
+    Args:
+        packet_list (list): packets to be sorted
+        incomplete_images (list): list of active (incomplete) images
+        receiver (Receiver type): current waps_ies.Receiver instance
+        biolab_memory_slot_change_detection (bool): whether to
+                check for change of memory slot in the BIOLAB TM header
 
-        Returns:
-            packet_list (list): list of extracted BIOLAB packets
+    Returns:
+        incomplete_images (list): list of active (incomplete) images
     """
 
     # Go through the packet list
@@ -218,7 +238,19 @@ def sort_biolab_packets(packet_list,
 
 
 def write_file(image_data, file_path, filetype='wb', gui=None):
-    """ Write image to local storage """
+    """Write image to the output path
+    Before writing check existence of an identical file or filename.
+    Change filename if already exists
+
+    Args:
+        image_data (data array): binary data or string data depending on the file format
+        file_path (str): file path where to save the file
+        filetype (str): binary or text file
+        gui (gui type): for latest written file name update
+
+    Returns:
+        succesful_write (bool)
+    """
 
     readtype = 'rb'
     if filetype == 'w':
@@ -266,7 +298,11 @@ def write_file(image_data, file_path, filetype='wb', gui=None):
 
 
 def print_images_status(images):
-    """ Log image completeness status """
+    """Logs image completeness status
+
+    Args:
+        images (list): list of images for completeness status message
+    """
 
     for image in images:
         missing_packets = image.get_missing_packets()
@@ -282,9 +318,13 @@ def print_images_status(images):
 
 
 def create_command_stack(image, receiver):
-    """
-    Creates a command stack file.
-    The command stack is to be used to re-request missing image packets.
+    """Creates a command stack file
+    Generate a new text file with current timestamp
+    The command stack is to be used to re-request missing image packets
+
+    Args:
+        image (WapsImage type): image from which to generate the command stack
+        receiver (Receiver type): current waps_ies.Receiver instance
     """
 
     ec_position = receiver.get_ec_position(image.ec_address)
@@ -321,12 +361,30 @@ def create_command_stack(image, receiver):
 
 
 def save_images(images, output_path, receiver, save_incomplete=True):
+    """ Reconstruct and save images to files
+    For each image in the list
+    1. Check whether it needs update. Skip if not.
+    2. Get image completeness from missing packet list
+    3. For uCAM image
+    3.1. Reconstruct JPEG image from availlable packets
+    4. Fof FLIR image
+    4.1. Reconstrcut telemetry text file
+    4.2. Reconstruct .csv file with image data
+    4.3. Create BMP image based on image data
+    5. On successful reconstruction remove previous file version(s)
+    6. Update gui with image status
+    7. Remove completed images from active image list
+
+    Args:
+        images (list): list of active (incomplete) images
+        output_path (str): root output path where to save the images
+        receiver (Receiver type): current waps_ies.Receiver instance
+        save_incomplete (bool): whether to save incomplete images to file
+
+    Returns:
+        images (list): list of active (incomplete) images
     """
-    Incomplete images and output path.
-    Returns list of incomplete images with sorted packets.
-        Parameters:
-        Returns:
-    """
+
     gui = receiver.gui
     finished_images = []
 

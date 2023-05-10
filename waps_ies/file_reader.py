@@ -1,12 +1,15 @@
 """
 Script: file_reader.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
-Purpose: Contains functions for extraction of packets from files
-Version: 2023-04-18 14:00, version 0.1
+Purpose: WAPS Image Extraction Software
+         File read methods for WAPS IES testing based on files
+Version: 2023-05-25 15:00, version 1.0
 
 Change Log:
 2023-04-18 version 0.1
  - initial version
+2023-05-25 v 1.0
+ - release
 """
 
 from datetime import datetime
@@ -15,15 +18,7 @@ from waps_ies import waps_packet
 
 
 def read_rt_file(file_path):
-    """
-    Takes file path and returns list of packets
-
-        Parameters:
-            file_path (str): Location of the archive data file
-
-        Returns:
-            packet_list (list): list of extracted BIOLAB packets
-    """
+    """Takes file path of an rt data file and returns list of packets"""
 
     start_pointer = 0
     packet_list = []
@@ -73,15 +68,7 @@ def read_rt_file(file_path):
 
 
 def read_test_bed_file(file_path):
-    """
-    Takes file path and returns list of packets
-
-        Parameters:
-            file_path (str): Location of the test bench data file
-
-        Returns:
-            packet_list (list): list of extracted BIOLAB packets
-    """
+    """Takes file path for a "test bed" text file and returns list of packets"""
 
     packet_list = []
 

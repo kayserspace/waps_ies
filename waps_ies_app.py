@@ -11,10 +11,13 @@ WAPS Image Extraction Software. Acquires CCSDS packets from a TCP stream and sea
 packets. Extracts WAPS PD images from BIOLAB telemetry and informs of missing packets. IP address
 and port must be specified either inline or in the configuration file.
 
-This file contains functions:
- * check_config_file - Get WAPS IES configuration from file
- * check_arguments - Get WAPS IES configuration from command line arguments
- * run_waps_ies - Start WAPS IES execution
+This file contains methods:
+ * check_config_file()
+        Get WAPS IES configuration from file
+ * check_arguments(args, config)
+        Get WAPS IES configuration from command line arguments
+ * run_waps_ies(args)
+        Start WAPS IES execution
 
 Change Log:
 2023-02-17 version 0.1
