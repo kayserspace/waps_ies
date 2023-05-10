@@ -368,13 +368,11 @@ class Receiver:
         This is purely cosmetic fo the GUI
         """
 
-        current_time = datetime.now()
-        if (self.last_outdated_images_check > current_time + timedelta(minutes=1) and
-                self.image_timeout != timedelta(0)):
-            self.last_outdated_images_check = current_time
+        if self.image_timeout != timedelta(0):
             for index, image in enumerate(self.images):
                 if self.last_packet_ccsds_time > image.last_update + self.image_timeout:
                     self.images[index].outdated = True
+                    self.database.update_image_status(image)
                     if self.gui:
                         self.gui.update_image_data(self.images[index])
 
@@ -386,6 +384,8 @@ class Receiver:
                         len(self.images[index].packets) -
                         len(self.images[index].get_missing_packets()),
                         self.images[index].number_of_packets)
+        self.images[index].update = False
+        self.database.update_image_status(self.images[index])
         if self.gui:
             self.gui.update_image_data(self.images[index])
         self.images.pop(index)
@@ -503,13 +503,15 @@ class Receiver:
             while self.continue_running:
 
                 try:
-                    
+                    current_time = datetime.now()
                     # On change of date move on to a new log file
-                    if datetime.now().strftime('%d') != self.log_start.strftime('%d'):
+                    if current_time.strftime('%d') != self.log_start.strftime('%d'):
                         self.start_new_log()
 
                     # Check if any image is outdated
-                    self.check_outdated_images()
+                    if current_time > self.last_outdated_images_check + timedelta(minutes=1):
+                        self.last_outdated_images_check = current_time
+                        self.check_outdated_images()
 
                     if self.refresh_gui_list_window:
                         self.refresh_gui_list_window = False

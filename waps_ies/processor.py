@@ -151,7 +151,7 @@ def sort_biolab_packets(packet_list,
                         receiver.database.update_image_uuid_of_a_packet(existing_packet)
                     new_image.packets = existing_packet_list
 
-                receiver.database.update_image_status(new_image)
+                    receiver.database.update_image_status(new_image)
 
                 # Add image to the incomplete list
                 incomplete_images.append(new_image)
@@ -619,6 +619,7 @@ def save_images(images, output_path, receiver, save_incomplete=True):
             gui.update_stats()
 
         # Update image in database
+        image.update = False
         receiver.database.update_image_status(image)
         receiver.database.update_image_filenames(image)
 

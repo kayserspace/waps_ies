@@ -351,6 +351,7 @@ class Database:
         image_data = (good_packets,
                       image.overwritten,
                       image.outdated,
+                      image.update,
                       image.image_transmission_active,
                       image.last_update,
                       image.missing_packets_string(),
@@ -360,6 +361,7 @@ class Database:
                                    good_packets=?,
                                    overwritten=?,
                                    outdated=?,
+                                   image_update=?,
                                    transmission_active=?,
                                    last_update=?,
                                    missing_packets=?
