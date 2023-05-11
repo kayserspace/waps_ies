@@ -284,8 +284,8 @@ class Database:
             image.packets = packet_list
             image.uuid = image_entry[0]
             image.latest_saved_file = image_entry[15]
-            image.latest_saved_file_tm = image_entry[16]
-            image.latest_saved_file_data = image_entry[17]
+            image.latest_saved_file_data = image_entry[16]
+            image.latest_saved_file_tm = image_entry[17]
             image.last_update = datetime.strptime(image_entry[18], "%Y-%m-%d %H:%M:%S.%f")
             return image
 
