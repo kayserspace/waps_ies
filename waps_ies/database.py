@@ -403,7 +403,7 @@ class Database:
         self.database.close()
         shutil.copy(self.receiver.database_file, clone_database_name)
 
-        logging.info("Create a copy of the current database: %s", clone_database_name)
+        logging.info("Created a copy of the current database: %s", clone_database_name)
         self.database = sqlite3.connect(self.receiver.database_file,
                                         check_same_thread=False)
         self.db_cursor = self.database.cursor()

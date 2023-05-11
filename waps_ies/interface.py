@@ -147,24 +147,24 @@ class WapsIesGui:
                            background_color='red'),
                    sg.Text('CCSDS pkts:'),
                    sg.Input('0', k='CCSDS_pkts', size=(14, 1),
-                           background_color='white', readonly=True,
-                           tooltip="Number of received CCSDS packets"),
+                            background_color='white', readonly=True,
+                            tooltip="Number of received CCSDS packets"),
                    sg.Text('BIOLAB TM pkts:'),
                    sg.Input('0', k='BIOLAB_pkts', size=(9, 1),
-                           background_color='white', readonly=True,
-                           tooltip="Number of received BIOLAB telemetry packets"),
+                            background_color='white', readonly=True,
+                            tooltip="Number of received BIOLAB telemetry packets"),
                    sg.Text('WAPS image data pkts:'),
                    sg.Input('0', k='WAPS_pkts', size=(7, 1),
-                           background_color='white', readonly=True,
-                           tooltip="Number of received WAPS image packets")],
+                            background_color='white', readonly=True,
+                            tooltip="Number of received WAPS image packets")],
                   [sg.Text('Output path:'),
                    sg.Input(receiver.output_path, k='output_path',
-                           size=(38, 1), justification=output_path_justivfication,
-                           tooltip="Full path: " + receiver.output_path, readonly=True,
-                           background_color='lightgrey'),
+                            size=(38, 1), justification=output_path_justivfication,
+                            tooltip="Full path: " + receiver.output_path, readonly=True,
+                            background_color='lightgrey'),
                    sg.Text('Latest saved file:'),
                    sg.Input('None', k='latest_file', size=(60, 1),
-                           background_color='white', readonly=True)]]
+                            background_color='white', readonly=True)]]
 
         column_slot = []
         column_slot.append([sg.Text(' ')])
@@ -225,17 +225,17 @@ class WapsIesGui:
                                 k='list_all_button'),
                       sg.Text('Initialized images:'),
                       sg.Input('0', k='initialized_images', size=(4, 1),
-                              background_color='white', readonly=True),
+                               background_color='white', readonly=True),
                       sg.Text('Completed images:'),
                       sg.Input('0', k='completed_images', size=(4, 1),
-                              background_color='white', readonly=True),
+                               background_color='white', readonly=True),
                       sg.Text('Lost packets:'),
                       sg.Input('0', k='lost_packets', size=(4, 1),
-                              background_color='white', readonly=True),
+                               background_color='white', readonly=True),
                       sg.Text('Corrupted packets:'),
                       sg.Input('0', k='corrupted_packets', size=(4, 1),
-                              background_color='white', readonly=True),
-                      sg.Text('Not counting duplicates')]
+                               background_color='white', readonly=True),
+                      sg.Text('Not counting duplicates', background_color='lightgrey')]
         layout.append(status_bar)
 
         # Create the Window
@@ -557,8 +557,8 @@ class WapsIesGui:
                              tooltip="Read database and get fresh list of images"),
                    sg.Text("Total of"),
                    sg.Input(len(self.db_data), k='image_list_count', size=(4, 1),
-                           background_color='white', readonly=True,
-                           tooltip="Count includes filtered out"),
+                            background_color='white', readonly=True,
+                            tooltip="Count includes filtered out"),
                    sg.Text("images starting with the latest"),
                    sg.Button('Save table', k='save_button',
                              tooltip="Save table contents as a .CSV file to output directory"),

@@ -39,6 +39,7 @@ class Receiver:
     ----------
     failed_connection_count (int) : number of failed connection since a successful one
     tcp_rerequest_count (int): number of TCP rerequests needed during this IES session
+    unexpected_error_count (int): Unexpected error count during this session
     socket (Socket type): TCP client socket receiveing bytes
     server_address (str): TCP server IP address and port tuple
     tcp_timeout (float): TCP reception timeout
@@ -106,14 +107,23 @@ class Receiver:
         Try connecting to the server with defined IP address and port
     receive_from_server(self, expected_length):
         Received the expected number of bytes from the server, allowing 3 rerequests
-    start(self):
-        Main loop with with CCSDS packet reception and following procesing
+    prereception_actions(self):
+        Main loop actions before receiving CCSDS packets
+    receive_ccsds_packet(self):
+        CCSDS packet reception with retries
     process_ccsds_packet(self, ccsds_packet):
         Process the CCSDS packet and return BIOLAB packet
+    notify_about_timeout(self):
+        Notify about tiemout of not receiving CCSDS packets
+    closeout_message(self):
+        Terminal and log closeout message
+    start(self):
+        Main loop with with CCSDS packet reception and following procesing
     """
 
     failed_connection_count = 0
     tcp_rerequest_count = 0
+    unexpected_error_count = 0
 
     log_level = logging.INFO
     log_file = None
@@ -392,6 +402,46 @@ class Receiver:
             self.gui.update_image_data(self.images[index])
         self.images.pop(index)
 
+    def prereception_actions(self):
+        """ Main loop actions before receiving CCSDS packets
+        1. On date change a new log file is opened
+        2. Outdated images are checked and visually marked
+        3. Image list window is refreshed if requested by the gui
+        4. Images from the database are recovered if requested from the gui
+        """
+
+        current_time = datetime.now()
+        # On change of date move on to a new log file
+        if current_time.strftime('%d') != self.log_start.strftime('%d'):
+            self.start_new_log()
+
+        # Check if any image is outdated
+        if current_time > self.last_outdated_images_check + timedelta(minutes=1):
+            self.last_outdated_images_check = current_time
+            self.check_outdated_images()
+
+        # Refresh the image list window table
+        if self.refresh_gui_list_window:
+            self.refresh_gui_list_window = False
+            self.gui.refresh_image_list()
+
+        # Make a copy of the database
+        if self.clone_database:
+            self.clone_database = False
+            self.database.clone(current_time)
+
+        # If some images have been assigned to be recovered
+        while len(self.recover_image_uuids) != 0:
+            image_uuid = self.recover_image_uuids.pop(0)
+            image = self.database.retrieve_image_by_uuid(image_uuid)
+            if image is not None:
+                image.image_transmission_active = False
+                image.update = True
+                self.images = processor.save_images([image],
+                                                    self.output_path,
+                                                    self,
+                                                    True)  # Not incomplete
+
     def connect_to_server(self):
         """Connect to TCP server and configure keepalive
         Keepalive packets are sent after 1 s of idleness,
@@ -481,191 +531,41 @@ class Receiver:
 
         raise ValueError(f"Unexpected reception length: {data_length} bytes")
 
-    def start(self):
-        """Main Receiver loop
-        The following actions are performed in the main loop:
-        1. On date change a new log file is opened
-        2. Outdated images are checked and visually marked
-        3. Image list window is refreshed if requested by the gui
-        4. Images from the database are recovered if requested from the gui
-        5. Connect to the TCP server if not already connected
-        6. Receive CCSDS header
-        6.1 Update gui on CCSDS header reception
-        7. Receive the rest of CCSDS packet
-        8. On any reception error besides timeout disconnect from the TC server
-        9. Process the CCSDS packet and check whether it contains BIOLAB TM
-        10. Update images according to received BIOLAB TM
-        11. Write a status message in the terminal
-        12. On timeout of reception indicate that no packets are being received
-        13. On keyboard interrupt (Ctrl + C) or GUI close shut down the IES
-        14. Complete IES execution with Statistics writeout
+    def receive_ccsds_packet(self):
+        """CCSDS packet reception with retries
+        1. Receive CCSDS header
+        2 Update gui on CCSDS header reception
+        3. Receive the rest of CCSDS packet
         """
 
-        try:
-            while self.continue_running:
+        # Get the next packet
+        ccsds_header = self.receive_from_server(CCSDS_HEADERS_LENGTH)
+        self.timeout_notified = False
 
-                try:
-                    current_time = datetime.now()
-                    # On change of date move on to a new log file
-                    if current_time.strftime('%d') != self.log_start.strftime('%d'):
-                        self.start_new_log()
+        received_header_length = len(ccsds_header)
+        if received_header_length != CCSDS_HEADERS_LENGTH:
+            raise Exception("Unexpected length of CCSDS header: %i bytes",
+                            received_header_length)
 
-                    # Check if any image is outdated
-                    if current_time > self.last_outdated_images_check + timedelta(minutes=1):
-                        self.last_outdated_images_check = current_time
-                        self.check_outdated_images()
+        # Increase packet count
+        if received_header_length > 0:
+            self.total_packets_received = self.total_packets_received + 1
+            self.total_received_bytes = (self.total_received_bytes +
+                                         received_header_length)
 
-                    # Refresh the image list window table
-                    if self.refresh_gui_list_window:
-                        self.refresh_gui_list_window = False
-                        self.gui.refresh_image_list()
+        # Update interfeace status
+        if self.gui:
+            self.gui.update_server_active()
+            self.gui.update_ccsds_count()
 
-                    # Make a copy of the database
-                    if self.clone_database:
-                        self.clone_database = False
-                        self.database.clone(current_time)
+        ccsds1_packet_length = unpack('>H', ccsds_header[4:6])[0]
 
-                    # If some images have been assigned to be recovered
-                    while len(self.recover_image_uuids) != 0:
-                        image_uuid = self.recover_image_uuids.pop(0)
-                        image = self.database.retrieve_image_by_uuid(image_uuid)
-                        if image is not None:
-                            image.image_transmission_active = False
-                            image.update = True
-                            self.images = processor.save_images([image],
-                                                                self.output_path,
-                                                                self,
-                                                                True)  # Not incomplete
+        # calculate & receive remaining bytes in packet:
+        packet_data_length = ccsds1_packet_length + 1 - CCSDS2_HEADER_LENGTH
 
-                    if not self.connected:
-                        self.connected = self.connect_to_server()
+        packet_data = self.receive_from_server(packet_data_length)
 
-                        # If still not connected
-                        if not self.connected:
-                            time.sleep(1)  # Delay before trying to connect again
-                            continue
-                
-                    # Get the next packet
-                    ccsds_header = self.receive_from_server(CCSDS_HEADERS_LENGTH)
-                    self.timeout_notified = False
-
-                    received_header_length = len(ccsds_header)
-                    if received_header_length != CCSDS_HEADERS_LENGTH:
-                        raise Exception("Unexpected length of CCSDS header: %i bytes",
-                                        received_header_length)
-
-                    # Increase packet count
-                    if received_header_length > 0:
-                        self.total_packets_received = self.total_packets_received + 1
-                        self.total_received_bytes = (self.total_received_bytes +
-                                                     received_header_length)
-
-                    # Update interfeace status
-                    if self.gui:
-                        self.gui.update_server_active()
-                        self.gui.update_ccsds_count()
-
-                    ccsds1_packet_length = unpack('>H', ccsds_header[4:6])[0]
-
-                    # calculate & receive remaining bytes in packet:
-                    packet_data_length = ccsds1_packet_length + 1 - CCSDS2_HEADER_LENGTH
-
-                    biolab_packet = None
-                    packet_data = self.receive_from_server(packet_data_length)
-                    biolab_packet = self.process_ccsds_packet(ccsds_header + packet_data)
-
-                    if biolab_packet is not None:
-                        # Sort packets into images
-                        self.images = processor.sort_biolab_packets([biolab_packet],
-                                                                    self.images,
-                                                                    self,
-                                                                    self.memory_slot_change_detection)
-
-                        # Reconstruct and save images, keeping in memory the incomplete ones
-                        self.images = processor.save_images(self.images,
-                                                            self.output_path,
-                                                            self,
-                                                            False)  # Not incomplete
-
-                        # Show current state of incomplete images
-                        # if a WAPS image packet has been received
-                        if biolab_packet.is_waps_image_packet:
-                            processor.print_images_status(self.images)
-
-                    # Status information after all of the processing
-                    status_message = self.get_status() + '\r'
-                    if self.log_level == logging.DEBUG:
-                        logging.debug(status_message)
-                    else:
-                        current_time = datetime.now()
-                        if (current_time > self.last_status_update +
-                                timedelta(milliseconds=20)):             # 50 Hz max
-                            self.last_status_update = current_time
-                            print(status_message, end='')
-
-                except TimeoutError:
-                    if not self.timeout_notified:
-                        self.timeout_notified = True
-                        if self.gui:
-                            self.gui.update_server_connected()
-                            self.gui.update_stats()
-
-                            # Status information after all of the processing
-                            status_message = self.get_status() + '\r'
-                            if self.log_level == logging.DEBUG:
-                                logging.debug(status_message)
-                            else:
-                                current_time = datetime.now()
-                                if (current_time > self.last_status_update +
-                                        timedelta(milliseconds=20)):             # 50 Hz max
-                                    self.last_status_update = current_time
-                                    print(status_message, end='')
-                        logging.warning("\nNo CCSDS packets received for more than %s seconds",
-                                        self.tcp_timeout)
-
-                except KeyboardInterrupt:
-                    raise KeyboardInterrupt
-
-                except Exception as err:
-                    logging.error(str(err))
-                    self.connected = False
-                    self.socket.close()
-                    if self.gui:
-                        self.gui.update_server_disconnected()
-
-        except KeyboardInterrupt:
-            logging.info(' # Keyboard interrupt, closing')
-
-        finally:
-            # Close gui if it is running
-            if self.gui:
-                self.gui.close()
-
-            if self.database:
-                self.database.database.close()
-                logging.info(" # Closed database")
-
-            self.socket.close()
-            logging.info(" # Disconnected from server")
-            logging.info("      Sessions total numbers")
-            logging.info("  ccsds packets received:      %d",
-                         self.total_packets_received)
-            logging.info("  biolab TM packets received:  %d",
-                         self.total_biolab_packets)
-            logging.info("  WAPS image packets received: %d",
-                         self.total_waps_image_packets)
-            logging.info("  Initializaed images:         %d",
-                         self.total_initialized_images)
-            logging.info("  Completed images:            %d",
-                         self.total_completed_images)
-            logging.info("  Lost packets:                %d",
-                         self.total_lost_packets)
-            logging.info("  Corrupted packets:           %d",
-                         self.total_corrupted_packets)
-            logging.info("  Total received bytes:        %d",
-                         self.total_received_bytes)
-            logging.info("  TCP re-request needed:       %d",
-                         self.tcp_rerequest_count)
+        return ccsds_header + packet_data
 
     def process_ccsds_packet(self, ccsds_packet):
         """Takes a ccsds packet, extracts WAPS image packet if present
@@ -770,3 +670,139 @@ class Receiver:
         if packet.in_spec():
             return packet
         return None
+
+    def notify_about_timeout(self):
+        """Notify about tiemout of not receiving CCSDS packets"""
+
+        if not self.timeout_notified:
+            self.timeout_notified = True
+            if self.gui:
+                self.gui.update_server_connected()
+                self.gui.update_stats()
+
+                # Status information after all of the processing
+                status_message = self.get_status() + '\r'
+                if self.log_level == logging.DEBUG:
+                    logging.debug(status_message)
+                else:
+                    current_time = datetime.now()
+                    if (current_time > self.last_status_update +
+                            timedelta(milliseconds=20)):             # 50 Hz max
+                        self.last_status_update = current_time
+                        print(status_message, end='')
+            logging.warning("\nNo CCSDS packets received for more than %s seconds",
+                            self.tcp_timeout)
+
+    def closeout_message(self):
+        """Terminal and log closeout message"""
+
+        logging.info(" # Disconnected from server")
+        logging.info("      Sessions total numbers")
+        logging.info("  ccsds packets received:      %d",
+                     self.total_packets_received)
+        logging.info("  biolab TM packets received:  %d",
+                     self.total_biolab_packets)
+        logging.info("  WAPS image packets received: %d",
+                     self.total_waps_image_packets)
+        logging.info("  Initializaed images:         %d",
+                     self.total_initialized_images)
+        logging.info("  Completed images:            %d",
+                     self.total_completed_images)
+        logging.info("  Lost packets:                %d",
+                     self.total_lost_packets)
+        logging.info("  Corrupted packets:           %d",
+                     self.total_corrupted_packets)
+        logging.info("  Total received bytes:        %d",
+                     self.total_received_bytes)
+        logging.info("  TCP re-request count:        %d",
+                     self.tcp_rerequest_count)
+        logging.info("  Unexpected error count:      %d",
+                     self.unexpected_error_count)
+
+    def start(self):
+        """Main Receiver loop
+        The following actions are performed in the main loop:
+        1. Check prereception actions
+        2. Connect to the TCP server if not already connected
+        3. On any reception error besides timeout disconnect from the TC server
+        4. Process the CCSDS packet and check whether it contains BIOLAB TM
+        5. Update images according to received BIOLAB TM
+        6. Write a status message in the terminal
+        7. On timeout of reception indicate that no packets are being received
+        8. On keyboard interrupt (Ctrl + C) or GUI close shut down the IES
+        9. Complete IES execution with Statistics closeout message
+        """
+
+        try:
+            while self.continue_running:
+                try:
+                    self.prereception_actions()
+
+                    if not self.connected:
+                        self.connected = self.connect_to_server()
+
+                        # If still not connected
+                        if not self.connected:
+                            time.sleep(1)  # Delay before trying to connect again
+                            continue
+
+                    ccsds_packet = self.receive_ccsds_packet()
+                    biolab_packet = None
+                    biolab_packet = self.process_ccsds_packet(ccsds_packet)
+
+                    if biolab_packet is not None:
+                        # Sort packets into images
+                        self.images = processor.sort_biolab_packets([biolab_packet],
+                                                                    self.images,
+                                                                    self,
+                                                                    self.memory_slot_change_detection)
+
+                        # Reconstruct and save images, keeping in memory the incomplete ones
+                        self.images = processor.save_images(self.images,
+                                                            self.output_path,
+                                                            self,
+                                                            False)  # Not incomplete
+
+                        # Show current state of incomplete images
+                        # if a WAPS image packet has been received
+                        if biolab_packet.is_waps_image_packet:
+                            processor.print_images_status(self.images)
+
+                    # Status information after all of the processing
+                    status_message = self.get_status() + '\r'
+                    if self.log_level == logging.DEBUG:
+                        logging.debug(status_message)
+                    else:
+                        current_time = datetime.now()
+                        if (current_time > self.last_status_update +
+                                timedelta(milliseconds=20)):             # 50 Hz max
+                            self.last_status_update = current_time
+                            print(status_message, end='')
+
+                except TimeoutError:
+                    self.notify_about_timeout()
+
+                except KeyboardInterrupt:
+                    raise KeyboardInterrupt
+
+                except Exception as err:
+                    logging.error(str(err))
+                    self.unexpected_error_count = self.unexpected_error_count + 1
+                    self.connected = False
+                    self.socket.close()
+                    if self.gui:
+                        self.gui.update_server_disconnected()
+
+        except KeyboardInterrupt:
+            logging.info(' # Keyboard interrupt, closing')
+
+        # Close gui if it is running
+        if self.gui:
+            self.gui.close()
+
+        if self.database:
+            self.database.database.close()
+            logging.info(" # Closed database")
+
+        self.socket.close()
+        self.closeout_message()
