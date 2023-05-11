@@ -268,7 +268,9 @@ class WapsIesGui:
                 if event in (sg.WIN_CLOSED, 'Exit'):
                     if win == self.list_window:
                         self.list_window.close()
+                        del self.list_window
                         self.list_window = None
+                        del self.db_data
                         self.db_data = []
                     else:
                         break
@@ -289,6 +291,8 @@ class WapsIesGui:
                     self.show_selected_image_details(values['image_table'])
                 elif str(event) == 'image_retrieve':
                     self.recover_images(values['image_table'])
+                elif str(event) == 'clone_database':
+                    self.receiver.clone_database = True
                 elif str(event) != '__TIMEOUT__':
                     logging.info(' Interface event: %s %s %s',
                                  str(event),
@@ -299,7 +303,6 @@ class WapsIesGui:
         finally:
             self.window_open = False
             self.window.close()
-            del self.window
             logging.info(' # Closed interface')
             self.receiver.continue_running = False
 
@@ -575,7 +578,8 @@ class WapsIesGui:
                             auto_size_columns=False,
                             col_widths=[3, 4, 6, 4, 5, 15, 15, 7, 5, 10, 15],
                             expand_x=True, expand_y=True),],
-                  [sg.Text("Selected image:"),
+                  [sg.Button('Clone database', k='clone_database'),
+                   sg.Text("Selected image:"),
                    sg.Input("None", k='selected_image_file_path', size=(45, 1)),
                    sg.Button('Details', k='image_details', visible=False),
                    sg.Button('Retrieve and save selected', k='image_retrieve', visible=False)]]

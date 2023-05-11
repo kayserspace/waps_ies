@@ -65,6 +65,7 @@ class Receiver:
     gui (window type): Graphical Interface Class Instance
     refresh_gui_list_window (bool): Indication from GUI whether to update the image gui window
     recover_image_uuids (list): List of iamge uuids to recover from database (action from gui)
+    clone_database (bool): condition to clone the database
 
     continue_running (bool): Main loop condition
     images (list): List of active image (Incomplete ones)
@@ -245,6 +246,7 @@ class Receiver:
 
         # Image to recover
         self.recover_image_uuids = []
+        self.clone_database = False
 
         # Status parameters
         self.timeout_notified = False
@@ -513,9 +515,15 @@ class Receiver:
                         self.last_outdated_images_check = current_time
                         self.check_outdated_images()
 
+                    # Refresh the image list window table
                     if self.refresh_gui_list_window:
                         self.refresh_gui_list_window = False
                         self.gui.refresh_image_list()
+
+                    # Make a copy of the database
+                    if self.clone_database:
+                        self.clone_database = False
+                        self.database.clone(current_time)
 
                     # If some images have been assigned to be recovered
                     while len(self.recover_image_uuids) != 0:

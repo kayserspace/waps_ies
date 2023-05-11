@@ -15,6 +15,7 @@ Change Log:
 import os
 import logging
 import sqlite3
+import shutil
 from datetime import datetime
 from waps_ies import waps_packet, waps_image
 
@@ -64,6 +65,8 @@ class Database:
         Update an existing image in the database with saved file names
     get_image_list(self):
         Get image list to display in GUI
+    clone(self, current_time):
+        Make a copy of the current database
     """
 
     database_image_table = ("image_uuid, " +
@@ -391,3 +394,16 @@ class Database:
         res = self.db_cursor.execute("SELECT * from images ORDER BY CCSDS_time DESC;")
 
         return res.fetchall()
+
+    def clone(self, current_time):
+        """Make a copy of the current database"""
+
+        clone_database_name = (self.receiver.database_file[:-3] +
+                               current_time.strftime('_%Y%m%d_%H%M%S') + '.db')
+        self.database.close()
+        shutil.copy(self.receiver.database_file, clone_database_name)
+
+        logging.info("Create a copy of the current database: %s", clone_database_name)
+        self.database = sqlite3.connect(self.receiver.database_file,
+                                        check_same_thread=False)
+        self.db_cursor = self.database.cursor()
