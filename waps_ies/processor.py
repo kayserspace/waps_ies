@@ -129,24 +129,28 @@ def sort_biolab_packets(packet_list,
                 continue
 
             # Add image to the database
-            image_added = receiver.database.add_image(new_image)
+            uuid = receiver.database.add_image(new_image)
+
+            # Update packet's image uuid
+            packet.image_uuid = uuid
 
             # If image already exists in database - skip
-            if image_added:
+            if uuid == new_image.uuid:
                 receiver.total_initialized_images = receiver.total_initialized_images + 1
                 logging.info('  New %s image in Memory slot %i with %i packets',
                              new_image.image_name,
                              packet.image_memory_slot,
                              new_image.number_of_packets)
 
-                # Update packet's image uuid
-                packet.image_uuid = new_image.uuid
-
                 # Check database for existing packets
                 existing_packet_list = receiver.database.retrieve_packets_after(packet)
                 if len(existing_packet_list) != 0:
                     # Update all packets with this image uuid
                     for index, existing_packet in enumerate(existing_packet_list):
+                        # Since image_uuid of the packet is changed, make sure the previous image is updated too.
+                        if (existing_packet.image_uuid is not None and
+                                existing_packet.image_uuid not in receiver.recover_image_uuids):
+                            receiver.recover_image_uuids.append(existing_packet_list[index].image_uuid)
                         existing_packet_list[index].image_uuid = new_image.uuid
                         receiver.database.update_image_uuid_of_a_packet(existing_packet)
                     new_image.packets = existing_packet_list
@@ -198,7 +202,7 @@ def sort_biolab_packets(packet_list,
                                  old_image.image_name)
 
             if not found_matching_image:
-                logging.error('%s matching image %i not found',
+                logging.error('%s matching image in memory slot %i not found',
                               packet.packet_name,
                               packet.image_memory_slot)
 

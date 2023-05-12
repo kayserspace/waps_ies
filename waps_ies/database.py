@@ -204,10 +204,10 @@ class Database:
 
         # Avoid adding image several times
         uuid = self.image_exists(image)
-        if uuid is not None:
+        if uuid is not None and uuid != image.uuid:
             logging.info(" Image %s already present in database",
                          image.image_name)
-            return False
+            return uuid
 
         image_data = [(image.uuid,
                        image.acquisition_time,
@@ -232,7 +232,7 @@ class Database:
         image_param = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         self.db_cursor.executemany("INSERT INTO images VALUES" + image_param, image_data)
         self.database.commit()
-        return True
+        return image.uuid
 
     def image_exists(self, image):
         """

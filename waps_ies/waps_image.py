@@ -315,7 +315,7 @@ class WapsImage:
                                 self.packets[i].packet_name,
                                 self.packets[i+1].packet_name)
                 if self.packets[i].data[90:] != self.packets[i+1].data[90:]:
-                    logging.error(" DUPLICATE packets, data not identical:")
+                    logging.error(" DUPLICATE packets, data not identical. Later one might belong to a non-initialized image")
                     logging.debug(' DUPLICATE #1 %s', str(self.packets[i]))
                     logging.debug(' DUPLICATE #2 %s', str(self.packets[i+1]))
                 if (self.packets[i].ccsds_time <= self.packets[i+1].ccsds_time or

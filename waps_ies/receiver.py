@@ -523,6 +523,7 @@ class Receiver:
             data = self.previously_received_bytes + self.socket.recv(expected_length -
                                                                      previously_received_bytes_length)
         else:
+            self.previously_received_bytes = bytearray(0)
             data = self.socket.recv(expected_length)
 
         data_length = len(data)
@@ -677,8 +678,9 @@ class Receiver:
 
         biolab_packet_length = ccsds_packet[BIOLAB_ID_POSITION + 1] * 2 + 4
         if biolab_packet_length < 254:
-            logging.warning(" Unexpected biolab packet length: %d",
+            logging.error(" Unexpected biolab packet length: %d",
                             biolab_packet_length)
+            return None
 
         # Count biolab packets
         self.total_biolab_packets = self.total_biolab_packets + 1
@@ -793,17 +795,6 @@ class Receiver:
                         if biolab_packet.is_waps_image_packet:
                             processor.print_images_status(self.images)
 
-                    # Status information after all of the processing
-                    status_message = self.get_status() + '\r'
-                    if self.log_level == logging.DEBUG:
-                        logging.debug(status_message)
-                    else:
-                        current_time = datetime.now()
-                        if (current_time > self.last_status_update +
-                                timedelta(milliseconds=20)):             # 50 Hz max
-                            self.last_status_update = current_time
-                            print(status_message, end='')
-
                 except (socket.timeout, TimeoutError):
                     self.notify_about_timeout()
 
@@ -817,6 +808,18 @@ class Receiver:
                     self.socket.close()
                     if self.gui:
                         self.gui.update_server_disconnected()
+
+                finally:
+                    # Status information after all of the processing
+                    status_message = self.get_status() + '\r'
+                    if self.log_level == logging.DEBUG:
+                        logging.debug(status_message)
+                    else:
+                        current_time = datetime.now()
+                        if (current_time > self.last_status_update +
+                                timedelta(milliseconds=20)):             # 50 Hz max
+                            self.last_status_update = current_time
+                            print(status_message, end='')
 
         except KeyboardInterrupt:
             logging.info(' # Keyboard interrupt, closing')
