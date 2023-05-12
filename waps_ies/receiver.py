@@ -40,6 +40,8 @@ class Receiver:
     failed_connection_count (int) : number of failed connection since a successful one
     tcp_rerequest_count (int): number of TCP rerequests needed during this IES session
     unexpected_error_count (int): Unexpected error count during this session
+    previously_received_bytes (bytearray): bytes left over from an overflowed TCP reception
+
     socket (Socket type): TCP client socket receiveing bytes
     server_address (str): TCP server IP address and port tuple
     tcp_timeout (float): TCP reception timeout
@@ -124,6 +126,7 @@ class Receiver:
     failed_connection_count = 0
     tcp_rerequest_count = 0
     unexpected_error_count = 0
+    previously_received_bytes = bytearray(0)
 
     log_level = logging.INFO
     log_file = None
@@ -504,13 +507,32 @@ class Receiver:
     def receive_from_server(self, expected_length):
         """ Receive data from a TCP server
         In case of failure to receive the correct nubmer of bytes allow 3 retries
+        IF received more than expected bytes - save them for next reception
         """
 
-        # In most cases one reception should be enough
-        data = self.socket.recv(expected_length)
+        # Check if there are bytes left over from previous recetion
+        previously_received_bytes_length = len(self.previously_received_bytes)
+
+        if previously_received_bytes_length >= expected_length:
+            # Take only the expected length and save the rest for later
+            self.previously_received_bytes = self.previously_received_bytes[expected_length:]
+            return self.previously_received_bytes[:expected_length]
+
+        # New reception
+        elif previously_received_bytes_length > 0:
+            data = self.previously_received_bytes + self.socket.recv(expected_length -
+                                                                     previously_received_bytes_length)
+        else:
+            data = self.socket.recv(expected_length)
+
         data_length = len(data)
         if data_length == expected_length:
             return data
+        elif data_length > expected_length:  # Save bytes for next reception
+            logging.error('Received more bytes (%i) than expected %i ',
+                          data_length, expected_length)
+            self.previously_received_bytes = data[expected_length:]
+            return data[:expected_length]
 
         # Try again
         # Number of attempts to receive the expected data
@@ -526,10 +548,13 @@ class Receiver:
             data = data + self.socket.recv(recv_length)
 
             data_length = len(data)
-            if data_length == expected_length:
+            if data_length >= expected_length:
+                if (data_length > expected_length):
+                    logging.error('Received more bytes (%i) than expected %i ',
+                                  data_length, expected_length)
                 return data
 
-        raise ValueError(f"Unexpected reception length: {data_length} bytes")
+        raise ValueError(f"Received {data_length} bytes instead of {expected_length}")
 
     def receive_ccsds_packet(self):
         """CCSDS packet reception with retries
@@ -779,7 +804,7 @@ class Receiver:
                             self.last_status_update = current_time
                             print(status_message, end='')
 
-                except TimeoutError:
+                except (socket.timeout, TimeoutError):
                     self.notify_about_timeout()
 
                 except KeyboardInterrupt:

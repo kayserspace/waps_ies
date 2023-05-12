@@ -63,6 +63,8 @@ class WapsPacket:
         Check details packet parameters including CRC or Verify Code
     """
 
+    is_waps_image_packet = False
+
     # WAPS image data packet values
     image_number_of_packets = -1
     data_packet_id = -1
