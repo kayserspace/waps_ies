@@ -126,7 +126,6 @@ class Receiver:
     failed_connection_count = 0
     tcp_rerequest_count = 0
     unexpected_error_count = 0
-    previously_received_bytes = bytearray(0)
 
     log_level = logging.INFO
     log_file = None
@@ -506,56 +505,35 @@ class Receiver:
 
     def receive_from_server(self, expected_length):
         """ Receive data from a TCP server
-        In case of failure to receive the correct nubmer of bytes allow 3 retries
-        IF received more than expected bytes - save them for next reception
+        In case of failure to receive the correct nubmer of bytes allow 3 attempts
         """
 
-        # Check if there are bytes left over from previous recetion
-        previously_received_bytes_length = len(self.previously_received_bytes)
-
-        if previously_received_bytes_length >= expected_length:
-            # Take only the expected length and save the rest for later
-            self.previously_received_bytes = self.previously_received_bytes[expected_length:]
-            return self.previously_received_bytes[:expected_length]
-
-        # New reception
-        elif previously_received_bytes_length > 0:
-            data = self.previously_received_bytes + self.socket.recv(expected_length -
-                                                                     previously_received_bytes_length)
-        else:
-            self.previously_received_bytes = bytearray(0)
-            data = self.socket.recv(expected_length)
-
+        data = self.socket.recv(expected_length)
         data_length = len(data)
         if data_length == expected_length:
             return data
-        elif data_length > expected_length:  # Save bytes for next reception
-            logging.error('Received more bytes (%i) than expected %i ',
-                          data_length, expected_length)
-            self.previously_received_bytes = data[expected_length:]
-            return data[:expected_length]
 
         # Try again
         # Number of attempts to receive the expected data
-        allowed_attempts = 3
-        attempt = 1  # One already done
+        allowed_attempts = 2
+        attempt = 0  # One already done
 
-        while attempt <= allowed_attempts:
+        while attempt < allowed_attempts:
             attempt = attempt + 1
             self.tcp_rerequest_count = self.tcp_rerequest_count + 1
-            logging.debug('Expected data length of %i vs actual %i. Retry attempts: %i',
+            logging.debug('Expected data length of %i vs actual %i. Attempts: %i',
                           expected_length, data_length, attempt)
             recv_length = expected_length - data_length
             data = data + self.socket.recv(recv_length)
 
             data_length = len(data)
             if data_length >= expected_length:
-                if (data_length > expected_length):
-                    logging.error('Received more bytes (%i) than expected %i ',
-                                  data_length, expected_length)
                 return data
 
-        raise ValueError(f"Received {data_length} bytes instead of {expected_length}")
+        logging.error('Expected data length of %i vs actual %i after %i attempts',
+                      data_length, expected_length, attempt)
+        return data
+        #raise ValueError(f"Received {} bytes instead of {}")
 
     def receive_ccsds_packet(self):
         """CCSDS packet reception with retries
@@ -570,8 +548,8 @@ class Receiver:
 
         received_header_length = len(ccsds_header)
         if received_header_length != CCSDS_HEADERS_LENGTH:
-            raise Exception("Unexpected length of CCSDS header: %i bytes",
-                            received_header_length)
+            raise Exception("Unexpected length of CCSDS header: %i bytes, %s",
+                            received_header_length, str(ccsds_header))
 
         # Increase packet count
         if received_header_length > 0:
@@ -605,7 +583,7 @@ class Receiver:
 
         ccsds_packet_length = len(ccsds_packet)
 
-        if len(ccsds_packet) < CCSDS_HEADERS_LENGTH:
+        if ccsds_packet_length < CCSDS_HEADERS_LENGTH:
             logging.error(" ccsds packet is too short: %d bytes",
                           len(ccsds_packet))
             return None
@@ -641,31 +619,26 @@ class Receiver:
             ccsds2_element_id = (ccsds2_packet_id32 >> 27) & 0x0000000f
             ccsds2_packet_id27 = (ccsds2_packet_id32 >> 0) & 0x07ffffff
 
-            ccsds_str = (" New ccsds packet (%d b)\n      Received at %s\n",
-                         len(ccsds_packet), str(current_time))
+            ccsds_str = f" New ccsds packet ({len(ccsds_packet)} bytes)\n      Received at {current_time}\n"
 
             str_type = "System"
             if ccsds1_type == 1:
                 str_type = "Payload"
-            ccsds_str = ccsds_str + ("      Type: %s ", str_type)
-            ccsds_str = ccsds_str + ("APID: %d ", ccsds1_apid)
-            ccsds_str = ccsds_str + ("Length: %d\n", ccsds1_packet_length)
+            ccsds_str = ccsds_str + f"      Type: {str_type} "
+            ccsds_str = ccsds_str + f"APID: {ccsds1_apid} "
+            ccsds_str = ccsds_str + f"Length: {ccsds1_packet_length}\n"
             str_element_id = "not mapped"
             if ccsds2_element_id == 2:
                 str_element_id = "Columbus"
-            ccsds_str = ccsds_str + ("      Element ID: %d (%s) ",
-                                     int(ccsds2_element_id),
-                                     str_element_id)
-            ccsds_str = ccsds_str + ("Packet ID 27: %d\n", ccsds2_packet_id27)
-            ccsds_str = ccsds_str + ("      Packet timestamp: (%s %s) %s",
-                                     "coarse: " + str(ccsds2_coarse_time),
-                                     "fine: " + str(ccsds2_fine_time),
-                                     str(ccsds_time))
+            ccsds_str = ccsds_str + f"      Element ID: {ccsds2_element_id} ({str_element_id}) "
+            ccsds_str = ccsds_str + f"Packet ID 27: {ccsds2_packet_id27}\n"
+            ccsds_str = ccsds_str + f"      Packet timestamp: (coarse: {ccsds2_coarse_time} "
+            ccsds_str = ccsds_str + f"fine: {ccsds2_fine_time}) {ccsds_time}"
 
             logging.debug(ccsds_str)
 
-        except Exception as err:
-            logging.debug(str(err))
+        except IndexError:
+            logging.error("CCSDS packet too short: {ccsds_packet_length} bytes")
             return None
 
         self.last_packet_ccsds_time = ccsds_time
@@ -802,6 +775,7 @@ class Receiver:
                     raise KeyboardInterrupt
 
                 except Exception as err:
+                    logging.info(self.get_status())
                     logging.error(str(err))
                     self.unexpected_error_count = self.unexpected_error_count + 1
                     self.connected = False
