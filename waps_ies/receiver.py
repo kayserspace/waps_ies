@@ -533,7 +533,6 @@ class Receiver:
         logging.error('Expected data length of %i vs actual %i after %i attempts',
                       data_length, expected_length, attempt)
         return data
-        #raise ValueError(f"Received {} bytes instead of {}")
 
     def receive_ccsds_packet(self):
         """CCSDS packet reception with retries
@@ -548,8 +547,7 @@ class Receiver:
 
         received_header_length = len(ccsds_header)
         if received_header_length != CCSDS_HEADERS_LENGTH:
-            raise Exception("Unexpected length of CCSDS header: %i bytes, %s",
-                            received_header_length, str(ccsds_header))
+            raise ValueError(f" Unexpected length of CCSDS header: {received_header_length} bytes: {ccsds_header}")
 
         # Increase packet count
         if received_header_length > 0:
@@ -768,22 +766,6 @@ class Receiver:
                         if biolab_packet.is_waps_image_packet:
                             processor.print_images_status(self.images)
 
-                except (socket.timeout, TimeoutError):
-                    self.notify_about_timeout()
-
-                except KeyboardInterrupt:
-                    raise KeyboardInterrupt
-
-                except Exception as err:
-                    logging.info(self.get_status())
-                    logging.error(str(err))
-                    self.unexpected_error_count = self.unexpected_error_count + 1
-                    self.connected = False
-                    self.socket.close()
-                    if self.gui:
-                        self.gui.update_server_disconnected()
-
-                finally:
                     # Status information after all of the processing
                     status_message = self.get_status() + '\r'
                     if self.log_level == logging.DEBUG:
@@ -794,6 +776,23 @@ class Receiver:
                                 timedelta(milliseconds=20)):             # 50 Hz max
                             self.last_status_update = current_time
                             print(status_message, end='')
+
+                except (socket.timeout, TimeoutError):
+                    self.notify_about_timeout()
+
+                except KeyboardInterrupt:
+                    raise KeyboardInterrupt
+
+                except Exception as err:
+                    if self.connected:
+                        logging.info(self.get_status())
+                    logging.error(str(err))
+                    self.unexpected_error_count = self.unexpected_error_count + 1
+                    self.connected = False
+                    self.socket.close()
+                    logging.info(' # Closed TCP connection')
+                    if self.gui:
+                        self.gui.update_server_disconnected()
 
         except KeyboardInterrupt:
             logging.info(' # Keyboard interrupt, closing')
