@@ -115,7 +115,7 @@ class WapsIesGui:
     prev_total_lost_packets = 0
     prev_total_corrupted_packets = 0
 
-    def __init__(self, receiver, start_thread=True):
+    def __init__(self, receiver, instance_name='', start_thread=True):
         """Initialize the GUI referencing the Receiver
         Starting a new threa by default
         """
@@ -240,7 +240,7 @@ class WapsIesGui:
         layout.append(status_bar)
 
         # Create the Window
-        self.window = sg.Window('WAPS Image Extraction Software',
+        self.window = sg.Window('WAPS Image Extraction Software ' + instance_name,
                                 layout,
                                 resizable=True)
 

@@ -236,7 +236,7 @@ class Receiver:
         self.gui = None
         if waps_config["gui_enabled"] == '1':
             logging.info(" # Running Graphical User Interface")
-            self.gui = interface.WapsIesGui(self)
+            self.gui = interface.WapsIesGui(self, waps_config["ies_instance_name"])
             gui_startup = datetime.now()
             longer_time_message = False
             while not self.gui.window_open:
@@ -650,7 +650,7 @@ class Receiver:
         biolab_packet_length = ccsds_packet[BIOLAB_ID_POSITION + 1] * 2 + 4
         if biolab_packet_length < 254:
             logging.error(" Unexpected biolab packet length: %d",
-                            biolab_packet_length)
+                          biolab_packet_length)
             return None
 
         # Count biolab packets

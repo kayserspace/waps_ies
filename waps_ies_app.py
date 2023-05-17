@@ -89,6 +89,7 @@ def check_config_file():
             "image_timeout": '600',         # minutes (10h by default)
             "detect_mem_slot": '1',         # False
             "skip_verify_code": '0',        # Check clour image CRC
+            "ies_instance_name": '',        # IES instance name
             'version': VERSION}             # IES version
 
     # EC list contains
@@ -127,6 +128,8 @@ def check_config_file():
                                              fallback=waps["detect_mem_slot"])
         waps["skip_verify_code"] = config.get('WAPS_IES', 'skip_verify_code',
                                               fallback=waps["skip_verify_code"])
+        waps["ies_instance_name"] = config.get('WAPS_IES', 'ies_instance_name',
+                                              fallback=waps["ies_instance_name"])
     if 'EC_POSITIONS' in config.sections():
         for ec_addr_pos in config.items('EC_POSITIONS'):
             ec_list.append({"ec_address": int(ec_addr_pos[0]),
