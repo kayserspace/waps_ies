@@ -13,6 +13,7 @@ Change Log:
 """
 
 import os
+import sys
 import logging
 import sqlite3
 import shutil
@@ -119,7 +120,11 @@ class Database:
 
         # Database initialization
         if not os.path.exists(database_filename):
-            logging.warning("Database seems to be missing path does not exist. Creating it...")
+            logging.warning("Database seems to be missing path does not exist. Create a new one?")
+            print("Type in 'no' if you want to exit and find the database file before continuing.")
+            res = input("Press ENTER to create a new database\n")
+            if res.lower() == 'no':
+                sys.exit()
         self.database = sqlite3.connect(database_filename,
                                         check_same_thread=False)
         self.db_cursor = self.database.cursor()

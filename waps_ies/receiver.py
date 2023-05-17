@@ -217,7 +217,6 @@ class Receiver:
         self.comm_path = waps_config["comm_path"]
         logging.info(' # Command stack path: %s', waps_config["comm_path"])
         self.database_file = waps_config["database_file"]
-        logging.info(' # Database file: %s', waps_config["database_file"])
 
         self.image_timeout = timedelta(0)
         if int(waps_config["image_timeout"]) != 0:
@@ -231,6 +230,8 @@ class Receiver:
         if waps_config["skip_verify_code"] == '1':
             self.skip_verify_code = True
             logging.info(" # IES shall not consider failed CRC as lost packet")
+
+        self.database = database.Database(self.database_file, self)
 
         # Configure gui
         self.gui = None
@@ -272,8 +273,6 @@ class Receiver:
         self.total_lost_packets = 0
         self.total_corrupted_packets = 0
         self.total_received_bytes = 0
-
-        self.database = database.Database(self.database_file, self)
 
     def start_new_log(self):
         """Start a new log file
