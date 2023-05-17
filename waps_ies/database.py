@@ -113,18 +113,21 @@ class Database:
 
     receiver = None
 
-    def __init__(self, database_filename='waps_pd.db', receiver=None):
+    def __init__(self, database_filename='waps_pd.db', receiver=None, silent='0'):
         """Initialize the database with this filename and reference the receiver"""
 
         self.receiver = receiver
 
         # Database initialization
         if not os.path.exists(database_filename):
-            logging.warning("Database seems to be missing path does not exist. Create a new one?")
-            print("Type in 'no' if you want to exit and find the database file before continuing.")
-            res = input("Press ENTER to create a new database\n")
-            if res.lower() == 'no':
-                sys.exit()
+            if silent == '1':
+                logging.warning("Database seems to be missing path does not exist. Creating a new one...")
+            else:
+                logging.warning("Database seems to be missing path does not exist. Create a new one?")
+                print("Type in 'no' if you want to exit and find the database file before continuing.")
+                res = input("Press ENTER to create a new database\n")
+                if res.lower() == 'no':
+                    sys.exit()
         self.database = sqlite3.connect(database_filename,
                                         check_same_thread=False)
         self.db_cursor = self.database.cursor()

@@ -15,6 +15,7 @@ class TestReceiver(unittest.TestCase):
                 "tcp_timeout": '2.1',           # seconds
                 "output_path": 'tests/output/',       # directory
                 "database_file": 'tests/output/waps_pd.db',  # directory
+                "silent_db_creation": '1',      # Silent database creation
                 "comm_path": 'tests/output/comms/',           # directory
                 "log_path": 'tests/output/log3/',             # directory
                 "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR

@@ -82,6 +82,7 @@ def check_config_file():
             "tcp_timeout": '2.1',           # seconds
             "output_path": 'output/',       # output directory
             "database_file": 'waps_pd.db',  # database file
+            "silent_db_creation": '0',      # Silent database creation
             "comm_path": 'comms/',          # command stack directory
             "log_path": 'logs/',            # logging directory
             "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR
@@ -114,6 +115,8 @@ def check_config_file():
                                          fallback=waps["output_path"])
         waps["database_file"] = config.get('WAPS_IES', 'database_file',
                                            fallback=waps["database_file"])
+        waps["silent_db_creation"] = config.get('WAPS_IES', 'silent_db_creation',
+                                                fallback=waps["silent_db_creation"])
         waps["comm_path"] = config.get('WAPS_IES', 'comm_path',
                                        fallback=waps["comm_path"])
         waps["log_path"] = config.get('WAPS_IES', 'log_path',
@@ -129,7 +132,7 @@ def check_config_file():
         waps["skip_verify_code"] = config.get('WAPS_IES', 'skip_verify_code',
                                               fallback=waps["skip_verify_code"])
         waps["ies_instance_name"] = config.get('WAPS_IES', 'ies_instance_name',
-                                              fallback=waps["ies_instance_name"])
+                                               fallback=waps["ies_instance_name"])
     if 'EC_POSITIONS' in config.sections():
         for ec_addr_pos in config.items('EC_POSITIONS'):
             ec_list.append({"ec_address": int(ec_addr_pos[0]),
