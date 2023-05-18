@@ -49,6 +49,8 @@ class Database:
         Add image to database, if not present already
     image_exists(self, image):
         Check if image already exists in the database. Matching CCSDS_time and image_name
+    get_image_packet_number(self, image_uuid):
+        Get the number of packets attached to this image
 
     restore_packet_from_db_entry(self, packet_entry):
         Restore packet from its database entry
@@ -258,6 +260,15 @@ class Database:
             logging.debug(" Multiple matching images")
             return res[0][0]
         return None
+
+    def get_image_packet_number(self, image_uuid):
+        """Get the number of packets attached to this image"""
+
+        res = self.db_cursor.execute("SELECT * FROM packets WHERE image_id=?",
+                                     [image_uuid])
+        packet_entries = res.fetchall()
+
+        return len(packet_entries)
 
     def restore_packet_from_db_entry(self, packet_entry):
         """Restore packet from its database entry"""

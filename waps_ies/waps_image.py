@@ -35,6 +35,7 @@ class WapsImage:
     image_name (str): Image name compiled from other image parameters
 
     packets (list): list of packets assigned to this image
+    total_packets (int): Number of packets associated with this image
 
     overwritten (bool): Whether image memory slot has been overwritten
     image_transmission_active (bool): Whether image transmission is ongoing
@@ -96,6 +97,7 @@ class WapsImage:
                            str(self.time_tag))
 
         self.packets = []
+        self.total_packets = 0
 
         # Other variables
         self.overwritten = False

@@ -407,6 +407,9 @@ def save_images(images, output_path, receiver, save_incomplete=True):
         if not image.update:
             continue
 
+        # Get number of packets associated with this image
+        image.total_packets = receiver.database.get_image_packet_number(image.uuid)
+
         # Update gui if available
         if gui:
             gui.update_image_data(image)

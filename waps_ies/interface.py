@@ -295,7 +295,7 @@ class WapsIesGui:
                 elif str(event) == 'clone_database':
                     self.receiver.clone_database = True
                 elif str(event) != '__TIMEOUT__':
-                    logging.info(' Interface event: %s %s %s',
+                    logging.info(' Unexpected interface event: %s %s %s',
                                  str(event),
                                  str(values),
                                  str(win))
@@ -420,7 +420,7 @@ class WapsIesGui:
             self.window['missing_packets' +
                         cell_id].update('', background_color=sg.theme_background_color())
 
-        logging.info("Cleared GUI column " + ec_column)
+        logging.info("\nCleared GUI column " + ec_column)
 
     def update_image_data(self, image):
         """ Update GUI image cell contents """
@@ -432,7 +432,7 @@ class WapsIesGui:
             self.receiver.assign_ec_column(image.ec_address)
             ec_column = self.receiver.ec_states[ec_index]["gui_column"]
             if ec_column is None:
-                logging.warning(" GUI does not have space for this EC: %i",
+                logging.warning("\nGUI does not have space for this EC: %i",
                                 image.ec_address)
                 return
 
@@ -483,28 +483,33 @@ class WapsIesGui:
         packets_sequential = image.packets_are_sequential()
         if len(missing_packets_str) > 18:
             missing_packets_str = missing_packets_str[:missing_packets_str[:18].rfind(',')] + '...'
-        self.window['missing_packets_' + str(ec_column) + '_'
-                    + str(image.memory_slot)].update(missing_packets_str)
+        self.window['missing_packets_' + str(ec_column) + '_' +
+                    str(image.memory_slot)].update(missing_packets_str)
         if len(missing_packets) == 0:
             self.window['miss_' + str(ec_column) + '_' + str(image.memory_slot)].update("")
-        if (len(missing_packets) == 0 or
-                image.image_transmission_active and packets_sequential):
-            self.window['missing_packets_' + str(ec_column) +
-                        '_' + str(image.memory_slot)].update(
-                background_color=sg.theme_background_color())
+        if len(missing_packets) == 0 or image.image_transmission_active and packets_sequential:
+            self.window['missing_packets_' + str(ec_column) + '_' +
+                        str(image.memory_slot)].update(background_color=sg.theme_background_color())
         else:
             self.window['miss_' + str(ec_column) + '_' + str(image.memory_slot)].update("Miss:")
             sg.Text('', k="miss" + str(ec_column) +
                     '_' + str(image.memory_slot))
-            if (image.overwritten or image.outdated or
-                    image.image_transmission_active):
-                self.window['missing_packets_' + str(ec_column) +
-                            '_' + str(image.memory_slot)].update(
-                    background_color='yellow')
+            if image.overwritten or image.outdated or image.image_transmission_active:
+                self.window['missing_packets_' + str(ec_column) + '_' +
+                            str(image.memory_slot)].update(background_color='yellow')
             else:
-                self.window['missing_packets_' + str(ec_column) +
-                            '_' + str(image.memory_slot)].update(
-                    background_color='red')
+                self.window['missing_packets_' + str(ec_column) + '_' +
+                            str(image.memory_slot)].update(background_color='red')
+
+        # Too many packets received for this image
+        if len(missing_packets) == 0 and image.total_packets > image.number_of_packets*1.1:
+            logging.warning("\n More than expected number of packets." +
+                            " Has the initialization packet been missed?")
+            self.window['missing_packets_' + str(ec_column) + '_' +
+                    str(image.memory_slot)].update("Total packets: " + str(image.total_packets))
+            
+            self.window['missing_packets_' + str(ec_column) + '_' +
+                        str(image.memory_slot)].update(background_color='yellow')
 
     def format_image_list_data(self, db_data):
         """ Format the data according to the list window table """
@@ -596,7 +601,7 @@ class WapsIesGui:
                                      resizable=True,
                                      finalize=True)
 
-        logging.info("Opened image list table")
+        logging.info("\nOpened image list table")
 
     def refresh_image_list(self):
         """ Refresh the image list table """
@@ -610,7 +615,7 @@ class WapsIesGui:
             self.list_window["image_table"].update(data)
             self.list_window['image_list_count'].update(len(data))
             self.list_window['save_result'].update('', background_color=sg.theme_background_color())
-            logging.info("Image list table refreshed")
+            logging.info("\nImage list table refreshed")
 
     def filter_image_list(self, val):
         """ Filter image list table by given value """
@@ -635,7 +640,7 @@ class WapsIesGui:
         self.list_window['image_list_count'].update(len(filtered_data))
         self.list_window["image_table"].update(filtered_data)
         self.list_window['save_result'].update('', background_color=sg.theme_background_color())
-        logging.info("Image list filtered by '%s'", val)
+        logging.info("\nImage list filtered by '%s'", val)
 
     def save_image_list(self):
         """ Save image list table to excel """
@@ -678,10 +683,10 @@ class WapsIesGui:
         try:
             with open(file_path, 'w') as file:
                 file.write(csv_data)
-                logging.info("Saved image list as %s", str(file_path))
+                logging.info("\nSaved image list as %s", str(file_path))
 
         except IOError:
-            logging.error('Could not open file for writing: %s', file_path)
+            logging.error('\nCould not open file for writing: %s', file_path)
 
         self.list_window['save_result'].update("Saved!",
                                                background_color='springgreen1')
@@ -748,7 +753,7 @@ class WapsIesGui:
             self.popup_window = sg.popup_no_buttons(popup_str, font=("Courier New", 10),
                                                     title=f"Image {image_data[4]} details")
 
-            logging.info("Image %s details are shown in a popup window", image_data[4])
+            logging.info("\nImage %s details are shown in a popup window", image_data[4])
 
     def recover_images(self, rows):
         """ Recover images from database and saved them to harddrive """
