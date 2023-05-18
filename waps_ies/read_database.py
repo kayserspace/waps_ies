@@ -85,6 +85,8 @@ elif args.memory_slot is not None:
 
 res = cur.execute("SELECT packet_uuid FROM packets")
 packet_number = len(res.fetchall())
+res = cur.execute("SELECT image_uuid FROM images")
+image_number = len(res.fetchall())
 total_packet_count = 0
 
 # Get images from the database
@@ -131,7 +133,7 @@ if args.ec_address is None and args.memory_slot is None:
             data = data + '\n'
 db.close()
 
-print('Total image count:', len(images))
+print('Total image count:', len(images), '/', image_number)
 print('Total packet count:', total_packet_count, '/', packet_number)
 
 if args.csv_export:
@@ -144,7 +146,7 @@ if args.csv_export:
         csv_data = csv_data + f"EC address: {args.ec_address}\n"
     if args.memory_slot is not None:
         csv_data = csv_data + f"Memory slot: {args.memory_slot}\n"
-    csv_data = csv_data + f'Total number of of images: {len(images)}\n'
+    csv_data = csv_data + f'Total number of of images: {len(images)}/{image_number}\n'
     csv_data = csv_data + f'Total number of packets: {total_packet_count}/{packet_number}\n'
     csv_data = csv_data + "Image header,," + database_image_table + '\n'
     csv_data = csv_data + "Packet header,," + database_packet_table + '\n'
