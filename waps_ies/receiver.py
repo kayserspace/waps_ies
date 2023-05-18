@@ -544,15 +544,13 @@ class Receiver:
         ccsds_header = self.receive_from_server(CCSDS_HEADERS_LENGTH)
         self.timeout_notified = False
 
-        received_header_length = len(ccsds_header)
-        if received_header_length != CCSDS_HEADERS_LENGTH:
-            raise ValueError(f" Unexpected length of CCSDS header: {received_header_length} bytes: {ccsds_header}")
-
         # Increase packet count
         if received_header_length > 0:
             self.total_packets_received = self.total_packets_received + 1
-            self.total_received_bytes = (self.total_received_bytes +
-                                         received_header_length)
+
+        received_header_length = len(ccsds_header)
+        if received_header_length != CCSDS_HEADERS_LENGTH:
+            raise ValueError(f" Unexpected length of CCSDS header: {received_header_length} bytes {ccsds_header}")
 
         # Update interfeace status
         if self.gui:
@@ -564,9 +562,10 @@ class Receiver:
         # calculate & receive remaining bytes in packet:
         packet_data_length = ccsds1_packet_length + 1 - CCSDS2_HEADER_LENGTH
 
-        packet_data = self.receive_from_server(packet_data_length)
+        packet_data = ccsds_header + self.receive_from_server(packet_data_length)
+        self.total_received_bytes = self.total_received_bytes + len(packet_data)
 
-        return ccsds_header + packet_data
+        return packet_data
 
     def process_ccsds_packet(self, ccsds_packet):
         """Takes a ccsds packet, extracts WAPS image packet if present
@@ -650,7 +649,6 @@ class Receiver:
         if biolab_packet_length < 254:
             logging.error(" Unexpected biolab packet length: %d",
                           biolab_packet_length)
-            return None
 
         # Count biolab packets
         self.total_biolab_packets = self.total_biolab_packets + 1
@@ -784,7 +782,7 @@ class Receiver:
 
                 except Exception as err:
                     if self.connected:
-                        logging.info(self.get_status())
+                        logging.info(self.get_status() + '\n')
                     logging.error(str(err))
                     self.unexpected_error_count = self.unexpected_error_count + 1
                     self.connected = False
