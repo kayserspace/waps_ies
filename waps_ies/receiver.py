@@ -544,11 +544,11 @@ class Receiver:
         ccsds_header = self.receive_from_server(CCSDS_HEADERS_LENGTH)
         self.timeout_notified = False
 
+        received_header_length = len(ccsds_header)
+
         # Increase packet count
         if received_header_length > 0:
             self.total_packets_received = self.total_packets_received + 1
-
-        received_header_length = len(ccsds_header)
         if received_header_length != CCSDS_HEADERS_LENGTH:
             raise ValueError(f" Unexpected length of CCSDS header: {received_header_length} bytes {ccsds_header}")
 
