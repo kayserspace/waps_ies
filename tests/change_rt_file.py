@@ -14,8 +14,10 @@ import os
 import sys
 from struct import unpack
 
+global biolab_tm_memory_slot
+biolab_tm_memory_slot = None
 
-def update_rt_file(filepath, ec_address):
+def update_rt_file(filepath, ec_address, biolab_mem):
     """ Read teh rt file and change its contents """
 
     contains_waps_image_data = False
@@ -26,6 +28,7 @@ def update_rt_file(filepath, ec_address):
             data = bytearray(file.read())
 
             ec_address_changes = 0
+            biolab_memory_slot_changes = 0
 
             # Search the file for packets
             pointer = data.find(b'\x13\x00\x57\x30')  # First packet in the file
@@ -44,10 +47,25 @@ def update_rt_file(filepath, ec_address):
                         ec_address_changes = ec_address_changes + 1
 
                     # Check generic_tm_id
-                    generic_tm_id = unpack('>H',
-                                           data[biolab_id_position+84:biolab_id_position+86])[0]
+                    generic_tm_id = unpack('>H', data[biolab_id_position+84:biolab_id_position+86])[0]
                     if generic_tm_id in (0x4100, 0x4200, 0x5100, 0x5200):
                         contains_waps_image_data = True
+
+                        if biolab_mem:
+                            global biolab_tm_memory_slot
+                            # Get memory slot from WAPS data
+                            image_memory_slot = unpack('>H', data[biolab_id_position +
+                                                       86:biolab_id_position+88])[0] >> 12
+
+                            if image_memory_slot != biolab_tm_memory_slot:
+                                print("Memory slot change %i -> %i", biolab_tm_memory_slot, image_memory_slot)
+                                biolab_tm_memory_slot = image_memory_slot
+
+                    if biolab_mem and biolab_tm_memory_slot is not None:
+                        # Update the memory slot in BIOLAB TM
+                        data[biolab_id_position + 56] = biolab_tm_memory_slot << 4
+                        data[biolab_id_position + 57] = 0
+                        biolab_memory_slot_changes = biolab_memory_slot_changes + 1
 
                     # Find next packet packet
                     pointer = data.find(b'\x13\x00\x57\x30', biolab_id_position + packet_length)
@@ -56,7 +74,11 @@ def update_rt_file(filepath, ec_address):
                     # Find next packet packet
                     pointer = data.find(b'\x13\x00\x57\x30', pointer + 1)
 
-            print(' - EC address changed ', ec_address_changes, "times")
+            if ec_address:
+                print(' - EC address changed ', ec_address_changes, "times")
+
+            if biolab_mem:
+                print(' - BIOLAB TM header memory slot was changed  ', biolab_memory_slot_changes, "times")
 
     except IOError:
         print('Could not open file: ' + filepath)
@@ -84,6 +106,8 @@ if __name__ == "__main__":
                         help="File name pattern to use when scanning the directory for RT files")
     parser.add_argument("-wo", "--waps_only", action="store_true",
                         help="Save only files containing WAPS image data")
+    parser.add_argument("-bms", "--update_biolab_memory_slot", action="store_true",
+                        help="Update EC memory slot in the biolab telemetry header according to spec")
     args = parser.parse_args()
 
     # Declare given variables
@@ -92,10 +116,12 @@ if __name__ == "__main__":
         print("Change to EC address", args.ec_addr)
     print("Output directory:", args.output)
     if args.waps_only:
-        print("Save only files containing WAPS image data", args.waps_only)
+        print("Save only files containing WAPS image data")
+    if args.update_biolab_memory_slot:
+        print("Update BIOLAB TM memory slot in header accoding to spec")
 
     # Check that there is something to change actually
-    if not args.ec_addr:
+    if not args.ec_addr and not args.update_biolab_memory_slot:
         print("Nothing to change")
         sys.exit()
 
@@ -123,7 +149,7 @@ if __name__ == "__main__":
                     file_path = os.path.join(root, filename)
                     # Get the file contents
                     print(file_path)
-                    filedata = update_rt_file(file_path, args.ec_addr)
+                    filedata = update_rt_file(file_path, args.ec_addr, args.update_biolab_memory_slot)
 
                     if args.waps_only and not filedata[1]:
                         print("File did not contain any WAPS image data")
