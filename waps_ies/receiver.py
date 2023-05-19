@@ -138,6 +138,7 @@ class Receiver:
     ec_states = []
 
     refresh_gui_list_window = False
+    create_new_image_packet_uuid = None
 
     memory_slot_change_detection = False
     skip_verify_code = False
@@ -403,6 +404,39 @@ class Receiver:
             self.gui.update_image_data(self.images[index])
         self.images.pop(index)
 
+    def forge_init_packet(self, packet):
+        """This function create a new init packet based on given packet
+        timestamp one second before the given packet"""
+
+        # Data of that packet
+        data = bytearray(packet.data)
+
+        # Edit the required field
+        if packet.generic_tm_id == 0x4200:
+                data[84] = 0x41
+                data[85] = 0x00
+        if packet.generic_tm_id == 0x5200:
+                data[84] = 0x51
+                data[85] = 0x00
+        data[86] = data[86] & 0xF0
+        data[87] = 0x00
+        data[88] = 0x00
+        data[89] = 0xA4
+
+        current_tm_packet_id = 63
+        if packet.generic_tm_id == 0x5200:
+            current_tm_packet_id = 1
+
+        # Expected packet number
+        data[90] = int(current_tm_packet_id / 256)
+        data[91] = current_tm_packet_id % 256
+
+        new_packet = waps_packet.WapsPacket(packet.ccsds_time - timedelta(minutes=1),
+                                            datetime.now(),
+                                            data,
+                                            self)
+        return new_packet
+
     def prereception_actions(self):
         """ Main loop actions before receiving CCSDS packets
         1. On date change a new log file is opened
@@ -442,6 +476,29 @@ class Receiver:
                                                     self.output_path,
                                                     self,
                                                     True)  # Not incomplete
+
+        # If user requested to create a new image
+        if self.create_new_image_packet_uuid is not None:
+            logging.info('Attempting to create an image based on UUID: %s',
+                         self.create_new_image_packet_uuid)
+            packet = self.database.retrieve_packet_by_uuid(self.create_new_image_packet_uuid)
+            self.create_new_image_packet_uuid = None
+            if packet is None:
+                logging.warning('Packet with this UUID does not exist')
+            else:
+                # Forge the new initialization packet
+                init_packet = self.forge_init_packet(packet)
+                # Sort packet into images
+                self.images = processor.sort_biolab_packets([init_packet],
+                                                            self.images,
+                                                            self,
+                                                            self.memory_slot_change_detection)
+
+                # Reconstruct and save images, keeping in memory the incomplete ones
+                self.images = processor.save_images(self.images,
+                                                    self.output_path,
+                                                    self,
+                                                    False)  # Not incomplete
 
     def connect_to_server(self):
         """Connect to TCP server and configure keepalive

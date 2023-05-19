@@ -28,6 +28,7 @@ class WapsImage:
     memory_slot (int): Memory slot of the image in the EC
     camera_type (str): uCAM (Colour) or FLIR (Infrared camera)
     number_of_packets (int): Number of expected image data packets
+    know_number_of_packets (bool): Whether to update packet number on reception of packets
 
     acquisition_time (Time type): time of init packet creation
     ccsds_time (Time type): CCSDS time of the TM packet
@@ -71,6 +72,8 @@ class WapsImage:
 
     """
 
+    know_number_of_packets = False
+
     def __init__(self, packet):
         """Image initialization with metadata"""
 
@@ -87,6 +90,8 @@ class WapsImage:
             logging.debug(" Wrong Generic TM ID: %s",
                           hex(packet.generic_tm_id))
         self.number_of_packets = packet.image_number_of_packets
+        if self.number_of_packets > 1:
+            self.know_number_of_packets = True
         self.acquisition_time = packet.acquisition_time
         self.ccsds_time = packet.ccsds_time
         self.time_tag = packet.time_tag
@@ -214,6 +219,11 @@ class WapsImage:
         if not packet.in_spec:
             return
         self.packets.append(packet)
+
+        # Update number of packets if this iamge was forged
+        if not self.know_number_of_packets:
+            if self.number_of_packets <= packet.tm_packet_id:
+                self.number_of_packets = packet.tm_packet_id + 1
 
         # Last update of image packets
         if self.last_update < packet.ccsds_time:

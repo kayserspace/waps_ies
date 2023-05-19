@@ -93,6 +93,8 @@ class WapsIesGui:
         Show selected image details as a popup
     recover_images(self, rows):
         Request to recover and save images from database
+    new_image(self):
+        New image cerating based on user input
     """
 
     # Window with list of received images
@@ -294,6 +296,8 @@ class WapsIesGui:
                     self.recover_images(values['image_table'])
                 elif str(event) == 'clone_database':
                     self.receiver.clone_database = True
+                elif str(event) == 'new_image':
+                    self.new_image()
                 elif str(event) != '__TIMEOUT__':
                     logging.info(' Unexpected interface event: %s %s %s',
                                  str(event),
@@ -585,6 +589,7 @@ class WapsIesGui:
                             col_widths=[3, 4, 6, 4, 5, 15, 15, 7, 5, 10, 15],
                             expand_x=True, expand_y=True),],
                   [sg.Button('Clone database', k='clone_database'),
+                   sg.Button('New image', k='new_image'),
                    sg.Text("Selected image:"),
                    sg.Input("None", k='selected_image_file_path', size=(45, 1), readonly=True),
                    sg.Button('Details', k='image_details', visible=False),
@@ -769,3 +774,10 @@ class WapsIesGui:
 
             logging.info(f'\n### Retrieving and saving {image_name}')
             self.receiver.recover_image_uuids.append(image_uuid)
+
+    def new_image(self):
+        """New image cerating based on user input"""
+
+        image_uuid = sg.popup_get_text("Type in the packet UUID to base the image on",
+                                       title="New image")
+        self.receiver.create_new_image_packet_uuid = image_uuid

@@ -153,7 +153,7 @@ def sort_biolab_packets(packet_list,
                             receiver.recover_image_uuids.append(existing_packet_list[index].image_uuid)
                         existing_packet_list[index].image_uuid = new_image.uuid
                         receiver.database.update_image_uuid_of_a_packet(existing_packet)
-                    new_image.packets = existing_packet_list
+                        new_image.add_packet(existing_packet)
 
                     receiver.database.update_image_status(new_image)
 

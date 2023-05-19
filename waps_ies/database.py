@@ -44,6 +44,8 @@ class Database:
         Update packet with the new image uuid
     packet_exists(self, packet):
         Check if packet already exists in the database. Matching CCSDS_time and packet_name
+    retrieve_packet_by_uuid(self, packet_uuid):
+        Retrieve a packet from database by UUID
 
     add_image(self, image):
         Add image to database, if not present already
@@ -209,6 +211,16 @@ class Database:
 
         return False
 
+    def retrieve_packet_by_uuid(self, packet_uuid):
+        """Retrieve a packet from database by UUID"""
+
+        res = self.db_cursor.execute("SELECT * FROM packets WHERE packet_uuid=?",
+                                     [packet_uuid])
+        res = res.fetchall()
+        if len(res) == 0:
+            return None
+        return self.restore_packet_from_db_entry(res[0])
+
     def add_image(self, image):
         """Add image to database, if not present already"""
 
@@ -371,6 +383,7 @@ class Database:
         good_packets = image.number_of_packets - len(missing_packets)
 
         image_data = (good_packets,
+                      image.number_of_packets,
                       image.overwritten,
                       image.outdated,
                       image.update,
@@ -381,6 +394,7 @@ class Database:
 
         self.db_cursor.executemany("""UPDATE images SET
                                    good_packets=?,
+                                   number_of_packets=?,
                                    overwritten=?,
                                    outdated=?,
                                    image_update=?,
