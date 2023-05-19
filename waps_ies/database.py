@@ -315,7 +315,8 @@ class Database:
                 packet_list.append(packet)
 
         if image is not None:
-            image.packets = packet_list
+            for packet in packet_list:
+                image.add_packet(packet)
             image.uuid = image_entry[0]
             image.latest_saved_file = image_entry[15]
             image.latest_saved_file_data = image_entry[16]
