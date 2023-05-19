@@ -155,10 +155,13 @@ def sort_biolab_packets(packet_list,
                         receiver.database.update_image_uuid_of_a_packet(existing_packet)
                         new_image.add_packet(existing_packet)
 
-                    receiver.database.update_image_status(new_image)
-
                 # Add image to the incomplete list
                 incomplete_images.append(new_image)
+
+            receiver.database.update_image_status(new_image)
+
+            # Update all previous database entries in this memory slot as overwritten
+            receiver.database.update_overwritten_images(new_image)
 
             # On creation of a new image assign a GUI column
             if receiver.gui:

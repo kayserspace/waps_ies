@@ -422,6 +422,24 @@ class Database:
                                    image_data)
         self.database.commit()
 
+    def update_overwritten_images(self, image):
+        """Update all previous images with this ec_address, memory_slot as overwritten"""
+
+        image_data = (image.ccsds_time,
+                      1,
+                      image.ec_address,
+                      image.memory_slot,
+                      image.ccsds_time),
+
+        self.db_cursor.executemany("""UPDATE images SET
+                                   last_update=?,
+                                   overwritten=?
+                                   WHERE ec_address=? AND 
+                                   memory_slot=? AND
+                                   CCSDS_time<?;""",
+                                   image_data)
+        self.database.commit()
+
     def get_image_list(self):
         """Get image list to display in GUI"""
 
