@@ -340,7 +340,13 @@ class Database:
 
         if len(image_entry) == 0:
             return None
-        return self.restore_image_from_db_entry(image_entry[0])
+        image = self.restore_image_from_db_entry(image_entry[0])
+
+        logging.error(str(packet.ccsds_time > image.last_update) + str(image.overwritten))
+        # Check if image has been overwritten already
+        if packet.ccsds_time > image.last_update and image.overwritten:
+            return None
+        return image
 
     def retrieve_image_by_uuid(self, image_uuid):
         """Retrieve and image from databse using its uuid"""
