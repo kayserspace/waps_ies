@@ -128,7 +128,7 @@ class Database:
                 logging.warning("Database seems to be missing path does not exist. Creating a new one...")
             else:
                 logging.warning("Database seems to be missing path does not exist. Create a new one?")
-                print("Type in 'no' if you want to exit and find the database file before continuing.")
+                logging.warning("Type in 'no' if you want to exit and find the database file before continuing.")
                 res = input("Press ENTER to create a new database\n")
                 if res.lower() == 'no':
                     sys.exit()
@@ -342,7 +342,6 @@ class Database:
             return None
         image = self.restore_image_from_db_entry(image_entry[0])
 
-        logging.error(str(packet.ccsds_time > image.last_update) + str(image.overwritten))
         # Check if image has been overwritten already
         if packet.ccsds_time > image.last_update and image.overwritten:
             return None
@@ -428,14 +427,14 @@ class Database:
                                    image_data)
         self.database.commit()
 
-    def update_overwritten_images(self, image):
+    def update_overwritten_images(self, packet):
         """Update all previous images with this ec_address, memory_slot as overwritten"""
 
-        image_data = (image.ccsds_time,
+        image_data = (packet.ccsds_time,
                       1,
-                      image.ec_address,
-                      image.memory_slot,
-                      image.ccsds_time),
+                      packet.ec_address,
+                      packet.image_memory_slot,
+                      packet.ccsds_time),
 
         self.db_cursor.executemany("""UPDATE images SET
                                    last_update=?,
