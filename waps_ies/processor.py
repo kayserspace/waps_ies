@@ -205,6 +205,9 @@ def sort_biolab_packets(packet_list,
                 logging.error('%s matching image in memory slot %i not found',
                               packet.packet_name,
                               packet.image_memory_slot)
+                logging.info(" Forging a placeholder image")
+                forged_init_packet = receiver.forge_init_packet(packet)
+                packet_list.append(forged_init_packet)
 
         else:
             if receiver.ec_states[ec_i]["transmission_active"]:
