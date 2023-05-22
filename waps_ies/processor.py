@@ -83,11 +83,12 @@ def sort_biolab_packets(packet_list,
             for i, image in enumerate(incomplete_images):
                 if image.memory_slot == last_mem_slot and image.ec_address == packet.ec_address:
                     incomplete_images[i].overwritten = True
+                    receiver.database.update_image_status(incomplete_images[i])
                     logging.warning(' Incomplete image %s has been overwritten', image.image_name)
-                    receiver.remove_overwritten_image(i)
-                    # Update all previous database entries in this memory slot as overwritten
                     receiver.database.update_overwritten_images(packet)
             receiver.ec_states[ec_i]["last_memory_slot"] = last_mem_slot
+            # Update all previous database entries in this memory slot as overwritten
+            receiver.database.update_overwritten_images(packet)
 
         # Process the packet according to Generic TM ID (packet.data[84])
         # Only TM IDs of interest processed

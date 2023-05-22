@@ -126,9 +126,11 @@ class WapsImage:
                "\n - Camera type: " + self.camera_type +
                "\n - Image Memory Slot: " + str(self.memory_slot) +
                "\n - Acquisition Time: " +
-               self.acquisition_time.strftime('%Y%m%d_%H%M') +
+               self.acquisition_time.strftime("%Y/%m/%d %H:%M:%S") +
                "\n - CCSDS Time: " +
-               self.ccsds_time.strftime('%Y%m%d_%H%M') +
+               self.ccsds_time.strftime("%Y/%m/%d %H:%M:%S") +
+               "\n - Last update: " +
+               self.last_update.strftime("%Y/%m/%d %H:%M:%S") +
                "\n - Initialization time tag: " + str(self.time_tag) +
                "\n - Completion: " +
                str(self.number_of_packets-len(missing_packets)) +
@@ -240,6 +242,9 @@ class WapsImage:
                           self.number_of_packets)
             return False
 
+        if not self.know_number_of_packets:
+            return False
+
         # Check if all the correct packets are present
         missing_packets = self.get_missing_packets()
 
@@ -338,6 +343,8 @@ class WapsImage:
                     self.packets.pop(i+1)
             else:
                 i = i + 1
+            if self.packets[i].tm_packet_id == self.number_of_packets:
+                return self.packets[:i-1]
 
         return self.packets
 

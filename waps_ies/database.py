@@ -17,7 +17,7 @@ import sys
 import logging
 import sqlite3
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 from waps_ies import waps_packet, waps_image
 
 
@@ -318,6 +318,10 @@ class Database:
             for packet in packet_list:
                 image.add_packet(packet)
             image.uuid = image_entry[0]
+
+            image.overwritten = image_entry[11]
+            image.outdated = image_entry[12]
+            image.transmission_active = image_entry[13]
             image.latest_saved_file = image_entry[15]
             image.latest_saved_file_data = image_entry[16]
             image.latest_saved_file_tm = image_entry[17]
@@ -430,8 +434,8 @@ class Database:
     def update_overwritten_images(self, packet):
         """Update all previous images with this ec_address, memory_slot as overwritten"""
 
-        image_data = (packet.ccsds_time,
-                      1,
+        image_data = (packet.ccsds_time - timedelta(seconds=3),
+                      True,
                       packet.ec_address,
                       packet.image_memory_slot,
                       packet.ccsds_time),
