@@ -100,6 +100,7 @@ class WapsIesGui:
     # Window with list of received images
     list_window = None
     db_data = []
+    db_data_packet_numbers = []
     db_fresh = False
     db_shown = []
     db_filtered_by = ''
@@ -485,8 +486,8 @@ class WapsIesGui:
         # Missing packets with colour change
         missing_packets_str = image.missing_packets_string()
         packets_sequential = image.packets_are_sequential()
-        if len(missing_packets_str) > 18:
-            missing_packets_str = missing_packets_str[:missing_packets_str[:18].rfind(',')] + '...'
+        if len(missing_packets_str) > 16:
+            missing_packets_str = missing_packets_str[:missing_packets_str[:16].rfind(',')] + '...'
         self.window['missing_packets_' + str(ec_column) + '_' +
                     str(image.memory_slot)].update(missing_packets_str)
         if len(missing_packets) == 0:
@@ -510,8 +511,8 @@ class WapsIesGui:
             logging.warning("\n More than expected number of packets." +
                             " Has the initialization packet been missed?")
             self.window['missing_packets_' + str(ec_column) + '_' +
-                    str(image.memory_slot)].update("Total packets: " + str(image.total_packets))
-            
+                        str(image.memory_slot)].update("Total packets: " + str(image.total_packets))
+
             self.window['missing_packets_' + str(ec_column) + '_' +
                         str(image.memory_slot)].update(background_color='yellow')
 
@@ -533,6 +534,7 @@ class WapsIesGui:
                              '/' + str(image_data[9]))
             perc = int(100.0*image_data[10]/image_data[9])
             image_row.append(str(perc) + '%')         # Image percentage received
+            image_row.append(self.db_data_packet_numbers[index])  # All assigned packets
 
             status = "Incomplete"
             if image_data[9] == image_data[10]:
@@ -554,14 +556,18 @@ class WapsIesGui:
             self.list_window.close()
 
         self.db_data = self.receiver.database.get_image_list()
+        self.db_data_packet_numbers = []
         self.db_shown = []
         for i in range(len(self.db_data)):
             self.db_shown.append(True)
+            # Get number of assigned packets in database
+            self.db_data_packet_numbers.append(self.receiver.database.get_image_packet_number(self.db_data[i][0]))
         data = self.format_image_list_data(self.db_data)
+        print(len(self.db_data), self.db_data_packet_numbers)
 
         table_headings = ['#  ', 'Addr', 'Pos', 'Mem', 'Type',
                           'Created', 'Last update',
-                          'Recv', 'Perc', 'Status', 'Missing packets']
+                          'Good', '%', 'Recv', 'Status', 'Missing packets']
 
         layout = [[sg.Button('Refresh', k='refresh_button',
                              tooltip="Read database and get fresh list of images"),
@@ -586,7 +592,7 @@ class WapsIesGui:
                             justification='l',
                             enable_events=True,
                             auto_size_columns=False,
-                            col_widths=[3, 4, 6, 4, 5, 15, 15, 7, 5, 10, 15],
+                            col_widths=[3, 4, 6, 4, 5, 15, 15, 7, 5, 5, 10, 15],
                             expand_x=True, expand_y=True),],
                   [sg.Button('Clone database', k='clone_database'),
                    sg.Button('New image', k='new_image'),
@@ -612,9 +618,12 @@ class WapsIesGui:
         """ Refresh the image list table """
 
         self.db_data = self.receiver.database.get_image_list()
+        self.db_data_packet_numbers = []
         self.db_shown = []
         for i in range(len(self.db_data)):
             self.db_shown.append(True)
+            # Get number of assigned packets in database
+            self.db_data_packet_numbers.append(self.receiver.database.get_image_packet_number(self.db_data[i][0]))
         data = self.format_image_list_data(self.db_data)
         if self.list_window is not None:
             self.list_window["image_table"].update(data)
@@ -666,7 +675,7 @@ class WapsIesGui:
             csv_data = csv_data + "No filter\n"
 
         csv_data = csv_data + ('#  , Addr, Pos, Mem, Type, Created, Last update,' +
-                               'Recv, Perc, Status, Missing packets, , ,')
+                               'Good, %, Recv, Status, Missing packets, , ,')
         csv_data = csv_data + self.receiver.database.database_image_table + '\n'
 
         for index, row in enumerate(data):
@@ -731,18 +740,16 @@ class WapsIesGui:
                          f'Image UUID:\t{image_data[0]}\n' +
                          f'Acquisition time:\t\t{image_data[1]}\n' +
                          f'Initialization CCSDS time:\t{image_data[2]}\n' +
+                         f'EC internal time tag:\t\t{image_data[3]}\n' +
                          f'Last update CCSDS time:\t\t{image_data[18]}\n' +
-                         f'EC address:\t{image_data[6]}' +
-                         f'\tEC position:\t{image_data[7]}\n' +
-                         f'Camera type:\t{image_data[5]}' +
-                         f'\tMemory slot:\t{image_data[8]}\n' +
-                         f'Time tag:\t{image_data[3]}\n' +
-                         f'Image transmission is in progress:\t{image_data[13] == 1}\n' +
-                         f'Overwritten:\t{image_data[11] == 1}' +
+                         f'EC address / position:\t\t{image_data[6]} / {image_data[7]}\n' +
+                         f'Memory slot / Camera type:\t{image_data[8]}   / {image_data[5]}\n' +
+                         f'\tIn progress:\t{image_data[13] == 1}\n' +
+                         f'\tOverwritten:\t{image_data[11] == 1}\n' +
                          f'\tOutdated:\t{image_data[12] == 1}\n\n' +
-                         f'Expected pkts:\t{image_data[9]}' +
-                         f'\tReceived pkts:\t{image_data[10]}\n' +
-                         f'Completion:\t{completion:.1f}%\n')
+                         'Completion (assigned packets):\t' +
+                         f'{image_data[10]}/{image_data[9]}  {completion:.1f}%' +
+                         f'  ({self.db_data_packet_numbers[table_index]})\n')
             if image_data[19] != '':
                 popup_str = (popup_str +
                              f'Missing packets numbers:\t{image_data[19]}\n')

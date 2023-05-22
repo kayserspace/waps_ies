@@ -139,9 +139,9 @@ print('Total packet count:', total_packet_count, '/', packet_number)
 if args.csv_export:
     # CSV file data initialization
     csv_file_name = (args.database_file[:-3] + " " +
-                         datetime.now().strftime('%Y%m%d_%H%M%S') + "_export.csv")
+                     datetime.now().strftime('%Y%m%d_%H%M%S') + "_export.csv")
     csv_data = ('Database exported ' + datetime.now().strftime("%Y/%m/%d %H:%M:%S") +
-                    ' from args.database_file\n')
+                ' from args.database_file\n')
     if args.ec_address is not None:
         csv_data = csv_data + f"EC address: {args.ec_address}\n"
     if args.memory_slot is not None:
@@ -150,7 +150,6 @@ if args.csv_export:
     csv_data = csv_data + f'Total number of packets: {total_packet_count}/{packet_number}\n'
     csv_data = csv_data + "Image header,," + database_image_table + '\n'
     csv_data = csv_data + "Packet header,," + database_packet_table + '\n'
-
 
     csv_data = csv_data + data
     try:

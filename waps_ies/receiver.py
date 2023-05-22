@@ -413,11 +413,11 @@ class Receiver:
 
         # Edit the required field
         if packet.generic_tm_id == 0x4200:
-                data[84] = 0x41
-                data[85] = 0x00
+            data[84] = 0x41
+            data[85] = 0x00
         if packet.generic_tm_id == 0x5200:
-                data[84] = 0x51
-                data[85] = 0x00
+            data[84] = 0x51
+            data[85] = 0x00
         data[86] = data[86] & 0xF0
         data[87] = 0x00
         data[88] = 0x00

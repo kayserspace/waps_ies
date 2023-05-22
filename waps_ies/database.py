@@ -443,7 +443,7 @@ class Database:
         self.db_cursor.executemany("""UPDATE images SET
                                    last_update=?,
                                    overwritten=?
-                                   WHERE ec_address=? AND 
+                                   WHERE ec_address=? AND
                                    memory_slot=? AND
                                    CCSDS_time<?;""",
                                    image_data)
