@@ -85,7 +85,7 @@ def sort_biolab_packets(packet_list,
                     incomplete_images[i].overwritten = True
                     receiver.database.update_image_status(incomplete_images[i])
                     logging.warning(' Incomplete image %s has been overwritten', image.image_name)
-                    receiver.database.update_overwritten_images(packet)
+                    incomplete_images = receiver.remove_overwritten_image(i)
             receiver.ec_states[ec_i]["last_memory_slot"] = last_mem_slot
             # Update all previous database entries in this memory slot as overwritten
             receiver.database.update_overwritten_images(packet)
@@ -126,7 +126,7 @@ def sort_biolab_packets(packet_list,
                     incomplete_images[index].overwritten = True
                     logging.warning(' Memory slot %i of EC %i has been overwritten',
                                     image.memory_slot, packet.ec_address)
-                    receiver.remove_overwritten_image(index)
+                    incomplete_images = receiver.remove_overwritten_image(index)
 
             if duplicate_image:
                 continue
@@ -184,7 +184,7 @@ def sort_biolab_packets(packet_list,
             for i, image in enumerate(incomplete_images):
                 if (image.ec_address == packet.ec_address and
                         image.memory_slot == packet.image_memory_slot and
-                        not image.overwritten):
+                        (not image.overwritten or packet.ccsds_time < image.last_update)):
                     found_matching_image = True
 
                     packet.image_uuid = incomplete_images[i].uuid

@@ -403,6 +403,7 @@ class Receiver:
         if self.gui:
             self.gui.update_image_data(self.images[index])
         self.images.pop(index)
+        return self.images
 
     def forge_init_packet(self, packet):
         """This function create a new init packet based on given packet
