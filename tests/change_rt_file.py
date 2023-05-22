@@ -51,7 +51,7 @@ def update_rt_file(filepath, ec_address, biolab_mem):
                     if generic_tm_id in (0x4100, 0x4200, 0x5100, 0x5200):
                         contains_waps_image_data = True
 
-                        if biolab_mem:
+                        if biolab_mem and generic_tm_id in (0x4100, 0x5100):
                             global biolab_tm_memory_slot
                             # Get memory slot from WAPS data
                             image_memory_slot = unpack('>H', data[biolab_id_position +
