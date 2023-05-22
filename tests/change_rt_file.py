@@ -57,7 +57,9 @@ def update_rt_file(filepath, ec_address, biolab_mem):
                             image_memory_slot = unpack('>H', data[biolab_id_position +
                                                        86:biolab_id_position+88])[0] >> 12
 
-                            if image_memory_slot != biolab_tm_memory_slot:
+                            if (biolab_tm_memory_slot is None or
+                                image_memory_slot == biolab_tm_memory_slot + 1 or
+                                image_memory_slot == biolab_tm_memory_slot - 7):
                                 print("Memory slot change %i -> %i", biolab_tm_memory_slot, image_memory_slot)
                                 biolab_tm_memory_slot = image_memory_slot
 
