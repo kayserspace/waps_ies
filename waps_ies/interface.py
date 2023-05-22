@@ -259,10 +259,10 @@ class WapsIesGui:
         All GUI events are received and processed here
         """
 
-        try:
-            timeout = 100
-            # Event Loop to process "events" and get the "values" of the inputs
-            while self.receiver.continue_running:
+        timeout = 100
+        # Event Loop to process "events" and get the "values" of the inputs
+        while self.receiver.continue_running:
+            try:
                 if self.list_window is None:
                     win = self.window
                     event, values = self.window.read(timeout=timeout)
@@ -277,7 +277,7 @@ class WapsIesGui:
                         del self.db_data
                         self.db_data = []
                     else:
-                        break
+                        self.receiver.continue_running = False
                 elif str(event) == 'list_all_button':
                     self.show_image_list()
                 elif str(event) in ('clr_0', 'clr_1', 'clr_2', 'clr_3'):
@@ -305,12 +305,13 @@ class WapsIesGui:
                                  str(values),
                                  str(win))
                 timeout = 10000  # ms
+            finally:
+                pass
 
-        finally:
-            self.window_open = False
-            self.window.close()
-            logging.info(' # Closed interface')
-            self.receiver.continue_running = False
+        self.window_open = False
+        self.window.close()
+        logging.info(' # Closed interface')
+        self.receiver.continue_running = False
 
     def close(self):
         """ Triggers close button interface action. Used externally """
@@ -454,13 +455,8 @@ class WapsIesGui:
             str(image.number_of_packets))
 
         curr_tag = 'status_' + str(ec_column) + '_' + str(image.memory_slot)
-        if image.overwritten:
-            self.window[curr_tag].update("Overwritten")
-            self.window[curr_tag].update(background_color='yellow')
-        elif image.outdated:
-            self.window[curr_tag].update("Outdated")
-            self.window[curr_tag].update(background_color='yellow')
-        elif len(missing_packets) == 0:
+        
+        if len(missing_packets) == 0:
             self.window[curr_tag].update("Complete")
             self.window[curr_tag].update(background_color='springgreen1')
             # Change colours of all other finished images
@@ -474,6 +470,12 @@ class WapsIesGui:
         elif image.image_transmission_active:
             self.window[curr_tag].update("In progress")
             self.window[curr_tag].update(background_color='lightblue')
+        elif image.overwritten:
+            self.window[curr_tag].update("Overwritten")
+            self.window[curr_tag].update(background_color='yellow')
+        elif image.outdated:
+            self.window[curr_tag].update("Outdated")
+            self.window[curr_tag].update(background_color='yellow')
         else:
             self.window[curr_tag].update("Incomplete")
             self.window[curr_tag].update(background_color='red')
@@ -527,8 +529,8 @@ class WapsIesGui:
             image_row.append(image_data[7])           # EC Position
             image_row.append('m'+str(image_data[8]))  # Memory slot
             image_row.append(image_data[5])           # Camera type
-            image_row.append(image_data[2][:19])      # Creation time
-            image_row.append(image_data[18][:19])     # Last update time
+            image_row.append(image_data[2][5:19])      # Creation time
+            image_row.append(image_data[18][5:19])     # Last update time
 
             image_row.append(str(image_data[10]) +    # Received / Expected packets
                              '/' + str(image_data[9]))
@@ -563,11 +565,10 @@ class WapsIesGui:
             # Get number of assigned packets in database
             self.db_data_packet_numbers.append(self.receiver.database.get_image_packet_number(self.db_data[i][0]))
         data = self.format_image_list_data(self.db_data)
-        print(len(self.db_data), self.db_data_packet_numbers)
 
         table_headings = ['#  ', 'Addr', 'Pos', 'Mem', 'Type',
                           'Created', 'Last update',
-                          'Good', '%', 'Recv', 'Status', 'Missing packets']
+                          'Compl', '%', 'Recv', 'Status', 'Missing packets']
 
         layout = [[sg.Button('Refresh', k='refresh_button',
                              tooltip="Read database and get fresh list of images"),
@@ -592,12 +593,12 @@ class WapsIesGui:
                             justification='l',
                             enable_events=True,
                             auto_size_columns=False,
-                            col_widths=[3, 4, 6, 4, 5, 15, 15, 7, 5, 5, 10, 15],
+                            col_widths=[3, 3, 6, 3, 5, 11, 11, 7, 4, 4, 8, 15],
                             expand_x=True, expand_y=True),],
                   [sg.Button('Clone database', k='clone_database'),
                    sg.Button('New image', k='new_image'),
                    sg.Text("Selected image:"),
-                   sg.Input("None", k='selected_image_file_path', size=(45, 1), readonly=True),
+                   sg.Input("None", k='selected_image_file_path', size=(40, 1), readonly=True),
                    sg.Button('Details', k='image_details', visible=False),
                    sg.Button('Retrieve and save selected', k='image_retrieve', visible=False)]]
 
@@ -659,10 +660,6 @@ class WapsIesGui:
     def save_image_list(self):
         """ Save image list table to excel """
 
-        res = sg.popup_yes_no('Save table to output directory?', title='Save table?')
-        if res != 'Yes':
-            return
-
         # Get the current table contents
         data = self.format_image_list_data(self.db_data)
 
@@ -675,7 +672,7 @@ class WapsIesGui:
             csv_data = csv_data + "No filter\n"
 
         csv_data = csv_data + ('#  , Addr, Pos, Mem, Type, Created, Last update,' +
-                               'Good, %, Recv, Status, Missing packets, , ,')
+                               'Compl, %, Recv, Status, Missing packets, , ,')
         csv_data = csv_data + self.receiver.database.database_image_table + '\n'
 
         for index, row in enumerate(data):
