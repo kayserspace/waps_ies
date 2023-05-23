@@ -6,3 +6,6 @@ tests/log/
 build/
 dist/
 waps_ies_app.spec
+comms/
+output/
+logs/
