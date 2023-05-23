@@ -303,8 +303,7 @@ class TestPacket(unittest.TestCase):
         self.assertEqual(str(packet.ccsds_time), '2023-03-29 14:11:54.110000')
         self.assertEqual(packet.data, packet_data)
 
-        with self.assertRaises(AttributeError):
-            packet.ec_address
+        self.assertEqual(packet.time_tag, -1)
 
         self.assertFalse(packet.in_spec())
         self.assertFalse(packet.is_good_waps_image_packet())
