@@ -181,6 +181,7 @@ class Receiver:
 
         # Start-up message
         logging.info(' ##### WAPS Image Extraction Software #####')
+        logging.info(' # IES version %s', str(waps_config["version"]))
         logging.info(' # Logging path: %s', waps_config["log_path"])
         logging.info(' # Logging level: %s', log_level_printout)
 

@@ -36,8 +36,6 @@ from argparse import ArgumentParser
 import logging
 import waps_ies.receiver
 
-VERSION = 1.0
-
 
 def check_config_file():
     """Get WAPS IES configuration from file
@@ -77,21 +75,21 @@ def check_config_file():
     """
 
     # Default WAPS IES configuration
-    waps = {"ip_address": None,
-            "port": None,
-            "tcp_timeout": '2.1',           # seconds
-            "output_path": 'output/',       # output directory
-            "database_file": 'waps_pd.db',  # database file
-            "silent_db_creation": '0',      # Silent database creation
-            "comm_path": 'comms/',          # command stack directory
-            "log_path": 'logs/',            # logging directory
+    waps = {"ip_address": None,             # no IP address
+            "port": None,                   # no port
+            "tcp_timeout": '2.1',           # TCP timeout in seconds
+            "output_path": 'output/',       # Output directory
+            "database_file": 'waps_pd.db',  # Database file path
+            "silent_db_creation": '0',      # Prompt before creating a new database
+            "comm_path": 'comms/',          # Command stack directory
+            "log_path": 'logs/',            # Logging directory
             "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR
-            "gui_enabled": '1',             # Graphical User Interface
+            "gui_enabled": '1',             # Graphical User Interface enabled
             "image_timeout": '600',         # minutes (10h by default)
-            "detect_mem_slot": '1',         # False
-            "skip_verify_code": '0',        # Check clour image CRC
-            "ies_instance_name": '',        # IES instance name
-            'version': VERSION}             # IES version
+            "detect_mem_slot": '1',         # Check BIOLAB header and track EC memory slot change
+            "skip_verify_code": '0',        # Check colour image verification code
+            "ies_instance_name": '',        # IES instance name in the GUI title
+            "version": 1.0}                 # WAPS IES version
 
     # EC list contains
     # - EC address
@@ -187,7 +185,7 @@ def check_arguments(args, config):
     """
 
     # Define command line arguments
-    parser = ArgumentParser(description='WAPS Image Extraction Software v' + str(VERSION) +
+    parser = ArgumentParser(description='WAPS Image Extraction Software v' + str(config["version"]) +
                             '. Acquires CCSDS packets from a TCP stream' +
                             ' and searches for BIOLAB TM packets.' +
                             ' Extracts WAPS PD images from BIOLAB' +
