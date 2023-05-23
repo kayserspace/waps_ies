@@ -63,6 +63,12 @@ class WapsPacket:
         Check details packet parameters including CRC or Verify Code
     """
 
+    time_tag = -1
+    ec_address = -1
+    generic_tm_id = -1
+    generic_tm_type = -1
+    generic_tm_length = -1
+
     is_waps_image_packet = False
 
     # WAPS image data packet values
