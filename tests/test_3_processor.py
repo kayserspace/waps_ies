@@ -37,7 +37,8 @@ class TestProcessor(unittest.TestCase):
                 "gui_enabled": '0',             # Graphical User Interface
                 "image_timeout": '0',         # minutes (10h by default)
                 "detect_mem_slot": '1',         # False
-                "skip_verify_code": '0'}                # Check clour image CRC
+                "skip_verify_code": '0',
+                "version": 'test_processor' }                # Check clour image CRC
 
         self.receiver = waps_ies.receiver.Receiver(waps)
 

@@ -231,7 +231,7 @@ class Receiver:
 
         if waps_config["skip_verify_code"] == '1':
             self.skip_verify_code = True
-            logging.info(" # IES shall not consider failed CRC as lost packet")
+            logging.info(" # IES shall not consider failed verify as lost packet")
 
         self.database = database.Database(self.database_file, self, waps_config["silent_db_creation"])
 

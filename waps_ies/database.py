@@ -127,7 +127,7 @@ class Database:
             if silent == '1':
                 logging.warning("Database seems to be missing path does not exist. Creating a new one...")
             else:
-                logging.warning("Database seems to be missing path does not exist. Create a new one?")
+                logging.warning("Database seems to be missing. Create a new one?")
                 logging.warning("Type in 'no' if you want to exit and find the database file before continuing.")
                 res = input("Press ENTER to create a new database\n")
                 if res.lower() == 'no':
