@@ -287,6 +287,8 @@ class WapsIesGui:
                     self.receiver.refresh_gui_list_window = True
                 elif str(event) == 'save_button':
                     self.save_image_list()
+                elif str(event) == 'filter_input_Enter':
+                    self.filter_image_list(self.list_window['filter_input'].get())
                 elif str(event) == 'filter_button':
                     self.filter_image_list(self.list_window['filter_input'].get())
                 elif str(event) == 'image_table':
@@ -612,6 +614,8 @@ class WapsIesGui:
                                      layout,
                                      resizable=True,
                                      finalize=True)
+
+        self.list_window['filter_input'].bind("<Return>", "_Enter")
 
         logging.info("\nOpened image list table")
 
