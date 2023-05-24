@@ -89,7 +89,7 @@ def check_config_file():
             "detect_mem_slot": '1',         # Check BIOLAB header and track EC memory slot change
             "skip_verify_code": '0',        # Check colour image verification code
             "ies_instance_name": '',        # IES instance name in the GUI title
-            "version": 1.0}                 # WAPS IES version
+            "version": "v1.0  2023-05-31"}  # WAPS IES version
 
     # EC list contains
     # - EC address

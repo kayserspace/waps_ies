@@ -139,36 +139,47 @@ class WapsIesGui:
         if len(receiver.output_path) > 35:
             output_path_justivfication = 'r'
 
-        layout = [[sg.Text('Server:'),
-                   sg.Text(receiver.server_address[0] + ' : ' +
-                           str(receiver.server_address[1]),
-                           background_color='lightgrey',
-                           justification='c', k='server', size=(18, 1),
-                           tooltip="TCP server IP address and port"),
-                   sg.Text('Disconnected', k='server_status',
-                           size=(11, 1),
-                           justification='c',
-                           background_color='red'),
-                   sg.Text('CCSDS pkts:'),
-                   sg.Input('0', k='CCSDS_pkts', size=(14, 1),
-                            background_color='white', readonly=True,
-                            tooltip="Number of received CCSDS packets"),
-                   sg.Text('BIOLAB TM pkts:'),
-                   sg.Input('0', k='BIOLAB_pkts', size=(9, 1),
-                            background_color='white', readonly=True,
-                            tooltip="Number of received BIOLAB telemetry packets"),
-                   sg.Text('WAPS image data pkts:'),
-                   sg.Input('0', k='WAPS_pkts', size=(7, 1),
-                            background_color='white', readonly=True,
-                            tooltip="Number of received WAPS image packets")],
-                  [sg.Text('Output path:'),
-                   sg.Input(receiver.output_path, k='output_path',
-                            size=(38, 1), justification=output_path_justivfication,
-                            tooltip="Full path: " + receiver.output_path, readonly=True,
-                            background_color='lightgrey'),
-                   sg.Text('Latest saved file:'),
-                   sg.Input('None', k='latest_file', size=(60, 1),
-                            background_color='white', readonly=True)]]
+        layout_h = [[sg.Text('Instance:', size=(6, 1)),
+                     sg.Text(instance_name, background_color='lightgrey',
+                             justification='c', size=(18, 1)),
+                     sg.Text('Server:'),
+                     sg.Text(receiver.server_address[0] + ' : ' +
+                             str(receiver.server_address[1]),
+                             background_color='lightgrey',
+                             justification='c', k='server', size=(20, 1),
+                             tooltip="TCP server IP address and port"),
+                     sg.Text('Disconnected', k='server_status',
+                             size=(11, 1),
+                             justification='c',
+                             background_color='red'),
+                     sg.Push(),
+                     sg.Text('WAPS IES ' + str(receiver.conf["version"])),],
+                    [sg.Text('CCSDS:', size=(6, 1)),
+                     sg.Input('0', k='CCSDS_pkts', size=(12, 1),
+                              background_color='white', readonly=True,
+                              tooltip="Number of received CCSDS packets"),
+                     sg.Text('BIOLAB telemetry:'),
+                     sg.Input('0', k='BIOLAB_pkts', size=(12, 1),
+                              background_color='white', readonly=True,
+                              tooltip="Number of received BIOLAB telemetry packets"),
+                     sg.Text('WAPS image data:'),
+                     sg.Input('0', k='WAPS_pkts', size=(10, 1),
+                              background_color='white', readonly=True,
+                              tooltip="Number of received WAPS image packets"),
+                     sg.Text('packets counts')],
+                    [sg.Text('Output:  ', size=(6, 1)),
+                     sg.Input(receiver.output_path, k='output_path',
+                              size=(20, 1), justification=output_path_justivfication,
+                              tooltip="Full path: " + receiver.output_path, readonly=True,
+                              background_color='lightgrey'),
+                     sg.Text('Latest saved image:', size=(15, 1)),
+                     sg.Input('None', k='latest_file', size=(62, 1),
+                              background_color='white', readonly=True)]]
+
+        layout = [[sg.Col(layout_h),
+                   sg.Col([[sg.Image('waps_ies/kayser_space_logo.png',
+                                     size=(72, 72),
+                                     expand_x=True, expand_y=True)]])]]
 
         column_slot = []
         column_slot.append([sg.Text(' ')])
@@ -228,22 +239,22 @@ class WapsIesGui:
         status_bar = [sg.Button('List all received images',
                                 k='list_all_button'),
                       sg.Text('Initialized images:'),
-                      sg.Input('0', k='initialized_images', size=(4, 1),
+                      sg.Input('0', k='initialized_images', size=(5, 1),
                                background_color='white', readonly=True),
                       sg.Text('Completed images:'),
-                      sg.Input('0', k='completed_images', size=(4, 1),
+                      sg.Input('0', k='completed_images', size=(5, 1),
                                background_color='white', readonly=True),
                       sg.Text('Lost packets:'),
-                      sg.Input('0', k='lost_packets', size=(4, 1),
+                      sg.Input('0', k='lost_packets', size=(5, 1),
                                background_color='white', readonly=True),
                       sg.Text('Corrupted packets:'),
-                      sg.Input('0', k='corrupted_packets', size=(4, 1),
-                               background_color='white', readonly=True),
-                      sg.Text('Not counting duplicates', background_color='lightgrey')]
+                      sg.Input('0', k='corrupted_packets', size=(5, 1),
+                               background_color='white', readonly=True)]
         layout.append(status_bar)
 
         # Create the Window
-        self.window = sg.Window('WAPS Image Extraction Software ' + instance_name,
+        self.window = sg.Window(instance_name + ' WAPS Image Extraction Software ' +
+                                str(receiver.conf["version"]),
                                 layout,
                                 resizable=True)
 
@@ -457,7 +468,7 @@ class WapsIesGui:
             str(image.number_of_packets))
 
         curr_tag = 'status_' + str(ec_column) + '_' + str(image.memory_slot)
-        
+
         if len(missing_packets) == 0:
             self.window[curr_tag].update("Complete")
             self.window[curr_tag].update(background_color='springgreen1')
@@ -589,7 +600,7 @@ class WapsIesGui:
                   [sg.Table(data,
                             table_headings,
                             k="image_table",
-                            num_rows=30,
+                            num_rows=20,
                             select_mode=sg.TABLE_SELECT_MODE_EXTENDED,
                             alternating_row_color='lightgrey',
                             justification='l',

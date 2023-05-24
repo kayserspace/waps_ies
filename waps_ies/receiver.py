@@ -158,6 +158,8 @@ class Receiver:
         8. Initializa database
         """
 
+        self.conf = waps_config
+
         # Logging level definition
         log_level_printout = 'INFO'
         if waps_config["log_level"].upper() == 'ERROR':
