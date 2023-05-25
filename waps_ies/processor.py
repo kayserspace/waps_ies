@@ -368,8 +368,9 @@ def create_command_stack(image, receiver):
     try:
         with open(file_path, 'w') as file:
             file.write(data)
-            logging.info("Command stack for %i %s m%i with %i missing packets",
-                         image.ec_address, ec_position, image.memory_slot, len(missing_packets))
+            logging.info("Command stack for %i %s m%i with %i missing packets: %s",
+                         image.ec_address, ec_position, image.memory_slot, len(missing_packets),
+                         file_path)
     except IOError:
         logging.error('Could not open file for writing: %s', file_path)
 
