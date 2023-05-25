@@ -502,8 +502,8 @@ class WapsIesGui:
         # Missing packets with colour change
         missing_packets_str = image.missing_packets_string()
         packets_sequential = image.packets_are_sequential()
-        if len(missing_packets_str) > 16:
-            missing_packets_str = missing_packets_str[:missing_packets_str[:16].rfind(',')] + '...'
+        if len(missing_packets_str) > 18:
+            missing_packets_str = missing_packets_str[:missing_packets_str[:17].rfind(',')] + '...'
         self.window['missing_packets_' + str(ec_column) + '_' +
                     str(image.memory_slot)].update(missing_packets_str)
         if len(missing_packets) == 0:
