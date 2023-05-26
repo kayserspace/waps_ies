@@ -65,9 +65,9 @@ parser.add_argument("-ea", "--ec_address", dest="ec_address", default=None,
 parser.add_argument("-ms", "--memory_slot", dest="memory_slot", default=None,
                     help="Specifies the memory slot (0-7)")
 parser.add_argument("-lp", "--list_packets", action="store_true",
-                    help="Show the list of packets")
+                    help="Show the list of packets. Only images by default")
 parser.add_argument("-csv", "--csv_export", action="store_true",
-                    help="Export the packet list to .CSV file with the same name as the database file")
+                    help="Export the list to .CSV file with the same name as the database file")
 args = parser.parse_args()
 
 # Open database
