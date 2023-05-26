@@ -118,6 +118,8 @@ class WapsIesGui:
     prev_total_lost_packets = 0
     prev_total_corrupted_packets = 0
 
+    size_adjusted = False
+
     def __init__(self, receiver, instance_name='', start_thread=True):
         """Initialize the GUI referencing the Receiver
         Starting a new threa by default
@@ -170,7 +172,7 @@ class WapsIesGui:
                      sg.Text('packets counts')],
                     [sg.Text('Output:  ', size=(6, 1)),
                      sg.Input(receiver.output_path, k='output_path',
-                              size=(20, 1), justification=output_path_justivfication,
+                              size=(24, 1), justification=output_path_justivfication,
                               tooltip="Full path: " + receiver.output_path, readonly=True,
                               background_color='lightgrey'),
                      sg.Text('Latest saved image:', size=(15, 1)),
@@ -318,6 +320,14 @@ class WapsIesGui:
                                  str(event),
                                  str(values),
                                  str(win))
+                if not self.size_adjusted:
+                    self.size_adjusted = True
+                    # Adjusting kayser logo placement in case of differnt font pixel size
+                    font_pixel_size = sg.tkinter.font.Font().measure('A')
+                    if font_pixel_size != 13:  # test window machine font size
+                        # Fancy calculation based on font/pixel size of row with this field...
+                        diff = int(62 - (1331 - 107 * font_pixel_size)/font_pixel_size*62/107)
+                        self.window['latest_file'].Widget.config(width=diff)
                 timeout = 10000  # ms
             finally:
                 pass
