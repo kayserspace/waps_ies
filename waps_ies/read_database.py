@@ -115,7 +115,7 @@ for image in images:
                 init = " init"
             print(f"Packet CCSDS time {packet[2]} with UUID: {packet[0]}{init}")
             if args.csv_export:
-                data = data + 'Packet, '
+                data = data + 'Packet,, '
                 for item in packet:
                     data = data + str(item).replace(',', ';') + ', '
                 data = data + '\n'
@@ -133,7 +133,7 @@ if args.ec_address is None and args.memory_slot is None:
             if unassigned_packet[7] in (0x4100, 0x5100):
                 init = " init"
             print(f"Packet CCSDS time {unassigned_packet[2]} with UUID: {unassigned_packet[0]}{init}")
-            data = data + f'No image, {len(unassigned_packets)}, '
+            data = data + f'No image, {len(unassigned_packets)},, '
             for item in unassigned_packet:
                 data = data + str(item).replace(',', ';') + ', '
             data = data + '\n'
