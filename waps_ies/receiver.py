@@ -730,7 +730,7 @@ class Receiver:
     def notify_about_timeout(self):
         """Notify about tiemout of not receiving CCSDS packets"""
 
-        if not self.timeout_notified:
+        if not self.timeout_notified and self.continue_running:
             self.timeout_notified = True
             if self.gui:
                 self.gui.update_server_connected()
@@ -795,6 +795,8 @@ class Receiver:
                     self.prereception_actions()
 
                     if not self.connected:
+                        if self.gui:
+                            self.gui.update_server_disconnected()
                         self.connected = self.connect_to_server()
 
                         # If still not connected
@@ -849,8 +851,6 @@ class Receiver:
                     self.connected = False
                     self.socket.close()
                     logging.info(' # Closed TCP connection')
-                    if self.gui:
-                        self.gui.update_server_disconnected()
 
         except KeyboardInterrupt:
             logging.info(' # Keyboard interrupt, closing')
