@@ -100,7 +100,7 @@ for image in images:
                       [image[0]])
     packets = res.fetchall()
     total_packet_count = total_packet_count + len(packets)
-    print(f'Image {image[4]} with UUID: {image[0]}')
+    print(f'\nImage {image[4]} with UUID: {image[0]}')
     print(f'\t\t Completion: {image[10]}/{image[9]}')
     print(f'\t\t Total packets in database {len(packets)}')
     if args.csv_export:
@@ -110,7 +110,10 @@ for image in images:
         data = data + '\n'
     if args.list_packets:
         for packet in packets:
-            print(f"Packet CCSDS time {packet[2]} with UUID: {packet[0]}")
+            init = ""
+            if packet[7] in (0x4100, 0x5100):
+                init = " init"
+            print(f"Packet CCSDS time {packet[2]} with UUID: {packet[0]}{init}")
             if args.csv_export:
                 data = data + 'Packet, '
                 for item in packet:
@@ -122,11 +125,14 @@ if args.ec_address is None and args.memory_slot is None:
     res = cur.execute("SELECT * FROM packets WHERE image_id=? ORDER BY CCSDS_time ASC", [-1])
     unassigned_packets = res.fetchall()
     total_packet_count = total_packet_count + len(unassigned_packets)
-    print('Packets with no image assigned:', len(unassigned_packets))
+    print('\nPackets with no image assigned:', len(unassigned_packets))
     data = data + f'No image, {len(unassigned_packets)},\n'
     if args.list_packets:
         for unassigned_packet in unassigned_packets:
-            print(f"Packet CCSDS time {unassigned_packet[2]} with UUID: {unassigned_packet[0]}")
+            init = ""
+            if unassigned_packet[7] in (0x4100, 0x5100):
+                init = " init"
+            print(f"Packet CCSDS time {unassigned_packet[2]} with UUID: {unassigned_packet[0]}{init}")
             data = data + f'No image, {len(unassigned_packets)}, '
             for item in unassigned_packet:
                 data = data + str(item).replace(',', ';') + ', '

@@ -435,7 +435,7 @@ class Receiver:
         data[90] = int(current_tm_packet_id / 256)
         data[91] = current_tm_packet_id % 256
 
-        new_packet = waps_packet.WapsPacket(packet.ccsds_time - timedelta(minutes=1),
+        new_packet = waps_packet.WapsPacket(packet.ccsds_time - timedelta(minutes=2),
                                             datetime.now(),
                                             data,
                                             self)
