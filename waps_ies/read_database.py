@@ -3,10 +3,10 @@ Script: read_database.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
 Purpose: WAPS Image Extraction Software
          List the packets of the database
-Version: 2023-05-25 15:00, version 1.0
+Version: 2023-05-31, version 1.0
 
 Change Log:
-2023-05-25 v 1.0
+2023-05-31 v 1.0
  - release
 """
 

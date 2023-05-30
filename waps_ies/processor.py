@@ -3,11 +3,13 @@ Script: processor.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
 Purpose: WAPS PD image extraction software for operations at MUSC
          WAPS packet sorting and image reconstruction module
-Version: 2023-04-18 14:00, version 0.1
+Version: 2023-05-31, version 1.0
 
 Change Log:
 2023-04-18 version 0.1
  - initial version
+2023-05-31 v 1.0
+ - release
 """
 
 from struct import unpack, pack

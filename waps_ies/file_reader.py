@@ -3,12 +3,12 @@ Script: file_reader.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
 Purpose: WAPS Image Extraction Software
          File read methods for WAPS IES testing based on files
-Version: 2023-05-25 15:00, version 1.0
+Version: 2023-05-31, version 1.0
 
 Change Log:
 2023-04-18 version 0.1
  - initial version
-2023-05-25 v 1.0
+2023-05-31 v 1.0
  - release
 """
 

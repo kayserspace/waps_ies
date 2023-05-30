@@ -3,13 +3,13 @@ Script: interface.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
 Purpose: WAPS Image Extraction Software
          Graphical User Interface module
-Version: 2023-05-25 15:00, version 1.0
+Version: 2023-05-31, version 1.0
 
 Change Log:
 2023-04-18 version 0.1
  - initial version, file based
  - prototype stage
-2023-05-25 v 1.0
+2023-05-31 v 1.0
  - release
 """
 
@@ -341,6 +341,7 @@ class WapsIesGui:
         """ Triggers close button interface action. Used externally """
 
         if self.window_open:
+            self.receiver.gui = None
             self.window.write_event_value(None, 'Exit')
 
     def update_server_connected(self):

@@ -5,7 +5,7 @@ Script: waps_ies_app.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
 Purpose: WAPS Image Extraction Software for WAPS Payload to be used for operations at MUSC
          This file contains the IES configuration and initialization
-Version: 2023-05-25 15:00, version 1.0
+Version: 2023-05-31, version 1.0
 
 WAPS Image Extraction Software. Acquires CCSDS packets from a TCP stream and searches for BIOLAB TM
 packets. Extracts WAPS PD images from BIOLAB telemetry and informs of missing packets. IP address
@@ -26,8 +26,8 @@ Change Log:
  2023-03-10 version 0.2
  - moved from file based packet extraction to TCP stream acquisition
  - prototype stage
- 2023-05-26 version 1.0
- - first release
+ 2023-05-31 version 1.0
+ - release
 """
 
 import sys
