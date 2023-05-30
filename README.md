@@ -25,7 +25,7 @@ A configuration file can be used to simplify IES start-up.
 A local database file is used to store all received BIOLAB TM packets containing WAPS image data.
 The IES produces
 1) command stack files for missing packet re-requests
-2) 2) Reconstructed image files
-3) 3) Log file with IES operational events.
+2) Reconstructed image files
+3) Log file with IES operational events.
 4) A GUI provides visual indication to the operator.
 
