@@ -462,7 +462,7 @@ def save_images(images, output_path, receiver, save_incomplete=True):
             receiver.total_lost_packets = (receiver.total_lost_packets +
                                            len(image.get_missing_packets(True)))
 
-            if len(missing_packet > 0):
+            if len(missing_packets) > 0:
                 # Create command stack for missing packets
                 create_command_stack(image, receiver)
 
