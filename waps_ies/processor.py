@@ -473,6 +473,14 @@ def save_images(images, output_path, receiver, save_incomplete=True):
         written_image_tm_file_path = None
         written_image_data_file_path = None
 
+        # Handle if EC position is missing
+        position = image.ec_position
+        if position == '?':
+            position = '.EC_XX'
+
+        # File anme base for any file type
+        file_path_base = date_path + position[1:] + '_' + image.image_name[3:] + image_percentage
+
         # Now save the image to file(s)
         if image.camera_type == 'uCAM':
             # Sanity check the data
@@ -484,8 +492,7 @@ def save_images(images, output_path, receiver, save_incomplete=True):
                                 image.image_name)
 
             # Image data is saved as is, binary
-            file_path = (date_path + image.image_name +
-                         image_percentage + '.jpg')
+            file_path = file_path_base + '.jpg'
 
             written_image_file_path = write_file(image_data, file_path, 'wb', gui)
 
@@ -504,8 +511,7 @@ def save_images(images, output_path, receiver, save_incomplete=True):
                                 image.image_name, len(image_data))
 
             # FLIR telemetry data is saved into a text file
-            file_path_tm = (date_path + image.image_name +
-                            image_percentage + '_tm.txt')
+            file_path_tm = file_path_base + '_tm.txt'
 
             tm_image_data = ""
             for i in range(int(tm_length/2)):
@@ -525,8 +531,7 @@ def save_images(images, output_path, receiver, save_incomplete=True):
                                                     gui)
 
             # FLIR Image data is converted to .csv file
-            file_path_csv = (date_path + image.image_name +
-                             image_percentage + '_data.csv')
+            file_path_csv = file_path_base + '_data.csv'
 
             csv_image_data = str(unpack('>H',
                                  image_data[tm_length:tm_length+2])[0])
@@ -546,8 +551,7 @@ def save_images(images, output_path, receiver, save_incomplete=True):
                                                       gui)
 
             # FLIR Image data is converted is saved as .bmp file
-            file_path = (date_path + image.image_name +
-                         image_percentage + '.bmp')
+            file_path = file_path_base + '.bmp'
 
             # Structure BMP image data
             array_image_data = []

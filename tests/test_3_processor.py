@@ -42,6 +42,15 @@ class TestProcessor(unittest.TestCase):
 
         self.receiver = waps_ies.receiver.Receiver(waps)
 
+        ec_list = []
+        ec_list.append({"ec_address": 171,
+                        "ec_position": ".EC_A4",
+                        "gui_column": None,
+                        "transmission_active": False,
+                        "last_memory_slot": None})
+
+        self.receiver.ec_states = ec_list
+
     @classmethod
     def tearDownClass(self):
         self.receiver.database.database.close()
@@ -115,8 +124,10 @@ class TestProcessor(unittest.TestCase):
         self.receiver.incomplete_images = waps_ies.processor.sort_biolab_packets(packet_list, incomplete_images, self.receiver)
 
         self.assertEqual(len(self.receiver.incomplete_images), 2)
-        flir_image_name = self.receiver.incomplete_images[0].image_name
-        ucam_image_name = self.receiver.incomplete_images[1].image_name
+
+        position = self.receiver.incomplete_images[0].ec_position[1:]
+        flir_image_name = self.receiver.incomplete_images[0].ec_position[1:] + '_' + self.receiver.incomplete_images[0].image_name[3:]
+        ucam_image_name = self.receiver.incomplete_images[1].ec_position[1:] + '_' + self.receiver.incomplete_images[1].image_name[3:]
         waps_ies.processor.save_images(self.receiver.incomplete_images, 'tests/output/', self.receiver)
         self.assertEqual(len(self.receiver.incomplete_images), 0)
 
@@ -241,8 +252,8 @@ class TestProcessor(unittest.TestCase):
             new_file_data = file.read()
             file.close()
 
-        flir_image_name = self.receiver.incomplete_images[0].image_name
-        ucam_image_name = self.receiver.incomplete_images[1].image_name
+        flir_image_name = self.receiver.incomplete_images[0].ec_position[1:] + '_' + self.receiver.incomplete_images[0].image_name[3:]
+        ucam_image_name = self.receiver.incomplete_images[1].ec_position[1:] + '_' + self.receiver.incomplete_images[1].image_name[3:]
         output_dir = "tests/output/" + datetime.datetime.now().strftime("%Y%m%d") + '/'
 
         # Reintegrate FLIR packet
@@ -332,7 +343,7 @@ class TestProcessor(unittest.TestCase):
 
         # Reintegrate FLIR packet
         self.receiver.incomplete_images = waps_ies.processor.sort_biolab_packets([flir_packet], incomplete_images, self.receiver)
-        flir_image_name = self.receiver.incomplete_images[0].image_name
+        flir_image_name = self.receiver.incomplete_images[0].ec_position[1:] + '_' + self.receiver.incomplete_images[0].image_name[3:]
         self.receiver.incomplete_images = waps_ies.processor.save_images(self.receiver.incomplete_images,
                                                                          'tests/output/',
                                                                          self.receiver)
@@ -370,7 +381,7 @@ class TestProcessor(unittest.TestCase):
 
         # Reintegrate uCAM packet
         self.receiver.incomplete_images = waps_ies.processor.sort_biolab_packets([jpg_packet], incomplete_images, self.receiver)
-        ucam_image_name = self.receiver.incomplete_images[0].image_name
+        ucam_image_name = self.receiver.incomplete_images[0].ec_position[1:] + '_' + self.receiver.incomplete_images[0].image_name[3:]
         self.receiver.incomplete_images = waps_ies.processor.save_images(self.receiver.incomplete_images,
                                                                          'tests/output/',
                                                                          self.receiver)

@@ -319,6 +319,7 @@ class Database:
                 image.add_packet(packet)
             image.uuid = image_entry[0]
 
+            image.ec_position = image_entry[7]
             image.overwritten = image_entry[11]
             image.outdated = image_entry[12]
             image.transmission_active = image_entry[13]
