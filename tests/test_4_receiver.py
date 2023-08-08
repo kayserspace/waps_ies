@@ -20,6 +20,7 @@ class TestReceiver(unittest.TestCase):
                 "log_path": 'tests/output/log3/',             # directory
                 "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR
                 "gui_enabled": '0',             # Graphical User Interface
+                "command_delay": '2500',        # Delay in ms between Yamcs commands
                 "image_timeout": '0',         # minutes (10h by default)
                 "detect_mem_slot": '1',         # False
                 "skip_verify_code": '0',

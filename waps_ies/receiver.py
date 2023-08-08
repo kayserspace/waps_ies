@@ -237,6 +237,8 @@ class Receiver:
 
         self.database = database.Database(self.database_file, self, waps_config["silent_db_creation"])
 
+        self.command_delay = waps_config["command_delay"]
+
         # Configure gui
         self.gui = None
         if waps_config["gui_enabled"] == '1':

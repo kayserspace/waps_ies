@@ -85,6 +85,7 @@ def check_config_file():
             "log_path": 'logs/',            # Logging directory
             "log_level": 'INFO',            # INFO / DEBUG / WARNING / ERROR
             "gui_enabled": '1',             # Graphical User Interface enabled
+            "command_delay": '2500',        # Yamcs command stack delay between missing packet commands
             "image_timeout": '600',         # minutes (10h by default)
             "detect_mem_slot": '1',         # Check BIOLAB header and track EC memory slot change
             "skip_verify_code": '0',        # Check colour image verification code
@@ -123,6 +124,8 @@ def check_config_file():
                                        fallback=waps["log_level"])
         waps["gui_enabled"] = config.get('WAPS_IES', 'gui_enabled',
                                          fallback=waps["gui_enabled"])
+        waps["command_delay"] = config.get('WAPS_IES', 'command_delay',
+                                           fallback=waps["command_delay"])
         waps["image_timeout"] = config.get('WAPS_IES', 'image_timeout',
                                            fallback=waps["image_timeout"])
         waps["detect_mem_slot"] = config.get('WAPS_IES', 'memory_slot_change_detection',
