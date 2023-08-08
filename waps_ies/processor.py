@@ -348,7 +348,6 @@ def create_command_stack(image, receiver):
     ec_position = image.ec_position
     if ec_position == '?':
         ec_position = '.EC_XX'
-    current_time = datetime.now()
     missing_packets = image.get_missing_packets()
 
     # Start of the Yamcs command stack
@@ -419,7 +418,7 @@ def create_command_stack(image, receiver):
 }'''
 
     file_path = (receiver.comm_path + f"{ec_position[1:]}_{image.ec_address}_m{image.memory_slot}_" +
-                 current_time.strftime('%Y-%m-%d_%H%M%S') + ".ycs")
+                 image.last_update.strftime('%Y-%m-%d_%H%M%S') + ".ycs")
 
     try:
         with open(file_path, 'w') as file:
