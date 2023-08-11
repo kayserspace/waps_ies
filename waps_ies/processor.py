@@ -464,6 +464,8 @@ def save_images(images, output_path, receiver, save_incomplete=True):
         date_path = output_path + image.ccsds_time.strftime('%Y%m%d') + '/'
         if (not os.path.exists(date_path) or
                 not os.path.isdir(date_path)):
+            if not os.path.exists(output_path):
+                os.mkdir(output_path)
             os.mkdir(date_path)
 
         successful_write = False
