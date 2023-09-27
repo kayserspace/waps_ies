@@ -5,7 +5,7 @@ Script: waps_ies_app.py
 Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
 Purpose: WAPS Image Extraction Software for WAPS Payload to be used for operations at MUSC
          This file contains the IES configuration and initialization
-Version: 2023-05-31, version 1.0
+Version: 2023-09-27, version 1.1
 
 WAPS Image Extraction Software. Acquires CCSDS packets from a TCP stream and searches for BIOLAB TM
 packets. Extracts WAPS PD images from BIOLAB telemetry and informs of missing packets. IP address
@@ -27,7 +27,9 @@ Change Log:
  - moved from file based packet extraction to TCP stream acquisition
  - prototype stage
  2023-05-31 version 1.0
- - release
+ - First release
+2023-09-27 version 1.1
+ - Added command delay parameter to the configurtion file
 """
 
 import sys
@@ -65,6 +67,8 @@ def check_config_file():
     log_level = info
     # Enable Graphical User Interface
     gui_enabled = 1
+    # Yamcs command stack delay between missing packet commands
+    command_delay = 2500
     # Image timeout in minutes. After this period image is considered OUTDATED.
     # 0 means disable this feature
     image_timeout = 600
@@ -90,7 +94,7 @@ def check_config_file():
             "detect_mem_slot": '1',         # Check BIOLAB header and track EC memory slot change
             "skip_verify_code": '0',        # Check colour image verification code
             "ies_instance_name": ' ',       # IES instance name in the GUI title
-            "version": "v1.0  2023-05-31"}  # WAPS IES version
+            "version": "v1.1  2023-09-27"}  # WAPS IES version
 
     # EC list contains
     # - EC address

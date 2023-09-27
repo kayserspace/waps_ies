@@ -4,13 +4,15 @@ Author: Georgi Olentsenko, g.olentsenko@kayserspace.co.uk
 Purpose: WAPS Image Extraction Software
          Receiver class. Receives and processes CCSDS packets into BIOLAB TM packets.
          Main loop of the application.
-Version: 2023-05-31, version 1.0
+Version: 2023-09-27 version 1.1
 
 Change Log:
 2023-04-18 version 0.1
  - initial version
 2023-05-31 v 1.0
  - release
+2023-09-27 version 1.1
+ - Added command delay parameter to the configurtion
 """
 
 import logging
